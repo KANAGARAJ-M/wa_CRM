@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import {
     ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Save, Loader2,
-    MessageCircle, Check, X, Eye, EyeOff, AlertCircle
+    MessageCircle, Check, X, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff, Link
 } from 'lucide-react';
 
 export default function Settings() {
@@ -14,6 +14,9 @@ export default function Settings() {
     const [showTokens, setShowTokens] = useState({});
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [subscriptionStatus, setSubscriptionStatus] = useState([]);
+    const [checkingStatus, setCheckingStatus] = useState(false);
+    const [subscribing, setSubscribing] = useState(false);
 
     useEffect(() => {
         fetchSettings();
@@ -82,6 +85,52 @@ export default function Settings() {
         }));
     };
 
+    const checkSubscriptionStatus = async () => {
+        setCheckingStatus(true);
+        setError('');
+        try {
+            const response = await api.get('/whatsapp/subscription-status');
+            setSubscriptionStatus(response.data.results || []);
+            const allSubscribed = response.data.results?.every(r => r.isSubscribed);
+            if (allSubscribed && response.data.results.length > 0) {
+                setSuccess('All accounts are subscribed to receive messages!');
+                setTimeout(() => setSuccess(''), 3000);
+            } else if (response.data.results.length === 0) {
+                setError('No WhatsApp accounts configured. Please add an account first.');
+            }
+        } catch (error) {
+            console.error('Error checking subscription status:', error);
+            setError('Failed to check subscription status: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setCheckingStatus(false);
+        }
+    };
+
+    const subscribeToMessages = async () => {
+        setSubscribing(true);
+        setError('');
+        try {
+            const response = await api.post('/whatsapp/subscribe');
+            const results = response.data.results || [];
+            const allSuccess = results.every(r => r.success);
+
+            if (allSuccess) {
+                setSuccess('Successfully subscribed all accounts to receive messages!');
+                // Refresh status after subscribing
+                await checkSubscriptionStatus();
+            } else {
+                const failed = results.filter(r => !r.success);
+                setError(`Some accounts failed to subscribe: ${failed.map(f => f.name + (f.error?.message ? ` - ${f.error.message}` : '')).join(', ')}`);
+            }
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (error) {
+            console.error('Error subscribing:', error);
+            setError('Failed to subscribe: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setSubscribing(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -123,6 +172,109 @@ export default function Settings() {
                         {success}
                     </div>
                 )}
+
+                {/* Webhook Subscription Status */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                    <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+                        <div className="flex items-center gap-3">
+                            <Link className="h-5 w-5 text-blue-600" />
+                            <h2 className="text-lg font-semibold text-gray-800">Webhook Subscription Status</h2>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={checkSubscriptionStatus}
+                                disabled={checkingStatus}
+                                className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-70"
+                            >
+                                {checkingStatus ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Checking...
+                                    </>
+                                ) : (
+                                    <>
+                                        <RefreshCw className="h-4 w-4" />
+                                        Check Status
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={subscribeToMessages}
+                                disabled={subscribing || whatsappConfigs.length === 0}
+                                className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 disabled:opacity-70"
+                            >
+                                {subscribing ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Subscribing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Wifi className="h-4 w-4" />
+                                        Subscribe All
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="p-6">
+                        {subscriptionStatus.length === 0 ? (
+                            <div className="text-center py-6 text-gray-500">
+                                <Wifi className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                                <p>Click "Check Status" to verify if your accounts are subscribed to receive WhatsApp messages.</p>
+                                <p className="text-sm mt-2 text-gray-400">Subscription is required to receive incoming messages via webhook.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {subscriptionStatus.map((status, index) => (
+                                    <div
+                                        key={index}
+                                        className={`flex items-center justify-between p-4 rounded-lg border ${status.isSubscribed
+                                                ? 'bg-green-50 border-green-200'
+                                                : status.error
+                                                    ? 'bg-red-50 border-red-200'
+                                                    : 'bg-yellow-50 border-yellow-200'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {status.isSubscribed ? (
+                                                <Wifi className="h-5 w-5 text-green-600" />
+                                            ) : (
+                                                <WifiOff className="h-5 w-5 text-red-500" />
+                                            )}
+                                            <div>
+                                                <h4 className="font-medium text-gray-800">{status.name || `Account ${index + 1}`}</h4>
+                                                <p className="text-sm text-gray-500">WABA ID: {status.businessAccountId || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            {status.isSubscribed ? (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                                                    <Check className="h-3 w-3" />
+                                                    Subscribed
+                                                </span>
+                                            ) : status.error ? (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 text-sm font-medium rounded-full">
+                                                    <X className="h-3 w-3" />
+                                                    Error
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-full">
+                                                    <AlertCircle className="h-3 w-3" />
+                                                    Not Subscribed
+                                                </span>
+                                            )}
+                                            {status.error && (
+                                                <p className="text-xs text-red-500 mt-1">{status.error.message || status.error}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {/* WhatsApp Configurations */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

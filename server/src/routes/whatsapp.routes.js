@@ -300,4 +300,68 @@ router.post('/subscribe', auth, adminOnly, async (req, res) => {
     }
 });
 
+// @route   GET /whatsapp/subscription-status
+// @desc    Check if app is subscribed to WhatsApp Business Account
+// @access  Private/Admin
+router.get('/subscription-status', auth, adminOnly, async (req, res) => {
+    try {
+        const settings = await Settings.findOne();
+        if (!settings || !settings.whatsappConfigs || settings.whatsappConfigs.length === 0) {
+            return res.status(404).json({ success: false, message: 'No WhatsApp configuration found' });
+        }
+
+        const results = [];
+        const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
+
+        // Check subscription status for each config
+        for (const config of settings.whatsappConfigs) {
+            if (config.businessAccountId && config.accessToken) {
+                try {
+                    // Check subscribed apps
+                    const url = `${GRAPH_API_URL}/${config.businessAccountId}/subscribed_apps`;
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${config.accessToken}`
+                        }
+                    });
+                    const data = await response.json();
+
+                    results.push({
+                        name: config.name,
+                        businessAccountId: config.businessAccountId,
+                        phoneNumberId: config.phoneNumberId,
+                        isEnabled: config.isEnabled,
+                        subscriptionData: data.data || [],
+                        isSubscribed: data.data && data.data.length > 0,
+                        error: data.error
+                    });
+                } catch (err) {
+                    results.push({
+                        name: config.name,
+                        businessAccountId: config.businessAccountId,
+                        isSubscribed: false,
+                        error: err.message
+                    });
+                }
+            } else {
+                results.push({
+                    name: config.name,
+                    isSubscribed: false,
+                    error: 'Missing businessAccountId or accessToken'
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            results
+        });
+
+    } catch (error) {
+        console.error('Subscription status check error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 module.exports = router;
