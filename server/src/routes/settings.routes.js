@@ -1,5 +1,5 @@
 const express = require('express');
-const { Settings } = require('../models');
+const { Company } = require('../models');
 const { auth, adminOnly } = require('../middleware');
 
 const router = express.Router();
@@ -9,8 +9,14 @@ const router = express.Router();
 // @access  Private/Admin
 router.get('/', auth, adminOnly, async (req, res) => {
     try {
-        const settings = await Settings.getSettings();
-        res.json({ success: true, data: settings });
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+        const company = await Company.findById(req.companyId);
+        if (!company) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
+        }
+        res.json({ success: true, data: company });
     } catch (error) {
         console.error('Get settings error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -24,18 +30,22 @@ router.put('/', auth, adminOnly, async (req, res) => {
     try {
         const { whatsappConfigs } = req.body;
 
-        let settings = await Settings.findOne();
-        if (!settings) {
-            settings = new Settings();
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const company = await Company.findById(req.companyId);
+        if (!company) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
         }
 
         if (whatsappConfigs !== undefined) {
-            settings.whatsappConfigs = whatsappConfigs;
+            company.whatsappConfigs = whatsappConfigs;
         }
 
-        await settings.save();
+        await company.save();
 
-        res.json({ success: true, data: settings });
+        res.json({ success: true, data: company });
     } catch (error) {
         console.error('Update settings error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -53,12 +63,16 @@ router.post('/whatsapp-config', auth, adminOnly, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Configuration name is required' });
         }
 
-        let settings = await Settings.findOne();
-        if (!settings) {
-            settings = new Settings();
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
-        settings.whatsappConfigs.push({
+        const company = await Company.findById(req.companyId);
+        if (!company) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
+        }
+
+        company.whatsappConfigs.push({
             name,
             apiKey: apiKey || '',
             accessToken: accessToken || '',
@@ -68,9 +82,9 @@ router.post('/whatsapp-config', auth, adminOnly, async (req, res) => {
             isEnabled: isEnabled || false
         });
 
-        await settings.save();
+        await company.save();
 
-        res.json({ success: true, data: settings });
+        res.json({ success: true, data: company });
     } catch (error) {
         console.error('Add WhatsApp config error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -85,22 +99,26 @@ router.put('/whatsapp-config/:index', auth, adminOnly, async (req, res) => {
         const index = parseInt(req.params.index);
         const { name, apiKey, accessToken, phoneNumberId, businessAccountId, webhookVerifyToken, isEnabled } = req.body;
 
-        const settings = await Settings.findOne();
-        if (!settings || !settings.whatsappConfigs[index]) {
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const company = await Company.findById(req.companyId);
+        if (!company || !company.whatsappConfigs[index]) {
             return res.status(404).json({ success: false, message: 'Configuration not found' });
         }
 
-        if (name !== undefined) settings.whatsappConfigs[index].name = name;
-        if (apiKey !== undefined) settings.whatsappConfigs[index].apiKey = apiKey;
-        if (accessToken !== undefined) settings.whatsappConfigs[index].accessToken = accessToken;
-        if (phoneNumberId !== undefined) settings.whatsappConfigs[index].phoneNumberId = phoneNumberId;
-        if (businessAccountId !== undefined) settings.whatsappConfigs[index].businessAccountId = businessAccountId;
-        if (webhookVerifyToken !== undefined) settings.whatsappConfigs[index].webhookVerifyToken = webhookVerifyToken;
-        if (isEnabled !== undefined) settings.whatsappConfigs[index].isEnabled = isEnabled;
+        if (name !== undefined) company.whatsappConfigs[index].name = name;
+        if (apiKey !== undefined) company.whatsappConfigs[index].apiKey = apiKey;
+        if (accessToken !== undefined) company.whatsappConfigs[index].accessToken = accessToken;
+        if (phoneNumberId !== undefined) company.whatsappConfigs[index].phoneNumberId = phoneNumberId;
+        if (businessAccountId !== undefined) company.whatsappConfigs[index].businessAccountId = businessAccountId;
+        if (webhookVerifyToken !== undefined) company.whatsappConfigs[index].webhookVerifyToken = webhookVerifyToken;
+        if (isEnabled !== undefined) company.whatsappConfigs[index].isEnabled = isEnabled;
 
-        await settings.save();
+        await company.save();
 
-        res.json({ success: true, data: settings });
+        res.json({ success: true, data: company });
     } catch (error) {
         console.error('Update WhatsApp config error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -114,15 +132,19 @@ router.delete('/whatsapp-config/:index', auth, adminOnly, async (req, res) => {
     try {
         const index = parseInt(req.params.index);
 
-        const settings = await Settings.findOne();
-        if (!settings || !settings.whatsappConfigs[index]) {
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const company = await Company.findById(req.companyId);
+        if (!company || !company.whatsappConfigs[index]) {
             return res.status(404).json({ success: false, message: 'Configuration not found' });
         }
 
-        settings.whatsappConfigs.splice(index, 1);
-        await settings.save();
+        company.whatsappConfigs.splice(index, 1);
+        await company.save();
 
-        res.json({ success: true, data: settings });
+        res.json({ success: true, data: company });
     } catch (error) {
         console.error('Delete WhatsApp config error:', error);
         res.status(500).json({ success: false, message: 'Server error' });

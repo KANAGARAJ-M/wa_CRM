@@ -11,6 +11,11 @@ const leadSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        index: true
+    },
     email: {
         type: String,
         trim: true,

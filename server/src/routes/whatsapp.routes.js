@@ -1,5 +1,5 @@
 const express = require('express');
-const { WhatsAppMessage, Settings, Lead } = require('../models');
+const { WhatsAppMessage, Settings, Lead, Company } = require('../models');
 const { auth, adminOnly } = require('../middleware');
 
 const router = express.Router();
@@ -15,14 +15,19 @@ router.post('/send', auth, adminOnly, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Message and phone are required' });
         }
 
-        // Get Settings to find WhatsApp Config
-        const settings = await Settings.findOne();
-        if (!settings || !settings.whatsappConfigs || settings.whatsappConfigs.length === 0) {
-            return res.status(404).json({ success: false, message: 'No WhatsApp configuration found' });
+        // Get Company Settings to find WhatsApp Config
+        // req.companyId is set by auth middleware
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const company = await Company.findById(req.companyId);
+        if (!company || !company.whatsappConfigs || company.whatsappConfigs.length === 0) {
+            return res.status(404).json({ success: false, message: 'No WhatsApp configuration found for this company' });
         }
 
         // Use the first enabled config for now (or improve to select based on context)
-        const config = settings.whatsappConfigs.find(c => c.isEnabled) || settings.whatsappConfigs[0];
+        const config = company.whatsappConfigs.find(c => c.isEnabled) || company.whatsappConfigs[0];
 
         if (!config || !config.phoneNumberId || !config.accessToken) {
             return res.status(400).json({ success: false, message: 'Invalid WhatsApp configuration' });
@@ -57,6 +62,7 @@ router.post('/send', auth, adminOnly, async (req, res) => {
 
         // Save to Database
         const newMessage = await WhatsAppMessage.create({
+            companyId: req.companyId,
             phoneNumberId: config.phoneNumberId,
             from: config.phoneNumberId, // Sender is the business
             to: phone,
@@ -83,7 +89,11 @@ router.get('/messages', auth, adminOnly, async (req, res) => {
     try {
         const { phoneNumberId, page = 1, limit = 50 } = req.query;
 
-        const query = {};
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const query = { companyId: req.companyId };
         if (phoneNumberId) {
             query.phoneNumberId = phoneNumberId;
         }
@@ -140,8 +150,21 @@ router.post('/', async (req, res) => {
                 // Check if message already exists (to prevent duplicates)
                 const existingMessage = await WhatsAppMessage.findOne({ messageId });
                 if (!existingMessage) {
+
+                    // Find which Company owns this phoneNumberId
+                    const company = await Company.findOne({ 'whatsappConfigs.phoneNumberId': phoneNumberId });
+
+                    if (!company) {
+                        console.error(`Received webhook for unknown phoneNumberId: ${phoneNumberId}`);
+                        // Still return 200 to acknowledge receipt to Meta
+                        return res.sendStatus(200);
+                    }
+
+                    const companyId = company._id;
+
                     // Save the WhatsApp message
                     await WhatsAppMessage.create({
+                        companyId: companyId,
                         phoneNumberId,
                         from,
                         fromName,
@@ -153,12 +176,13 @@ router.post('/', async (req, res) => {
 
                     // Create or update lead from WhatsApp message
                     try {
-                        // Check if lead already exists with this phone number
-                        let lead = await Lead.findOne({ phone: from });
+                        // Check if lead already exists with this phone number FOR THIS COMPANY
+                        let lead = await Lead.findOne({ phone: from, companyId: companyId });
 
                         if (!lead) {
                             // Create new lead
                             lead = await Lead.create({
+                                companyId: companyId,
                                 name: fromName || `WhatsApp User ${from}`,
                                 phone: from,
                                 phoneNumberId: phoneNumberId,

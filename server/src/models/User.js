@@ -27,7 +27,11 @@ const userSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
-    }
+    },
+    companies: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company'
+    }]
 }, {
     timestamps: true
 });

@@ -10,7 +10,7 @@ export default function Layout({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [communicationExpanded, setCommunicationExpanded] = useState(true);
-    const { user, logout } = useAuth();
+    const { user, logout, currentCompany } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -55,7 +55,9 @@ export default function Layout({ children }) {
                             </div>
                             <div>
                                 <h1 className="font-bold text-lg leading-tight">WhatsApp</h1>
-                                <p className="text-xs text-gray-400 leading-tight">CRM Platform</p>
+                                <p className="text-xs text-gray-400 leading-tight">
+                                    {currentCompany?.name || 'CRM Platform'}
+                                </p>
                             </div>
                         </div>
                     ) : (

@@ -32,7 +32,8 @@ router.post('/login', [
         const { email, password } = req.body;
 
         // Find user
-        const user = await User.findOne({ email: email.toLowerCase() });
+        const user = await User.findOne({ email: email.toLowerCase() })
+            .populate('companies', 'name');
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -82,6 +83,8 @@ router.post('/login', [
 // @access  Private
 router.get('/me', auth, async (req, res) => {
     try {
+        await req.user.populate('companies', 'name');
+
         res.json({
             success: true,
             data: req.user.toJSON()

@@ -18,7 +18,16 @@ router.post('/bulk', auth, adminOnly, async (req, res) => {
             });
         }
 
-        const createdLeads = await Lead.insertMany(leads);
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const leadsWithCompany = leads.map(lead => ({
+            ...lead,
+            companyId: req.companyId
+        }));
+
+        const createdLeads = await Lead.insertMany(leadsWithCompany);
 
         res.json({
             success: true,
@@ -48,7 +57,12 @@ router.post('/', auth, adminOnly, async (req, res) => {
             });
         }
 
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
         const lead = await Lead.create({
+            companyId: req.companyId,
             name,
             phone,
             email,
@@ -81,7 +95,11 @@ router.get('/', auth, adminOnly, async (req, res) => {
     try {
         const { date, startDate, endDate, page = 1, limit = 50, search } = req.query;
 
-        const query = {};
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const query = { companyId: req.companyId };
 
         if (date) {
             const startOfDay = new Date(date);
@@ -143,11 +161,15 @@ router.get('/', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.get('/kanban', auth, adminOnly, async (req, res) => {
     try {
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
         const stages = ['new', 'contacted', 'interested', 'negotiation', 'converted', 'lost'];
 
         const result = await Promise.all(
             stages.map(async (stage) => {
-                const leads = await Lead.find({ stage })
+                const leads = await Lead.find({ stage, companyId: req.companyId })
                     .sort({ stageOrder: 1, updatedAt: -1 })
                     .populate('assignedTo', 'name email');
                 return {
@@ -172,8 +194,12 @@ router.put('/:id/stage', auth, adminOnly, async (req, res) => {
     try {
         const { stage, stageOrder } = req.body;
 
-        const lead = await Lead.findByIdAndUpdate(
-            req.params.id,
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const lead = await Lead.findOneAndUpdate(
+            { _id: req.params.id, companyId: req.companyId },
             {
                 stage,
                 stageOrder: stageOrder || 0
@@ -197,7 +223,11 @@ router.put('/:id/stage', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.get('/:id', auth, adminOnly, async (req, res) => {
     try {
-        const lead = await Lead.findById(req.params.id)
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const lead = await Lead.findOne({ _id: req.params.id, companyId: req.companyId })
             .populate('assignedTo', 'name email');
 
         if (!lead) {
@@ -218,8 +248,12 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
     try {
         const { name, phone, email, stage, status, notes, priority, value } = req.body;
 
-        const lead = await Lead.findByIdAndUpdate(
-            req.params.id,
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const lead = await Lead.findOneAndUpdate(
+            { _id: req.params.id, companyId: req.companyId },
             { name, phone, email, stage, status, notes, priority, value },
             { new: true }
         );
@@ -240,7 +274,11 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.delete('/:id', auth, adminOnly, async (req, res) => {
     try {
-        const lead = await Lead.findByIdAndDelete(req.params.id);
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const lead = await Lead.findOneAndDelete({ _id: req.params.id, companyId: req.companyId });
 
         if (!lead) {
             return res.status(404).json({ success: false, message: 'Lead not found' });
@@ -260,8 +298,12 @@ router.post('/:id/comment', auth, async (req, res) => {
     try {
         const { content } = req.body;
 
-        const lead = await Lead.findByIdAndUpdate(
-            req.params.id,
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const lead = await Lead.findOneAndUpdate(
+            { _id: req.params.id, companyId: req.companyId },
             {
                 $push: {
                     commentHistory: {

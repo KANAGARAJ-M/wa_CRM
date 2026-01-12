@@ -34,6 +34,27 @@ const auth = async (req, res, next) => {
             }
 
             req.user = user;
+
+            // Handle Multi-Tenancy
+            const headerCompanyId = req.headers['x-company-id'];
+
+            if (headerCompanyId) {
+                // Check if user belongs to this company (assuming companies are ObjectIds)
+                if (user.companies && user.companies.some(id => id.toString() === headerCompanyId)) {
+                    req.companyId = headerCompanyId;
+                } else {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Access denied. You do not belong to this company.'
+                    });
+                }
+            } else {
+                // Default to first company if available
+                if (user.companies && user.companies.length > 0) {
+                    req.companyId = user.companies[0].toString();
+                }
+            }
+
             next();
         } catch (error) {
             return res.status(401).json({

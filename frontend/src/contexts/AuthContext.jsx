@@ -5,24 +5,56 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [currentCompany, setCurrentCompany] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
+        const savedCompanyId = localStorage.getItem('companyId');
 
         if (token && savedUser) {
-            setUser(JSON.parse(savedUser));
+            const parsedUser = JSON.parse(savedUser);
+            setUser(parsedUser);
+
+            // Restore company if valid
+            if (savedCompanyId && parsedUser.companies) {
+                const found = parsedUser.companies.find(c => (c._id || c) === savedCompanyId);
+                if (found) setCurrentCompany(found);
+            }
+
             // Verify token is still valid
             api.get('/auth/me')
                 .then(res => {
-                    setUser(res.data.data);
-                    localStorage.setItem('user', JSON.stringify(res.data.data));
+                    const freshUser = res.data.data;
+                    setUser(freshUser);
+                    localStorage.setItem('user', JSON.stringify(freshUser));
+
+                    // Re-validate company with fresh data
+                    const currentId = localStorage.getItem('companyId');
+                    if (currentId && freshUser.companies) {
+                        const found = freshUser.companies.find(c => (c._id || c) === currentId);
+                        if (found) {
+                            setCurrentCompany(found);
+                        } else if (freshUser.companies.length === 1) {
+                            // Auto-select if only one
+                            selectCompany(freshUser.companies[0]);
+                        } else {
+                            // Invalid company ID for this user
+                            localStorage.removeItem('companyId');
+                            setCurrentCompany(null);
+                        }
+                    } else if (freshUser.companies && freshUser.companies.length === 1) {
+                        // Auto-select if only one
+                        selectCompany(freshUser.companies[0]);
+                    }
                 })
                 .catch(() => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
+                    localStorage.removeItem('companyId');
                     setUser(null);
+                    setCurrentCompany(null);
                 })
                 .finally(() => setLoading(false));
         } else {
@@ -38,17 +70,29 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
 
+        // Auto-select company if only one
+        if (userData.companies && userData.companies.length === 1) {
+            selectCompany(userData.companies[0]);
+        }
+
         return userData;
     };
 
     const logout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('companyId');
         setUser(null);
+        setCurrentCompany(null);
+    };
+
+    const selectCompany = (company) => {
+        setCurrentCompany(company);
+        localStorage.setItem('companyId', company._id || company);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, currentCompany, login, logout, selectCompany, loading }}>
             {children}
         </AuthContext.Provider>
     );
