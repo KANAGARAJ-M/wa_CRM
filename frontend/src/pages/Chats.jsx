@@ -21,9 +21,29 @@ export default function Chats() {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 15000);
+        const interval = setInterval(fetchData, 3000); // 3 seconds for near real-time updates
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        if (selectedChat?.unreadCount > 0) {
+            markAsRead(selectedChat);
+        }
+    }, [selectedChat, conversations]);
+
+    const markAsRead = async (chat) => {
+        try {
+            await api.post('/whatsapp/mark-read', {
+                contactPhone: chat.contactPhone,
+                phoneNumberId: chat.integrationId
+            });
+            // Optimistically update conversation unread count used for badge
+            // But we won't mutate messages status locally to avoid complex sync, 
+            // relying on backend poll to verify 'read' status eventually.
+        } catch (error) {
+            console.error('Error marking as read:', error);
+        }
+    };
 
     useEffect(() => {
         scrollToBottom();

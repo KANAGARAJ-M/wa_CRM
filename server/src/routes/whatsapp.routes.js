@@ -82,6 +82,78 @@ router.post('/send', auth, adminOnly, async (req, res) => {
     }
 });
 
+// @route   POST /api/whatsapp/mark-read
+// @desc    Mark messages as read (send read receipt to Meta)
+// @access  Private/Admin
+router.post('/mark-read', auth, adminOnly, async (req, res) => {
+    try {
+        const { contactPhone, phoneNumberId } = req.body;
+
+        if (!contactPhone || !phoneNumberId) {
+            return res.status(400).json({ success: false, message: 'Contact phone and phoneNumberId are required' });
+        }
+
+        // Get company config
+        const company = await Company.findById(req.companyId);
+        if (!company) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
+        }
+
+        const config = company.whatsappConfigs.find(c => c.phoneNumberId === phoneNumberId);
+        if (!config || !config.accessToken) {
+            return res.status(400).json({ success: false, message: 'Configuration not found' });
+        }
+
+        // Find unread incoming messages from this contact
+        const unreadMessages = await WhatsAppMessage.find({
+            companyId: req.companyId,
+            from: contactPhone,
+            phoneNumberId: phoneNumberId,
+            status: { $in: ['received', 'pending'] }, // pending shouldn't happen for incoming but safe check
+            direction: 'incoming'
+        });
+
+        if (unreadMessages.length === 0) {
+            return res.json({ success: true, count: 0 });
+        }
+
+        const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
+
+        // Mark each as read on Meta
+        // We can do this in parallel
+        await Promise.all(unreadMessages.map(async (msg) => {
+            if (!msg.messageId) return;
+
+            try {
+                await fetch(`${GRAPH_API_URL}/${phoneNumberId}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${config.accessToken}`
+                    },
+                    body: JSON.stringify({
+                        messaging_product: 'whatsapp',
+                        status: 'read',
+                        message_id: msg.messageId
+                    })
+                });
+
+                // Update local status
+                msg.status = 'read';
+                await msg.save();
+            } catch (err) {
+                console.error(`Failed to mark message ${msg.messageId} as read:`, err);
+            }
+        }));
+
+        res.json({ success: true, count: unreadMessages.length });
+
+    } catch (error) {
+        console.error('Mark read error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 // @route   GET /api/whatsapp/messages
 // @desc    Get all WhatsApp messages, optionally filtered by phoneNumberId
 // @access  Private/Admin
