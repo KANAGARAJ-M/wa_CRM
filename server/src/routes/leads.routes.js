@@ -79,7 +79,7 @@ router.post('/', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.get('/', auth, adminOnly, async (req, res) => {
     try {
-        const { date, page = 1, limit = 50, search } = req.query;
+        const { date, startDate, endDate, page = 1, limit = 50, search } = req.query;
 
         const query = {};
 
@@ -89,6 +89,18 @@ router.get('/', auth, adminOnly, async (req, res) => {
             const endOfDay = new Date(date);
             endOfDay.setHours(23, 59, 59, 999);
             query.uploadDate = { $gte: startOfDay, $lte: endOfDay };
+        } else if (startDate || endDate) {
+            query.uploadDate = {};
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                query.uploadDate.$gte = start;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                query.uploadDate.$lte = end;
+            }
         }
 
         if (search) {

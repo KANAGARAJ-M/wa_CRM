@@ -69,6 +69,13 @@ const leadSchema = new mongoose.Schema({
         type: String,
         enum: ['low', 'medium', 'high', 'urgent'],
         default: 'medium'
+    },
+    lastMessage: {
+        type: String
+    },
+    lastInteraction: {
+        type: Date,
+        default: Date.now
     }
 }, {
     timestamps: true

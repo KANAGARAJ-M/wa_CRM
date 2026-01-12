@@ -14,6 +14,7 @@ export default function Leads() {
     const [whatsappConfigs, setWhatsappConfigs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const navigate = useNavigate();
 
     // Leads Management State
@@ -40,6 +41,9 @@ export default function Leads() {
 
     useEffect(() => {
         fetchLeads();
+    }, [dateRange]);
+
+    useEffect(() => {
         fetchSettings();
     }, []);
 
@@ -62,7 +66,11 @@ export default function Leads() {
     const fetchLeads = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/leads?limit=500');
+            let query = '/leads?limit=500';
+            if (dateRange.start) query += `&startDate=${dateRange.start}`;
+            if (dateRange.end) query += `&endDate=${dateRange.end}`;
+
+            const response = await api.get(query);
             setLeads(response.data.data || []);
         } catch (error) {
             console.error('Error fetching leads:', error);
@@ -342,10 +350,37 @@ export default function Leads() {
                         </div>
                     </div>
 
-                    {/* Search */}
+                    {/* Search and Filter */}
                     <div className="p-3 border-b border-gray-100 bg-white">
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
+                        <div className="flex flex-col md:flex-row items-center gap-2">
+                            {/* Date Filter */}
+                            <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200 w-full md:w-auto">
+                                <span className="text-xs text-gray-500 pl-1">From:</span>
+                                <input
+                                    type="date"
+                                    className="bg-transparent border-none text-sm focus:ring-0 px-1 py-1 text-gray-600 w-32"
+                                    value={dateRange.start}
+                                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                                />
+                                <span className="text-xs text-gray-500">To:</span>
+                                <input
+                                    type="date"
+                                    className="bg-transparent border-none text-sm focus:ring-0 px-1 py-1 text-gray-600 w-32"
+                                    value={dateRange.end}
+                                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                                />
+                                {(dateRange.start || dateRange.end) && (
+                                    <button
+                                        onClick={() => setDateRange({ start: '', end: '' })}
+                                        className="p-1 hover:bg-gray-200 rounded-full text-gray-500"
+                                        title="Clear Date Filter"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="relative flex-1 w-full">
                                 <input
                                     type="text"
                                     placeholder="Search leads..."
@@ -430,7 +465,7 @@ export default function Leads() {
                                                                     <h4 className="font-medium text-gray-900 truncate text-sm">{lead.name}</h4>
                                                                     <span className="text-xs text-gray-400 flex items-center gap-1">
                                                                         <Clock className="h-3 w-3" />
-                                                                        {formatLeadTime(lead.createdAt)}
+                                                                        {formatLeadTime(lead.lastInteraction || lead.createdAt)}
                                                                     </span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2 mt-0.5">
@@ -444,7 +479,14 @@ export default function Leads() {
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex items-center gap-2 mt-1">
+                                                                {lead.lastMessage && (
+                                                                    <div className="mt-1 text-xs text-gray-500 truncate pr-2">
+                                                                        {lead.lastMessage.length > 50
+                                                                            ? lead.lastMessage.substring(0, 50) + '...'
+                                                                            : lead.lastMessage}
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex items-center gap-2 mt-2">
                                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${lead.stage === 'new' ? 'bg-blue-100 text-blue-700' :
                                                                         lead.stage === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
                                                                             lead.stage === 'interested' ? 'bg-green-100 text-green-700' :

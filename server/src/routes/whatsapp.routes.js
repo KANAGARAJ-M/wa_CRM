@@ -178,6 +178,8 @@ router.post('/', async (req, res) => {
                             // Update existing lead with new message
                             const newNote = `\n\n[${new Date().toLocaleString()}] WhatsApp message: ${msgBody || `[${msgType} message]`}`;
                             lead.notes = (lead.notes || '') + newNote;
+                            lead.lastMessage = msgBody || `[${msgType} message]`;
+                            lead.lastInteraction = new Date();
 
                             // Add to comment history
                             if (!lead.commentHistory) {
