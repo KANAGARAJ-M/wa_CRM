@@ -16,6 +16,10 @@ const leadSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
+    phoneNumberId: {
+        type: String,
+        index: true
+    },
     // Pipeline stage for Kanban
     stage: {
         type: String,

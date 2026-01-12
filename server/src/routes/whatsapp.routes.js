@@ -161,14 +161,20 @@ router.post('/', async (req, res) => {
                             lead = await Lead.create({
                                 name: fromName || `WhatsApp User ${from}`,
                                 phone: from,
+                                phoneNumberId: phoneNumberId,
                                 source: 'whatsapp',
                                 stage: 'new',
                                 status: 'new',
                                 notes: `Initial message via WhatsApp: ${msgBody || `[${msgType} message]`}`,
                                 uploadDate: new Date()
                             });
-                            console.log(`✅ Created new lead from WhatsApp: ${fromName} (${from})`);
+                            console.log(`✅ Created new lead from WhatsApp: ${fromName} (${from}) for account ${phoneNumberId}`);
                         } else {
+                            // Associate with this account if not already associated
+                            if (!lead.phoneNumberId) {
+                                lead.phoneNumberId = phoneNumberId;
+                            }
+
                             // Update existing lead with new message
                             const newNote = `\n\n[${new Date().toLocaleString()}] WhatsApp message: ${msgBody || `[${msgType} message]`}`;
                             lead.notes = (lead.notes || '') + newNote;
