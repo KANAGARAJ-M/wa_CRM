@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import {
-    Plus, Trash2, Save, Loader2, Building,
+    Plus, Trash2, Save, Loader2, Building, LayoutGrid,
     MessageCircle, Check, X, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff, Link
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Settings() {
+    const { clearCompany } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [whatsappConfigs, setWhatsappConfigs] = useState([]);
@@ -170,9 +172,18 @@ export default function Settings() {
 
                 {/* Company Profile */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-                    <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
-                        <Building className="h-5 w-5 text-gray-700" />
-                        <h2 className="text-lg font-semibold text-gray-800">Company Profile</h2>
+                    <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <Building className="h-5 w-5 text-gray-700" />
+                            <h2 className="text-lg font-semibold text-gray-800">Company Profile</h2>
+                        </div>
+                        <button
+                            onClick={clearCompany}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        >
+                            <LayoutGrid className="h-4 w-4" />
+                            Switch Workspace
+                        </button>
                     </div>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>

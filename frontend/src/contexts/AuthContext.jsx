@@ -82,8 +82,13 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('companyId', company._id || company);
     };
 
+    const clearCompany = () => {
+        setCurrentCompany(null);
+        localStorage.removeItem('companyId');
+    };
+
     return (
-        <AuthContext.Provider value={{ user, currentCompany, login, logout, selectCompany, loading }}>
+        <AuthContext.Provider value={{ user, currentCompany, login, logout, selectCompany, clearCompany, loading }}>
             {children}
         </AuthContext.Provider>
     );
