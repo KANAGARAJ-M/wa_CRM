@@ -36,17 +36,11 @@ export const AuthProvider = ({ children }) => {
                         const found = freshUser.companies.find(c => (c._id || c) === currentId);
                         if (found) {
                             setCurrentCompany(found);
-                        } else if (freshUser.companies.length === 1) {
-                            // Auto-select if only one
-                            selectCompany(freshUser.companies[0]);
                         } else {
                             // Invalid company ID for this user
                             localStorage.removeItem('companyId');
                             setCurrentCompany(null);
                         }
-                    } else if (freshUser.companies && freshUser.companies.length === 1) {
-                        // Auto-select if only one
-                        selectCompany(freshUser.companies[0]);
                     }
                 })
                 .catch(() => {
@@ -70,10 +64,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
 
-        // Auto-select company if only one
-        if (userData.companies && userData.companies.length === 1) {
-            selectCompany(userData.companies[0]);
-        }
+        // Auto-select removed
 
         return userData;
     };

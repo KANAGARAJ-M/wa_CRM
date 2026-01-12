@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import {
-    Plus, Trash2, Save, Loader2,
+    Plus, Trash2, Save, Loader2, Building,
     MessageCircle, Check, X, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff, Link
 } from 'lucide-react';
 
@@ -9,6 +9,9 @@ export default function Settings() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [whatsappConfigs, setWhatsappConfigs] = useState([]);
+    const [companyProfile, setCompanyProfile] = useState({
+        name: '', address: '', phone: '', website: ''
+    });
     const [showTokens, setShowTokens] = useState({});
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -23,7 +26,14 @@ export default function Settings() {
     const fetchSettings = async () => {
         try {
             const response = await api.get('/settings');
-            setWhatsappConfigs(response.data.data?.whatsappConfigs || []);
+            const data = response.data.data;
+            setWhatsappConfigs(data.whatsappConfigs || []);
+            setCompanyProfile({
+                name: data.name || '',
+                address: data.address || '',
+                phone: data.phone || '',
+                website: data.website || ''
+            });
         } catch (error) {
             console.error('Error fetching settings:', error);
             setError('Failed to load settings');
@@ -65,7 +75,10 @@ export default function Settings() {
         setSuccess('');
 
         try {
-            await api.put('/settings', { whatsappConfigs });
+            await api.put('/settings', {
+                whatsappConfigs,
+                ...companyProfile
+            });
             setSuccess('Settings saved successfully!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (error) {
@@ -154,6 +167,53 @@ export default function Settings() {
                         {success}
                     </div>
                 )}
+
+                {/* Company Profile */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                    <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+                        <Building className="h-5 w-5 text-gray-700" />
+                        <h2 className="text-lg font-semibold text-gray-800">Company Profile</h2>
+                    </div>
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                            <input
+                                type="text"
+                                value={companyProfile.name}
+                                onChange={(e) => setCompanyProfile({ ...companyProfile, name: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                            <input
+                                type="text"
+                                value={companyProfile.website}
+                                onChange={(e) => setCompanyProfile({ ...companyProfile, website: e.target.value })}
+                                placeholder="https://example.com"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                            <input
+                                type="text"
+                                value={companyProfile.phone}
+                                onChange={(e) => setCompanyProfile({ ...companyProfile, phone: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                            <input
+                                type="text"
+                                value={companyProfile.address}
+                                onChange={(e) => setCompanyProfile({ ...companyProfile, address: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                        </div>
+                    </div>
+                </div>
 
                 {/* Webhook Subscription Status */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">

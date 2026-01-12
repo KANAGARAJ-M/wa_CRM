@@ -5,9 +5,32 @@ import Login from './pages/Login';
 import Chats from './pages/Chats';
 import Leads from './pages/Leads';
 import Settings from './pages/Settings';
+import CompanySelection from './pages/CompanySelection';
 import Layout from './components/Layout';
 
 const ProtectedRoute = ({ children }) => {
+  const { user, loading, currentCompany } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (!currentCompany) {
+    return <Navigate to="/select-company" />;
+  }
+
+  return <Layout>{children}</Layout>;
+};
+
+const CompanyRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -22,7 +45,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  return <Layout>{children}</Layout>;
+  return children;
 };
 
 const PublicRoute = ({ children }) => {
@@ -54,6 +77,14 @@ function App() {
               <PublicRoute>
                 <Login />
               </PublicRoute>
+            }
+          />
+          <Route
+            path="/select-company"
+            element={
+              <CompanyRoute>
+                <CompanySelection />
+              </CompanyRoute>
             }
           />
           <Route

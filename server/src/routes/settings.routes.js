@@ -28,7 +28,7 @@ router.get('/', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.put('/', auth, adminOnly, async (req, res) => {
     try {
-        const { whatsappConfigs } = req.body;
+        const { whatsappConfigs, name, address, phone, website } = req.body;
 
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
@@ -39,9 +39,11 @@ router.put('/', auth, adminOnly, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Company not found' });
         }
 
-        if (whatsappConfigs !== undefined) {
-            company.whatsappConfigs = whatsappConfigs;
-        }
+        if (whatsappConfigs !== undefined) company.whatsappConfigs = whatsappConfigs;
+        if (name !== undefined) company.name = name;
+        if (address !== undefined) company.address = address;
+        if (phone !== undefined) company.phone = phone;
+        if (website !== undefined) company.website = website;
 
         await company.save();
 
