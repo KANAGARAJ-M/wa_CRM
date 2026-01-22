@@ -3,13 +3,14 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     MessageSquare, Settings, LogOut, Menu, X, ChevronLeft,
-    Users, MessageCircle, ChevronDown, ChevronRight
+    Users, MessageCircle, ChevronDown, ChevronRight, Building2
 } from 'lucide-react';
 
 export default function Layout({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [communicationExpanded, setCommunicationExpanded] = useState(true);
+    const [companyExpanded, setCompanyExpanded] = useState(true);
     const { user, logout, currentCompany } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -150,8 +151,62 @@ export default function Layout({ children }) {
                                         }`
                                     }
                                 >
-                                    <Users className="h-4 w-4" />
                                     <span className="text-sm font-medium">Leads</span>
+                                </NavLink>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Company Section */}
+                    <div className="mt-2">
+                        <button
+                            onClick={() => {
+                                if (sidebarOpen) {
+                                    setCompanyExpanded(!companyExpanded);
+                                } else {
+                                    navigate('/workers');
+                                }
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                                ${location.pathname.includes('/workers')
+                                    ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-400 border border-blue-500/30'
+                                    : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
+                                }`}
+                        >
+                            <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
+                                <Building2 className="h-5 w-5" />
+                            </div>
+                            {sidebarOpen && (
+                                <>
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <p className="font-medium text-sm">Company</p>
+                                        <p className="text-xs text-gray-500 truncate">Management</p>
+                                    </div>
+                                    {companyExpanded ? (
+                                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                                    ) : (
+                                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                                    )}
+                                </>
+                            )}
+                        </button>
+
+                        {/* Sub Navigation Items */}
+                        {sidebarOpen && companyExpanded && (
+                            <div className="mt-1 ml-4 pl-4 border-l border-gray-700/50 space-y-1">
+                                <NavLink
+                                    to="/workers"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                        ${isActive
+                                            ? 'bg-blue-500/20 text-blue-400'
+                                            : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                        }`
+                                    }
+                                >
+                                    <Users className="h-4 w-4" />
+                                    <span className="text-sm font-medium">Team Members</span>
                                 </NavLink>
                             </div>
                         )}

@@ -31,6 +31,8 @@ app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/leads', leadsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/companies', require('./routes/companies.routes'));
+app.use('/api/workers', require('./routes/workers.routes'));
+app.use('/api/worker', require('./routes/worker-portal.routes'));
 
 // Webhook routes (public, no /api prefix for WhatsApp)
 app.use('/whatsapp', whatsappRoutes);

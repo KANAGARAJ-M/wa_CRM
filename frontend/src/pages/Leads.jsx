@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import {
     Search, Loader2, Users, Clock, Plus, Phone, Mail, Edit2, Trash2,
     Upload, FileSpreadsheet, Download, Info, AlertCircle, X, ChevronDown, ChevronRight,
-    MessageSquare, RefreshCw
+    MessageSquare, RefreshCw, UserPlus
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -28,7 +28,28 @@ export default function Leads() {
     const [importing, setImporting] = useState(false);
     const [previewData, setPreviewData] = useState([]);
     const fileInputRef = useRef(null);
-    const [expandedAccounts, setExpandedAccounts] = useState({});
+
+    // Worker Assignment State
+    const [workers, setWorkers] = useState([]);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [selectedWorker, setSelectedWorker] = useState('');
+
+    // Tab State
+    const [tabs, setTabs] = useState([
+        {
+            id: 'tab-1',
+            title: 'Loading...',
+            accountId: 'all',
+            searchQuery: '',
+            dateRange: { start: '', end: '' },
+            selectedLeads: [],
+            expandedAccounts: {}
+        }
+    ]);
+    const [activeTabId, setActiveTabId] = useState('tab-1');
+
+    // Derived State
+    const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
 
     const [formData, setFormData] = useState({
         name: '',
@@ -41,23 +62,50 @@ export default function Leads() {
 
     useEffect(() => {
         fetchLeads();
-    }, [dateRange]);
+    }, [activeTabId, activeTab.dateRange]);
 
     useEffect(() => {
         fetchSettings();
+        fetchWorkers();
     }, []);
+
+    const fetchWorkers = async () => {
+        try {
+            const response = await api.get('/workers');
+            setWorkers(response.data.data || []);
+        } catch (error) {
+            console.error('Error fetching workers:', error);
+        }
+    };
 
     const fetchSettings = async () => {
         try {
             const response = await api.get('/settings');
             const configs = response.data.data?.whatsappConfigs || [];
             setWhatsappConfigs(configs);
-            // Initialize all accounts as expanded
-            const expanded = {};
-            configs.forEach((config, index) => {
-                expanded[config.phoneNumberId || index] = true;
-            });
-            setExpandedAccounts(expanded);
+
+            // Initialize tabs if it's the first load
+            if (tabs.length === 1 && tabs[0].title === 'Loading...') {
+                const firstAccount = configs.length > 0 ? configs[0] : null;
+                const initialTab = {
+                    id: 'tab-1',
+                    title: firstAccount ? (firstAccount.name || 'Account 1') : 'All Leads',
+                    accountId: firstAccount ? firstAccount.phoneNumberId : 'all',
+                    searchQuery: '',
+                    dateRange: { start: '', end: '' },
+                    selectedLeads: [],
+                    expandedAccounts: {}
+                };
+
+                // Initialize expanded accounts for the new tab
+                const expanded = {};
+                configs.forEach((config, index) => {
+                    expanded[config.phoneNumberId || index] = true;
+                });
+                initialTab.expandedAccounts = expanded;
+
+                setTabs([initialTab]);
+            }
         } catch (error) {
             console.error('Error fetching settings:', error);
         }
@@ -67,8 +115,8 @@ export default function Leads() {
         setLoading(true);
         try {
             let query = '/leads?limit=500';
-            if (dateRange.start) query += `&startDate=${dateRange.start}`;
-            if (dateRange.end) query += `&endDate=${dateRange.end}`;
+            if (activeTab?.dateRange?.start) query += `&startDate=${activeTab.dateRange.start}`;
+            if (activeTab?.dateRange?.end) query += `&endDate=${activeTab.dateRange.end}`;
 
             const response = await api.get(query);
             setLeads(response.data.data || []);
@@ -250,6 +298,24 @@ export default function Leads() {
         }
     };
 
+    const handleAssignLeads = async () => {
+        if (!selectedWorker) return;
+        try {
+            await api.put('/leads/assign', {
+                leadIds: activeTab.selectedLeads,
+                workerId: selectedWorker
+            });
+            setShowAssignModal(false);
+            setSelectedWorker('');
+            updateActiveTab({ selectedLeads: [] });
+            fetchLeads();
+            alert('Leads assigned successfully');
+        } catch (error) {
+            console.error('Error assigning leads:', error);
+            alert('Failed to assign leads');
+        }
+    };
+
     const downloadTemplate = () => {
         const templateData = [
             ['Name', 'Phone', 'Email', 'Notes'],
@@ -264,21 +330,96 @@ export default function Leads() {
     };
 
     const toggleAccountExpansion = (accountId) => {
-        setExpandedAccounts(prev => ({
-            ...prev,
-            [accountId]: !prev[accountId]
-        }));
+        updateActiveTab({
+            expandedAccounts: {
+                ...activeTab.expandedAccounts,
+                [accountId]: !activeTab.expandedAccounts[accountId]
+            }
+        });
+    };
+
+    // Tab Management Functions
+    const updateActiveTab = (updates) => {
+        setTabs(prev => prev.map(tab =>
+            tab.id === activeTabId ? { ...tab, ...updates } : tab
+        ));
+    };
+
+    const handleAddTab = () => {
+        const newId = `tab-${Date.now()}`;
+        const newTab = {
+            id: newId,
+            title: 'New Tab',
+            accountId: 'all',
+            searchQuery: '',
+            dateRange: { start: '', end: '' },
+            selectedLeads: [],
+            expandedAccounts: activeTab.expandedAccounts // Inherit expansion state or reset? Let's inherit for convenience
+        };
+        setTabs(prev => [...prev, newTab]);
+        setActiveTabId(newId);
+    };
+
+    const handleCloseTab = (e, tabId) => {
+        e.stopPropagation();
+        if (tabs.length === 1) return; // Don't close the last tab
+
+        const newTabs = tabs.filter(t => t.id !== tabId);
+        setTabs(newTabs);
+
+        if (activeTabId === tabId) {
+            setActiveTabId(newTabs[newTabs.length - 1].id);
+        }
+    };
+
+    const handleTabClick = (tabId) => {
+        setActiveTabId(tabId);
+    };
+
+    const handleSelectLead = (leadId) => {
+        const currentSelected = activeTab.selectedLeads;
+        const newSelected = currentSelected.includes(leadId)
+            ? currentSelected.filter(id => id !== leadId)
+            : [...currentSelected, leadId];
+
+        updateActiveTab({ selectedLeads: newSelected });
+    };
+
+    const handleSelectAll = (leadsToSelect) => {
+        const allIds = leadsToSelect.map(l => l._id);
+        const allSelected = allIds.every(id => activeTab.selectedLeads.includes(id));
+
+        if (allSelected) {
+            // Deselect all visible
+            updateActiveTab({
+                selectedLeads: activeTab.selectedLeads.filter(id => !allIds.includes(id))
+            });
+        } else {
+            // Select all visible
+            const newSelected = [...new Set([...activeTab.selectedLeads, ...allIds])];
+            updateActiveTab({ selectedLeads: newSelected });
+        }
     };
 
     // Group leads by WhatsApp account
-    const getLeadsGroupedByAccount = () => {
+    const getLeadsGroupedByAccount = (leadsToGroup) => {
+        // If specific account is selected, just return that group
+        if (activeTab.accountId !== 'all') {
+            const config = whatsappConfigs.find(c => c.phoneNumberId === activeTab.accountId);
+            return [{
+                accountId: activeTab.accountId,
+                accountName: config ? config.name : 'Unknown Account',
+                leads: leadsToGroup
+            }];
+        }
+
         const enabledConfigs = whatsappConfigs.filter(c => c.isEnabled);
 
         if (enabledConfigs.length === 0) {
             return [{
                 accountId: 'all',
                 accountName: 'All Leads',
-                leads: leads
+                leads: leadsToGroup
             }];
         }
 
@@ -286,13 +427,12 @@ export default function Leads() {
             accountId: config.phoneNumberId || config.name,
             accountName: config.name || `Account ${config.phoneNumberId}`,
             // Filter leads that belong to this account
-            leads: leads.filter(l => l.phoneNumberId === config.phoneNumberId)
+            leads: leadsToGroup.filter(l => l.phoneNumberId === config.phoneNumberId)
         }));
 
-        // Handle leads that are not assigned to any specific account (e.g. manually added or legacy)
-        // These will be shown in a "General / Unassigned" group
+        // Handle leads that are not assigned to any specific account
         const assignedLeadIds = new Set(groups.flatMap(g => g.leads.map(l => l._id)));
-        const unassignedLeads = leads.filter(l => !assignedLeadIds.has(l._id));
+        const unassignedLeads = leadsToGroup.filter(l => !assignedLeadIds.has(l._id));
 
         if (unassignedLeads.length > 0) {
             groups.push({
@@ -313,38 +453,138 @@ export default function Leads() {
         return format(d, 'MMM d, yyyy \'at\' h:mm a');
     };
 
-    const filteredLeads = leads.filter(lead =>
-        lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.phone?.includes(searchQuery) ||
-        lead.email?.toLowerCase().includes(searchQuery)
-    );
+    // Filter leads based on Active Tab settings
+    const filteredLeads = leads.filter(lead => {
+        // 1. Account Filter
+        if (activeTab.accountId !== 'all' && lead.phoneNumberId !== activeTab.accountId) {
+            return false;
+        }
+
+        // 2. Search Filter
+        const query = activeTab.searchQuery.toLowerCase();
+        return (
+            lead.name.toLowerCase().includes(query) ||
+            lead.phone?.includes(query) ||
+            lead.email?.toLowerCase().includes(query)
+        );
+    });
 
     return (
-        <div className="flex h-full bg-gray-100">
-            <div className="flex h-full w-full bg-white shadow-xl overflow-hidden">
+        <div className="flex h-full bg-gray-100 flex-col">
+            {/* Tab Bar */}
+            {/* Tab Bar */}
+            <div className="bg-[#dee1e6] px-2 pt-2 flex items-end gap-1 overflow-x-auto no-scrollbar">
+                {tabs.map(tab => (
+                    <div
+                        key={tab.id}
+                        onClick={() => handleTabClick(tab.id)}
+                        className={`
+                            group relative flex items-center gap-2 px-4 py-2.5 rounded-t-xl cursor-pointer select-none min-w-[160px] max-w-[240px] transition-all duration-200
+                            ${activeTabId === tab.id
+                                ? 'bg-white text-gray-800 shadow-[0_-1px_2px_rgba(0,0,0,0.05)] z-10'
+                                : 'text-gray-600 hover:bg-white/40'}
+                        `}
+                    >
+                        {/* Active Tab Connector - hides the bottom border */}
+                        {activeTabId === tab.id && (
+                            <div className="absolute -bottom-1 left-0 right-0 h-2 bg-white z-20" />
+                        )}
+
+                        {/* Tab Content */}
+                        <div className="flex items-center gap-2 flex-1 overflow-hidden relative z-30">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${activeTabId === tab.id ? 'bg-green-500' : 'bg-gray-400'}`} />
+                            <span className="text-sm font-medium truncate flex-1">{tab.title}</span>
+                        </div>
+
+                        {/* Close Button */}
+                        {tabs.length > 1 && (
+                            <button
+                                onClick={(e) => handleCloseTab(e, tab.id)}
+                                className={`
+                                    p-0.5 rounded-full hover:bg-gray-200/80 transition-all z-30
+                                    ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+                                `}
+                            >
+                                <X className="h-3.5 w-3.5 text-gray-500" />
+                            </button>
+                        )}
+
+                        {/* Separator for inactive tabs */}
+                        {activeTabId !== tab.id && (
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4 bg-gray-400/30 group-hover:hidden" />
+                        )}
+                    </div>
+                ))}
+
+                {/* New Tab Button */}
+                <button
+                    onClick={handleAddTab}
+                    className="ml-1 p-2 mb-1.5 text-gray-600 hover:bg-white/40 rounded-full transition-colors"
+                    title="New Tab"
+                >
+                    <Plus className="h-5 w-5" />
+                </button>
+            </div>
+
+            <div className="flex h-full w-full bg-white shadow-xl overflow-hidden relative z-0">
                 {/* Leads List */}
                 <div className="flex flex-col w-full">
                     {/* Header */}
-                    <div className="px-4 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-teal-600">
+                    {/* Header */}
+                    <div className="px-6 py-4 border-b border-gray-200 bg-white">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <Users className="h-5 w-5" />
-                                Leads
-                            </h2>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-6">
+                                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                                    <div className="p-2 bg-green-100 rounded-xl">
+                                        <Users className="h-6 w-6 text-green-600" />
+                                    </div>
+                                    Leads
+                                </h2>
+
+                                {/* Account Selector Pill */}
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <MessageSquare className="h-4 w-4 text-gray-400 group-hover:text-green-500 transition-colors" />
+                                    </div>
+                                    <select
+                                        value={activeTab.accountId}
+                                        onChange={(e) => {
+                                            const newAccountId = e.target.value;
+                                            const config = whatsappConfigs.find(c => c.phoneNumberId === newAccountId);
+                                            updateActiveTab({
+                                                accountId: newAccountId,
+                                                title: config ? config.name : (newAccountId === 'all' ? 'All Leads' : 'Unassigned')
+                                            });
+                                        }}
+                                        className="pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-full focus:ring-2 focus:ring-green-500/20 focus:border-green-500 block w-[200px] hover:bg-white hover:shadow-sm transition-all cursor-pointer appearance-none font-medium"
+                                    >
+                                        <option value="all">All Accounts</option>
+                                        {whatsappConfigs.filter(c => c.isEnabled).map(config => (
+                                            <option key={config.phoneNumberId} value={config.phoneNumberId}>
+                                                {config.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => setShowImportModal(true)}
-                                    className="p-2 text-white/80 hover:bg-white/10 rounded-lg transition-colors"
+                                    className="p-2.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
                                     title="Import Excel"
                                 >
                                     <Upload className="h-5 w-5" />
                                 </button>
                                 <button
                                     onClick={() => setShowAddModal(true)}
-                                    className="px-3 py-1.5 bg-white text-green-600 rounded-lg hover:bg-green-50 transition-colors text-sm font-medium flex items-center gap-1"
+                                    className="px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-600/20 text-sm font-semibold flex items-center gap-2 active:scale-95"
                                 >
-                                    <Plus className="h-4 w-4" />
-                                    Add Lead
+                                    <Plus className="h-5 w-5" />
+                                    Add New Lead
                                 </button>
                             </div>
                         </div>
@@ -359,19 +599,19 @@ export default function Leads() {
                                 <input
                                     type="date"
                                     className="bg-transparent border-none text-sm focus:ring-0 px-1 py-1 text-gray-600 w-32"
-                                    value={dateRange.start}
-                                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                                    value={activeTab.dateRange.start}
+                                    onChange={(e) => updateActiveTab({ dateRange: { ...activeTab.dateRange, start: e.target.value } })}
                                 />
                                 <span className="text-xs text-gray-500">To:</span>
                                 <input
                                     type="date"
                                     className="bg-transparent border-none text-sm focus:ring-0 px-1 py-1 text-gray-600 w-32"
-                                    value={dateRange.end}
-                                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                                    value={activeTab.dateRange.end}
+                                    onChange={(e) => updateActiveTab({ dateRange: { ...activeTab.dateRange, end: e.target.value } })}
                                 />
-                                {(dateRange.start || dateRange.end) && (
+                                {(activeTab.dateRange.start || activeTab.dateRange.end) && (
                                     <button
-                                        onClick={() => setDateRange({ start: '', end: '' })}
+                                        onClick={() => updateActiveTab({ dateRange: { start: '', end: '' } })}
                                         className="p-1 hover:bg-gray-200 rounded-full text-gray-500"
                                         title="Clear Date Filter"
                                     >
@@ -383,10 +623,10 @@ export default function Leads() {
                             <div className="relative flex-1 w-full">
                                 <input
                                     type="text"
-                                    placeholder="Search leads..."
+                                    placeholder="Search leads in this tab..."
                                     className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:bg-white transition-all"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    value={activeTab.searchQuery}
+                                    onChange={(e) => updateActiveTab({ searchQuery: e.target.value })}
                                 />
                                 <Search className="h-4 w-4 text-gray-400 absolute left-3 top-2.5" />
                             </div>
@@ -398,6 +638,28 @@ export default function Leads() {
                                 <RefreshCw className="h-5 w-5" />
                             </button>
                         </div>
+
+                        {/* Selection Info */}
+                        {activeTab.selectedLeads.length > 0 && (
+                            <div className="mt-2 flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
+                                <span className="font-medium">{activeTab.selectedLeads.length} selected</span>
+                                <div className="h-4 w-px bg-green-200 mx-1"></div>
+                                <button
+                                    onClick={() => setShowAssignModal(true)}
+                                    className="hover:underline flex items-center gap-1"
+                                >
+                                    <UserPlus className="h-3 w-3" />
+                                    Assign to Worker
+                                </button>
+                                <button className="hover:underline ml-2">Delete Selected</button>
+                                <button
+                                    onClick={() => updateActiveTab({ selectedLeads: [] })}
+                                    className="ml-auto text-gray-500 hover:text-gray-700"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Leads Content */}
@@ -407,121 +669,139 @@ export default function Leads() {
                                 <Loader2 className="h-8 w-8 text-green-500 animate-spin" />
                             </div>
                         ) : filteredLeads.length === 0 ? (
-                            <div className="p-8 text-center text-gray-500 text-sm">
-                                <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                <p>No leads found.</p>
-                                <button
-                                    onClick={() => setShowAddModal(true)}
-                                    className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
-                                >
-                                    <Plus className="h-4 w-4 inline mr-1" />
-                                    Add Your First Lead
-                                </button>
+                            <div className="h-full flex flex-col items-center justify-center p-8 text-center animate-fadeIn">
+                                <div className="bg-green-50 p-6 rounded-full mb-6">
+                                    <Users className="h-16 w-16 text-green-200" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">No leads found</h3>
+                                <p className="text-gray-500 max-w-sm mb-8">
+                                    {activeTab.searchQuery
+                                        ? `No results found for "${activeTab.searchQuery}". Try adjusting your search or filters.`
+                                        : "Get started by adding your first lead or importing from Excel."}
+                                </p>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={() => setShowAddModal(true)}
+                                        className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-600/20 font-medium flex items-center gap-2"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                        Add Lead
+                                    </button>
+                                    <button
+                                        onClick={() => setShowImportModal(true)}
+                                        className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium flex items-center gap-2"
+                                    >
+                                        <Upload className="h-5 w-5" />
+                                        Import
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-100">
-                                {getLeadsGroupedByAccount().map(group => (
+                                {getLeadsGroupedByAccount(filteredLeads).map(group => (
                                     <div key={group.accountId}>
-                                        {/* Account Header */}
-                                        <button
-                                            onClick={() => toggleAccountExpansion(group.accountId)}
-                                            className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-green-50 to-teal-50 hover:from-green-100 hover:to-teal-100 transition-colors"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
-                                                    <MessageSquare className="h-4 w-4 text-white" />
+                                        {/* Account Header - Only show if we are in 'All' view, otherwise redundant */}
+                                        {activeTab.accountId === 'all' && (
+                                            <button
+                                                onClick={() => toggleAccountExpansion(group.accountId)}
+                                                className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-green-50 to-teal-50 hover:from-green-100 hover:to-teal-100 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
+                                                        <MessageSquare className="h-4 w-4 text-white" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <h3 className="font-semibold text-gray-800 text-sm">{group.accountName}</h3>
+                                                        <p className="text-xs text-gray-500">{group.leads.length} leads</p>
+                                                    </div>
                                                 </div>
-                                                <div className="text-left">
-                                                    <h3 className="font-semibold text-gray-800 text-sm">{group.accountName}</h3>
-                                                    <p className="text-xs text-gray-500">{group.leads.length} leads</p>
-                                                </div>
-                                            </div>
-                                            {expandedAccounts[group.accountId] ? (
-                                                <ChevronDown className="h-5 w-5 text-gray-400" />
-                                            ) : (
-                                                <ChevronRight className="h-5 w-5 text-gray-400" />
-                                            )}
-                                        </button>
+                                                {activeTab.expandedAccounts[group.accountId] ? (
+                                                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                                                ) : (
+                                                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                                                )}
+                                            </button>
+                                        )}
 
                                         {/* Leads List under Account */}
-                                        {expandedAccounts[group.accountId] && (
+                                        {(activeTab.accountId !== 'all' || activeTab.expandedAccounts[group.accountId]) && (
                                             <div className="bg-white">
-                                                {group.leads
-                                                    .filter(lead =>
-                                                        lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                        lead.phone?.includes(searchQuery) ||
-                                                        lead.email?.toLowerCase().includes(searchQuery)
-                                                    )
-                                                    .map(lead => (
-                                                        <div
-                                                            key={lead._id}
-                                                            className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors group"
-                                                        >
-                                                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                                                {lead.name[0].toUpperCase()}
+                                                {group.leads.map(lead => (
+                                                    <div
+                                                        key={lead._id}
+                                                        className={`flex items-center gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors group ${activeTab.selectedLeads.includes(lead._id) ? 'bg-green-50/50' : ''}`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={activeTab.selectedLeads.includes(lead._id)}
+                                                            onChange={() => handleSelectLead(lead._id)}
+                                                            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                                        />
+                                                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                                            {lead.name[0].toUpperCase()}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between">
+                                                                <h4 className="font-medium text-gray-900 truncate text-sm">{lead.name}</h4>
+                                                                <span className="text-xs text-gray-400 flex items-center gap-1">
+                                                                    <Clock className="h-3 w-3" />
+                                                                    {formatLeadTime(lead.lastInteraction || lead.createdAt)}
+                                                                </span>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center justify-between">
-                                                                    <h4 className="font-medium text-gray-900 truncate text-sm">{lead.name}</h4>
-                                                                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                                                                        <Clock className="h-3 w-3" />
-                                                                        {formatLeadTime(lead.lastInteraction || lead.createdAt)}
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                                    <Phone className="h-3 w-3" />
+                                                                    {lead.phone}
+                                                                </span>
+                                                                {lead.email && (
+                                                                    <span className="text-xs text-gray-400 truncate">
+                                                                        • {lead.email}
                                                                     </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2 mt-0.5">
-                                                                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                                                                        <Phone className="h-3 w-3" />
-                                                                        {lead.phone}
-                                                                    </span>
-                                                                    {lead.email && (
-                                                                        <span className="text-xs text-gray-400 truncate">
-                                                                            • {lead.email}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                {lead.lastMessage && (
-                                                                    <div className="mt-1 text-xs text-gray-500 truncate pr-2">
-                                                                        {lead.lastMessage.length > 50
-                                                                            ? lead.lastMessage.substring(0, 50) + '...'
-                                                                            : lead.lastMessage}
-                                                                    </div>
                                                                 )}
-                                                                <div className="flex items-center gap-2 mt-2">
-                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${lead.stage === 'new' ? 'bg-blue-100 text-blue-700' :
-                                                                        lead.stage === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
-                                                                            lead.stage === 'interested' ? 'bg-green-100 text-green-700' :
-                                                                                lead.stage === 'converted' ? 'bg-purple-100 text-purple-700' :
-                                                                                    'bg-gray-100 text-gray-700'
-                                                                        }`}>
-                                                                        {lead.stage?.charAt(0).toUpperCase() + lead.stage?.slice(1) || 'New'}
-                                                                    </span>
-                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button
-                                                                    onClick={() => startChat(lead)}
-                                                                    className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                                                                    title="Start Chat"
-                                                                >
-                                                                    <MessageSquare className="h-4 w-4" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => openEditModal(lead)}
-                                                                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                                                                    title="Edit"
-                                                                >
-                                                                    <Edit2 className="h-4 w-4" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDelete(lead._id)}
-                                                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                                    title="Delete"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
+                                                            {lead.lastMessage && (
+                                                                <div className="mt-1 text-xs text-gray-500 truncate pr-2">
+                                                                    {lead.lastMessage.length > 50
+                                                                        ? lead.lastMessage.substring(0, 50) + '...'
+                                                                        : lead.lastMessage}
+                                                                </div>
+                                                            )}
+                                                            <div className="flex items-center gap-2 mt-2">
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${lead.stage === 'new' ? 'bg-blue-100 text-blue-700' :
+                                                                    lead.stage === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
+                                                                        lead.stage === 'interested' ? 'bg-green-100 text-green-700' :
+                                                                            lead.stage === 'converted' ? 'bg-purple-100 text-purple-700' :
+                                                                                'bg-gray-100 text-gray-700'
+                                                                    }`}>
+                                                                    {lead.stage?.charAt(0).toUpperCase() + lead.stage?.slice(1) || 'New'}
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                    ))}
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => startChat(lead)}
+                                                                className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                                                title="Start Chat"
+                                                            >
+                                                                <MessageSquare className="h-4 w-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openEditModal(lead)}
+                                                                className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                                                                title="Edit"
+                                                            >
+                                                                <Edit2 className="h-4 w-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(lead._id)}
+                                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
@@ -532,247 +812,297 @@ export default function Leads() {
                 </div>
             </div>
 
-            {/* Add/Edit Lead Modal */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-fadeIn">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                                {editingLead ? 'Edit Lead' : 'Add New Lead'}
-                            </h3>
-                            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+            {/* Assign Worker Modal */}
+            {
+                showAssignModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm animate-fadeIn p-6">
+                            <h3 className="text-lg font-bold text-gray-900 mb-4">Assign Leads</h3>
+                            <p className="text-sm text-gray-500 mb-4">
+                                Assigning {activeTab.selectedLeads.length} leads to a worker.
+                            </p>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            {error && (
-                                <div className="bg-red-50 text-red-600 text-sm px-4 py-2 rounded-lg flex items-center gap-2">
-                                    <AlertCircle className="h-4 w-4" />
-                                    {error}
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                    placeholder="John Doe"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
-                                <input
-                                    type="tel"
-                                    required
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                    placeholder="919876543210"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                    placeholder="john@example.com"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Account</label>
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Select Worker</label>
                                 <select
-                                    value={formData.phoneNumberId}
-                                    onChange={(e) => setFormData({ ...formData, phoneNumberId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    value={selectedWorker}
+                                    onChange={(e) => setSelectedWorker(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                                 >
-                                    <option value="">General / Unassigned</option>
-                                    {whatsappConfigs.filter(c => c.isEnabled).map(config => (
-                                        <option key={config.phoneNumberId} value={config.phoneNumberId}>
-                                            {config.name} ({config.phoneNumberId})
+                                    <option value="">Select a worker...</option>
+                                    {workers.map(worker => (
+                                        <option key={worker._id} value={worker._id}>
+                                            {worker.name} ({worker.email})
                                         </option>
                                     ))}
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                    rows={3}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                    placeholder="Any additional notes..."
-                                />
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowAssignModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleAssignLeads}
+                                    disabled={!selectedWorker}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Assign
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Add/Edit Lead Modal */}
+            {
+                showAddModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-fadeIn">
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                    {editingLead ? 'Edit Lead' : 'Add New Lead'}
+                                </h3>
+                                <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
+                                    <X className="h-5 w-5" />
+                                </button>
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-4">
+                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                                {error && (
+                                    <div className="bg-red-50 text-red-600 text-sm px-4 py-2 rounded-lg flex items-center gap-2">
+                                        <AlertCircle className="h-4 w-4" />
+                                        {error}
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="John Doe"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                                    <input
+                                        type="tel"
+                                        required
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="919876543210"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="john@example.com"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Account</label>
+                                    <select
+                                        value={formData.phoneNumberId}
+                                        onChange={(e) => setFormData({ ...formData, phoneNumberId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    >
+                                        <option value="">General / Unassigned</option>
+                                        {whatsappConfigs.filter(c => c.isEnabled).map(config => (
+                                            <option key={config.phoneNumberId} value={config.phoneNumberId}>
+                                                {config.name} ({config.phoneNumberId})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                    <textarea
+                                        value={formData.notes}
+                                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                        rows={3}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="Any additional notes..."
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={closeModal}
+                                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {saving ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            editingLead ? 'Update Lead' : 'Add Lead'
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Import Modal */}
+            {
+                showImportModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-fadeIn max-h-[90vh] flex flex-col">
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                    <FileSpreadsheet className="h-5 w-5 text-green-500" />
+                                    Import Leads from Excel
+                                </h3>
+                                <button onClick={closeImportModal} className="text-gray-400 hover:text-gray-600">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                                {importError && (
+                                    <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+                                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                        {importError}
+                                    </div>
+                                )}
+
+                                {importSuccess && (
+                                    <div className="bg-green-50 text-green-600 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+                                        <Info className="h-4 w-4 flex-shrink-0" />
+                                        {importSuccess}
+                                    </div>
+                                )}
+
+                                {/* Info Box */}
+                                <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-700">
+                                    <div className="flex items-start gap-3">
+                                        <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <p className="font-medium mb-1">Excel Format Requirements:</p>
+                                            <ul className="list-disc list-inside space-y-1 text-blue-600">
+                                                <li>First row should contain column headers</li>
+                                                <li>Required columns: <strong>Name</strong> or <strong>Phone</strong></li>
+                                                <li>Optional columns: Email, Notes</li>
+                                            </ul>
+                                            <button
+                                                onClick={downloadTemplate}
+                                                className="mt-3 text-blue-700 hover:text-blue-800 flex items-center gap-1 font-medium"
+                                            >
+                                                <Download className="h-4 w-4" />
+                                                Download Template
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* File Upload */}
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-400 transition-colors">
+                                    <input
+                                        type="file"
+                                        accept=".xlsx,.xls"
+                                        onChange={handleFileUpload}
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        id="excel-upload"
+                                    />
+                                    <label htmlFor="excel-upload" className="cursor-pointer">
+                                        <Upload className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                                        <p className="text-gray-600 font-medium">Click to upload Excel file</p>
+                                        <p className="text-gray-400 text-sm mt-1">or drag and drop</p>
+                                    </label>
+                                </div>
+
+                                {/* Preview */}
+                                {previewData.length > 0 && (
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 mb-2">Preview ({previewData.length} leads)</h4>
+                                        <div className="border border-gray-200 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-gray-50 sticky top-0">
+                                                    <tr>
+                                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
+                                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Phone</th>
+                                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Email</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {previewData.slice(0, 10).map((lead, idx) => (
+                                                        <tr key={idx}>
+                                                            <td className="px-4 py-2 text-gray-900">{lead.name}</td>
+                                                            <td className="px-4 py-2 text-gray-600">{lead.phone}</td>
+                                                            <td className="px-4 py-2 text-gray-600">{lead.email || '-'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                            {previewData.length > 10 && (
+                                                <div className="px-4 py-2 bg-gray-50 text-center text-sm text-gray-500">
+                                                    ... and {previewData.length - 10} more leads
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
                                 <button
-                                    type="button"
-                                    onClick={closeModal}
+                                    onClick={closeImportModal}
                                     className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                                    onClick={handleImportLeads}
+                                    disabled={previewData.length === 0 || importing}
+                                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
-                                    {saving ? (
+                                    {importing ? (
                                         <>
                                             <Loader2 className="h-4 w-4 animate-spin" />
-                                            Saving...
+                                            Importing...
                                         </>
                                     ) : (
-                                        editingLead ? 'Update Lead' : 'Add Lead'
+                                        <>
+                                            <Upload className="h-4 w-4" />
+                                            Import {previewData.length} Leads
+                                        </>
                                     )}
                                 </button>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Import Modal */}
-            {showImportModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-fadeIn max-h-[90vh] flex flex-col">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <FileSpreadsheet className="h-5 w-5 text-green-500" />
-                                Import Leads from Excel
-                            </h3>
-                            <button onClick={closeImportModal} className="text-gray-400 hover:text-gray-600">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                            {importError && (
-                                <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
-                                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                                    {importError}
-                                </div>
-                            )}
-
-                            {importSuccess && (
-                                <div className="bg-green-50 text-green-600 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
-                                    <Info className="h-4 w-4 flex-shrink-0" />
-                                    {importSuccess}
-                                </div>
-                            )}
-
-                            {/* Info Box */}
-                            <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-700">
-                                <div className="flex items-start gap-3">
-                                    <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                                    <div>
-                                        <p className="font-medium mb-1">Excel Format Requirements:</p>
-                                        <ul className="list-disc list-inside space-y-1 text-blue-600">
-                                            <li>First row should contain column headers</li>
-                                            <li>Required columns: <strong>Name</strong> or <strong>Phone</strong></li>
-                                            <li>Optional columns: Email, Notes</li>
-                                        </ul>
-                                        <button
-                                            onClick={downloadTemplate}
-                                            className="mt-3 text-blue-700 hover:text-blue-800 flex items-center gap-1 font-medium"
-                                        >
-                                            <Download className="h-4 w-4" />
-                                            Download Template
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* File Upload */}
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-400 transition-colors">
-                                <input
-                                    type="file"
-                                    accept=".xlsx,.xls"
-                                    onChange={handleFileUpload}
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    id="excel-upload"
-                                />
-                                <label htmlFor="excel-upload" className="cursor-pointer">
-                                    <Upload className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                                    <p className="text-gray-600 font-medium">Click to upload Excel file</p>
-                                    <p className="text-gray-400 text-sm mt-1">or drag and drop</p>
-                                </label>
-                            </div>
-
-                            {/* Preview */}
-                            {previewData.length > 0 && (
-                                <div>
-                                    <h4 className="font-medium text-gray-900 mb-2">Preview ({previewData.length} leads)</h4>
-                                    <div className="border border-gray-200 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-gray-50 sticky top-0">
-                                                <tr>
-                                                    <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
-                                                    <th className="px-4 py-2 text-left font-medium text-gray-700">Phone</th>
-                                                    <th className="px-4 py-2 text-left font-medium text-gray-700">Email</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {previewData.slice(0, 10).map((lead, idx) => (
-                                                    <tr key={idx}>
-                                                        <td className="px-4 py-2 text-gray-900">{lead.name}</td>
-                                                        <td className="px-4 py-2 text-gray-600">{lead.phone}</td>
-                                                        <td className="px-4 py-2 text-gray-600">{lead.email || '-'}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                        {previewData.length > 10 && (
-                                            <div className="px-4 py-2 bg-gray-50 text-center text-sm text-gray-500">
-                                                ... and {previewData.length - 10} more leads
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-                            <button
-                                onClick={closeImportModal}
-                                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleImportLeads}
-                                disabled={previewData.length === 0 || importing}
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {importing ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Importing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Upload className="h-4 w-4" />
-                                        Import {previewData.length} Leads
-                                    </>
-                                )}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

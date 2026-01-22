@@ -7,12 +7,23 @@ const router = express.Router();
 // @route   POST /api/whatsapp/send
 // @desc    Send a WhatsApp message
 // @access  Private/Admin
-router.post('/send', auth, adminOnly, async (req, res) => {
+// @route   POST /api/whatsapp/send
+// @desc    Send a WhatsApp message
+// @access  Private (Admin or Assigned Worker)
+router.post('/send', auth, async (req, res) => {
     try {
         const { message, phone, leadId } = req.body;
 
         if (!message || !phone) {
             return res.status(400).json({ success: false, message: 'Message and phone are required' });
+        }
+
+        // Check permissions
+        if (req.user.role === 'worker') {
+            const lead = await Lead.findOne({ phone: phone, assignedTo: req.user._id });
+            if (!lead) {
+                return res.status(403).json({ success: false, message: 'Not authorized to message this lead' });
+            }
         }
 
         // Get Company Settings to find WhatsApp Config
@@ -85,12 +96,23 @@ router.post('/send', auth, adminOnly, async (req, res) => {
 // @route   POST /api/whatsapp/mark-read
 // @desc    Mark messages as read (send read receipt to Meta)
 // @access  Private/Admin
-router.post('/mark-read', auth, adminOnly, async (req, res) => {
+// @route   POST /api/whatsapp/mark-read
+// @desc    Mark messages as read (send read receipt to Meta)
+// @access  Private (Admin or Assigned Worker)
+router.post('/mark-read', auth, async (req, res) => {
     try {
         const { contactPhone, phoneNumberId } = req.body;
 
         if (!contactPhone || !phoneNumberId) {
             return res.status(400).json({ success: false, message: 'Contact phone and phoneNumberId are required' });
+        }
+
+        // Check permissions
+        if (req.user.role === 'worker') {
+            const lead = await Lead.findOne({ phone: contactPhone, assignedTo: req.user._id });
+            if (!lead) {
+                return res.status(403).json({ success: false, message: 'Not authorized' });
+            }
         }
 
         // Get company config

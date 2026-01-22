@@ -269,6 +269,34 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
     }
 });
 
+// @route   PUT /api/leads/assign
+// @desc    Bulk assign leads to a worker
+// @access  Private/Admin
+router.put('/assign', auth, adminOnly, async (req, res) => {
+    try {
+        const { leadIds, workerId } = req.body;
+
+        if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'No leads selected' });
+        }
+
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        // Update leads
+        await Lead.updateMany(
+            { _id: { $in: leadIds }, companyId: req.companyId },
+            { $set: { assignedTo: workerId } }
+        );
+
+        res.json({ success: true, message: 'Leads assigned successfully' });
+    } catch (error) {
+        console.error('Assign leads error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 // @route   DELETE /api/leads/:id
 // @desc    Delete lead
 // @access  Private/Admin

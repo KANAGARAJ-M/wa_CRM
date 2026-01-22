@@ -5,10 +5,13 @@ import Login from './pages/Login';
 import Chats from './pages/Chats';
 import Leads from './pages/Leads';
 import Settings from './pages/Settings';
+import Workers from './pages/Workers';
+import WorkerDashboard from './pages/worker/WorkerDashboard';
+import WorkerChat from './pages/worker/WorkerChat';
 import CompanySelection from './pages/CompanySelection';
 import Layout from './components/Layout';
 
-const ProtectedRoute = ({ children }) => {
+const AdminRoute = ({ children }) => {
   const { user, loading, currentCompany } = useAuth();
 
   if (loading) {
@@ -23,11 +26,38 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
+  if (user.role === 'worker') {
+    return <Navigate to="/worker/dashboard" />;
+  }
+
   if (!currentCompany) {
     return <Navigate to="/select-company" />;
   }
 
   return <Layout>{children}</Layout>;
+};
+
+const WorkerRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  // Allow admins to access worker pages? Maybe not for now.
+  // if (user.role !== 'worker') {
+  //   return <Navigate to="/" />;
+  // }
+
+  return children;
 };
 
 const CompanyRoute = ({ children }) => {
@@ -90,33 +120,59 @@ function App() {
           <Route
             path="/"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Navigate to="/chats" replace />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/chats"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Chats />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/leads"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Leads />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/settings"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Settings />
-              </ProtectedRoute>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/workers"
+            element={
+              <AdminRoute>
+                <Workers />
+              </AdminRoute>
+            }
+          />
+
+          {/* Worker Routes */}
+          <Route
+            path="/worker/dashboard"
+            element={
+              <WorkerRoute>
+                <WorkerDashboard />
+              </WorkerRoute>
+            }
+          />
+          <Route
+            path="/worker/chat"
+            element={
+              <WorkerRoute>
+                <WorkerChat />
+              </WorkerRoute>
             }
           />
           {/* Fallback route */}
