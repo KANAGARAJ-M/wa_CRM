@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://wa-crm-zwkt.onrender.com/api', // Production
-    // baseURL: 'http://localhost:3001/api', // Local Development
+    //baseURL: 'https://wa-crm-zwkt.onrender.com/api', // Production
+    baseURL: 'http://localhost:3001/api', // Local Development
 });
 
 api.interceptors.request.use((config) => {

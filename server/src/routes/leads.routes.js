@@ -241,34 +241,6 @@ router.get('/:id', auth, adminOnly, async (req, res) => {
     }
 });
 
-// @route   PUT /api/leads/:id
-// @desc    Update lead
-// @access  Private/Admin
-router.put('/:id', auth, adminOnly, async (req, res) => {
-    try {
-        const { name, phone, email, stage, status, notes, priority, value } = req.body;
-
-        if (!req.companyId) {
-            return res.status(400).json({ success: false, message: 'Company context required' });
-        }
-
-        const lead = await Lead.findOneAndUpdate(
-            { _id: req.params.id, companyId: req.companyId },
-            { name, phone, email, stage, status, notes, priority, value },
-            { new: true }
-        );
-
-        if (!lead) {
-            return res.status(404).json({ success: false, message: 'Lead not found' });
-        }
-
-        res.json({ success: true, data: lead });
-    } catch (error) {
-        console.error('Update lead error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
 // @route   PUT /api/leads/assign
 // @desc    Bulk assign leads to a worker
 // @access  Private/Admin
@@ -293,6 +265,34 @@ router.put('/assign', auth, adminOnly, async (req, res) => {
         res.json({ success: true, message: 'Leads assigned successfully' });
     } catch (error) {
         console.error('Assign leads error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// @route   PUT /api/leads/:id
+// @desc    Update lead
+// @access  Private/Admin
+router.put('/:id', auth, adminOnly, async (req, res) => {
+    try {
+        const { name, phone, email, stage, status, notes, priority, value } = req.body;
+
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const lead = await Lead.findOneAndUpdate(
+            { _id: req.params.id, companyId: req.companyId },
+            { name, phone, email, stage, status, notes, priority, value },
+            { new: true }
+        );
+
+        if (!lead) {
+            return res.status(404).json({ success: false, message: 'Lead not found' });
+        }
+
+        res.json({ success: true, data: lead });
+    } catch (error) {
+        console.error('Update lead error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });

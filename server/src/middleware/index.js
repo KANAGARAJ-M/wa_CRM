@@ -1,7 +1,8 @@
-const { auth, adminOnly, superAdminOnly } = require('./auth.middleware');
+const { auth, adminOnly, superAdminOnly, companyAuth } = require('./auth.middleware');
 
 module.exports = {
     auth,
     adminOnly,
-    superAdminOnly
+    superAdminOnly,
+    companyAuth
 };

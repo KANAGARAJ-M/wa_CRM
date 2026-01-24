@@ -6,6 +6,7 @@ import Chats from './pages/Chats';
 import Leads from './pages/Leads';
 import Settings from './pages/Settings';
 import Workers from './pages/Workers';
+import CallAnalytics from './pages/CallAnalytics';
 import WorkerDashboard from './pages/worker/WorkerDashboard';
 import WorkerChat from './pages/worker/WorkerChat';
 import CompanySelection from './pages/CompanySelection';
@@ -154,6 +155,14 @@ function App() {
             element={
               <AdminRoute>
                 <Workers />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/call-analytics"
+            element={
+              <AdminRoute>
+                <CallAnalytics />
               </AdminRoute>
             }
           />

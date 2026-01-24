@@ -775,6 +775,12 @@ export default function Leads() {
                                                                     }`}>
                                                                     {lead.stage?.charAt(0).toUpperCase() + lead.stage?.slice(1) || 'New'}
                                                                 </span>
+                                                                {lead.assignedTo && (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                                                        <UserPlus className="h-3 w-3 mr-1" />
+                                                                        {lead.assignedTo.name}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

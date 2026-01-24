@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     MessageSquare, Settings, LogOut, Menu, X, ChevronLeft,
-    Users, MessageCircle, ChevronDown, ChevronRight, Building2
+    Users, MessageCircle, ChevronDown, ChevronRight, Building2, Phone, BarChart3
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -24,6 +24,10 @@ export default function Layout({ children }) {
     const isCommunicationActive = location.pathname === '/' ||
         location.pathname === '/chats' ||
         location.pathname === '/leads';
+
+    // Check if current path is under company
+    const isCompanyActive = location.pathname.includes('/workers') ||
+        location.pathname.includes('/call-analytics');
 
     return (
         <div className="flex h-screen bg-gray-100">
@@ -168,7 +172,7 @@ export default function Layout({ children }) {
                                 }
                             }}
                             className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
-                                ${location.pathname.includes('/workers')
+                                ${isCompanyActive
                                     ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-400 border border-blue-500/30'
                                     : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
                                 }`}
@@ -207,6 +211,21 @@ export default function Layout({ children }) {
                                 >
                                     <Users className="h-4 w-4" />
                                     <span className="text-sm font-medium">Team Members</span>
+                                </NavLink>
+
+                                <NavLink
+                                    to="/call-analytics"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                        ${isActive
+                                            ? 'bg-blue-500/20 text-blue-400'
+                                            : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                        }`
+                                    }
+                                >
+                                    <BarChart3 className="h-4 w-4" />
+                                    <span className="text-sm font-medium">Call Analytics</span>
                                 </NavLink>
                             </div>
                         )}

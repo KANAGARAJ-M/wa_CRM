@@ -93,8 +93,20 @@ const superAdminOnly = (req, res, next) => {
     next();
 };
 
+// Ensure company ID is present
+const companyAuth = (req, res, next) => {
+    if (!req.companyId) {
+        return res.status(400).json({
+            success: false,
+            message: 'Company ID required. Please select a company.'
+        });
+    }
+    next();
+};
+
 module.exports = {
     auth,
     adminOnly,
-    superAdminOnly
+    superAdminOnly,
+    companyAuth
 };
