@@ -4,6 +4,7 @@ const Settings = require('./Settings');
 const WhatsAppMessage = require('./WhatsAppMessage');
 const Company = require('./Company');
 const Call = require('./Call');
+const Role = require('./Role');
 
 module.exports = {
     User,
@@ -11,5 +12,6 @@ module.exports = {
     Settings,
     WhatsAppMessage,
     Company,
-    Call
+    Call,
+    Role
 };

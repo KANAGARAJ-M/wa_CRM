@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const { Call, Lead, User } = require('../models');
 const { auth, companyAuth } = require('../middleware');
 const router = express.Router();
@@ -8,14 +9,15 @@ const router = express.Router();
 // @access  Private (Admin)
 router.get('/', auth, companyAuth, async (req, res) => {
     try {
-        const { status, outcome, workerId, startDate, endDate, limit = 100 } = req.query;
-        
+        const { status, outcome, workerId, leadId, startDate, endDate, limit = 100 } = req.query;
+
         const query = { companyId: req.companyId };
-        
+
         if (status) query.status = status;
         if (outcome) query.outcome = outcome;
         if (workerId) query.workerId = workerId;
-        
+        if (leadId) query.leadId = leadId;
+
         if (startDate || endDate) {
             query.createdAt = {};
             if (startDate) query.createdAt.$gte = new Date(startDate);
@@ -41,20 +43,26 @@ router.get('/', auth, companyAuth, async (req, res) => {
 router.get('/analytics', auth, companyAuth, async (req, res) => {
     try {
         const { startDate, endDate, workerId } = req.query;
-        
-        const matchQuery = { companyId: req.companyId };
-        
-        if (workerId) matchQuery.workerId = workerId;
-        
+
+        const matchQuery = {
+            companyId: new mongoose.Types.ObjectId(req.companyId)
+        };
+
+        if (workerId) {
+            matchQuery.workerId = new mongoose.Types.ObjectId(workerId);
+        }
+
         if (startDate || endDate) {
             matchQuery.createdAt = {};
             if (startDate) matchQuery.createdAt.$gte = new Date(startDate);
             if (endDate) matchQuery.createdAt.$lte = new Date(endDate);
         }
 
+        console.log('Analytics Match Query:', JSON.stringify(matchQuery));
+
         // Get overall stats
         const totalCalls = await Call.countDocuments(matchQuery);
-        
+
         // Status breakdown
         const statusStats = await Call.aggregate([
             { $match: matchQuery },
@@ -114,7 +122,7 @@ router.get('/analytics', auth, companyAuth, async (req, res) => {
         // Daily call trend (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        
+
         const dailyTrend = await Call.aggregate([
             {
                 $match: {
@@ -173,12 +181,15 @@ router.post('/', auth, async (req, res) => {
             notes,
             followUpDate,
             followUpNotes,
-            priority
+            priority,
+            location,
+            businessDetails,
+            orderStatus
         } = req.body;
 
         // Get companyId from lead or header
         let companyId = req.companyId;
-        
+
         if (leadId) {
             const lead = await Lead.findById(leadId);
             if (lead) {
@@ -199,6 +210,9 @@ router.post('/', auth, async (req, res) => {
             followUpDate,
             followUpNotes,
             priority,
+            location,
+            businessDetails,
+            orderStatus,
             callStartTime: new Date(Date.now() - (duration || 0) * 1000),
             callEndTime: new Date()
         });
@@ -237,7 +251,7 @@ router.put('/:id', auth, async (req, res) => {
             { status, outcome, notes, followUpDate, followUpNotes, priority },
             { new: true }
         ).populate('leadId', 'name phone')
-         .populate('workerId', 'name email');
+            .populate('workerId', 'name email');
 
         if (!call) {
             return res.status(404).json({ success: false, message: 'Call not found' });
@@ -256,7 +270,7 @@ router.put('/:id', auth, async (req, res) => {
 router.get('/follow-ups', auth, companyAuth, async (req, res) => {
     try {
         const { workerId } = req.query;
-        
+
         const query = {
             companyId: req.companyId,
             followUpDate: { $exists: true, $lte: new Date(Date.now() + 24 * 60 * 60 * 1000) }, // Due within 24 hours

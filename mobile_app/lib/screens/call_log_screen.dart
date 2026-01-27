@@ -20,18 +20,24 @@ class _CallLogScreenState extends State<CallLogScreen> {
   final _durationController = TextEditingController(text: '0');
   final _notesController = TextEditingController();
   final _followUpNotesController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _businessDetailsController = TextEditingController();
+  String _orderStatus = 'not-ordered';
   DateTime? _followUpDate;
   bool _isSaving = false;
 
   final List<String> _statuses = ['completed', 'missed', 'no-answer', 'busy', 'callback-requested', 'not-interested', 'converted'];
   final List<String> _outcomes = ['other', 'interested', 'not-interested', 'follow-up', 'callback', 'converted', 'wrong-number', 'not-reachable'];
   final List<String> _priorities = ['low', 'medium', 'high', 'urgent'];
+  final List<String> _orderStatuses = ['not-ordered', 'ordered', 'already-ordered'];
 
   @override
   void dispose() {
     _durationController.dispose();
     _notesController.dispose();
     _followUpNotesController.dispose();
+    _locationController.dispose();
+    _businessDetailsController.dispose();
     super.dispose();
   }
 
@@ -53,6 +59,9 @@ class _CallLogScreenState extends State<CallLogScreen> {
         followUpDate: _followUpDate?.toIso8601String(),
         followUpNotes: _followUpNotesController.text.isNotEmpty ? _followUpNotesController.text : null,
         priority: _priority,
+        location: _locationController.text.isNotEmpty ? _locationController.text : null,
+        businessDetails: _businessDetailsController.text.isNotEmpty ? _businessDetailsController.text : null,
+        orderStatus: _orderStatus,
       );
 
       if (mounted) {
@@ -207,6 +216,21 @@ class _CallLogScreenState extends State<CallLogScreen> {
             // Priority
             _buildSectionTitle('Priority'),
             _buildDropdown(_priority, _priorities, (val) => setState(() => _priority = val!)),
+            const SizedBox(height: 16),
+
+            // Location
+            _buildSectionTitle('Location'),
+            _buildTextField(_locationController, 'Enter location', TextInputType.text),
+            const SizedBox(height: 16),
+
+            // Business Details
+            _buildSectionTitle('Business Details'),
+            _buildTextField(_businessDetailsController, 'Enter business details', TextInputType.text),
+            const SizedBox(height: 16),
+
+            // Order Status
+            _buildSectionTitle('Order Status'),
+            _buildDropdown(_orderStatus, _orderStatuses, (val) => setState(() => _orderStatus = val!)),
             const SizedBox(height: 24),
 
             // Save Button

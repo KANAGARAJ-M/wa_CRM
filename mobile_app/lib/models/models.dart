@@ -9,6 +9,7 @@ class Lead {
   final String? phoneNumberId;
   final DateTime? updatedAt;
   final DateTime? lastInteraction;
+  final String? source;
 
   Lead({
     required this.id,
@@ -21,6 +22,7 @@ class Lead {
     this.phoneNumberId,
     this.updatedAt,
     this.lastInteraction,
+    this.source,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class Lead {
       phoneNumberId: json['phoneNumberId'],
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
       lastInteraction: json['lastInteraction'] != null ? DateTime.parse(json['lastInteraction']) : null,
+      source: json['source'] ?? 'manual',
     );
   }
 }
@@ -60,7 +63,7 @@ class Message {
     return Message(
       id: json['_id'] ?? '',
       body: json['body'] ?? '',
-      isIncoming: json['isIncoming'] ?? false,
+      isIncoming: json['isIncoming'] ?? (json['direction'] == 'incoming'),
       timestamp: json['timestamp'] != null ? DateTime.parse(json['timestamp']) : DateTime.now(),
       status: json['status'],
       type: json['type'],
@@ -80,6 +83,11 @@ class CallLog {
   final DateTime? followUpDate;
   final String? followUpNotes;
   final String? priority;
+  final String? product;
+  final String? location;
+  final String? businessDetails;
+  final String? orderStatus;
+  final String? workerName;
   final DateTime createdAt;
 
   CallLog({
@@ -94,6 +102,11 @@ class CallLog {
     this.followUpDate,
     this.followUpNotes,
     this.priority,
+    this.product,
+    this.location,
+    this.businessDetails,
+    this.orderStatus,
+    this.workerName,
     required this.createdAt,
   });
 
@@ -110,6 +123,11 @@ class CallLog {
       followUpDate: json['followUpDate'] != null ? DateTime.parse(json['followUpDate']) : null,
       followUpNotes: json['followUpNotes'],
       priority: json['priority'],
+      product: json['product'],
+      location: json['location'],
+      businessDetails: json['businessDetails'],
+      orderStatus: json['orderStatus'],
+      workerName: json['workerId'] is Map ? json['workerId']['name'] : null,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }

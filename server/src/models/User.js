@@ -31,7 +31,11 @@ const userSchema = new mongoose.Schema({
     companies: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Company'
-    }]
+    }],
+    customRole: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Role'
+    }
 }, {
     timestamps: true
 });

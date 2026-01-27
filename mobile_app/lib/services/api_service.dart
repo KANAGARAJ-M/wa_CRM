@@ -40,9 +40,13 @@ class ApiService {
     throw Exception('Failed to load stats');
   }
 
-  Future<List<CallLog>> getCalls({int limit = 20}) async {
+  Future<List<CallLog>> getCalls({int limit = 20, String? leadId}) async {
+    String url = '${ApiConfig.baseUrl}/worker/calls?limit=$limit';
+    if (leadId != null) {
+      url += '&leadId=$leadId';
+    }
     final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/worker/calls?limit=$limit'),
+      Uri.parse(url),
       headers: _headers,
     );
 
@@ -105,6 +109,10 @@ class ApiService {
     String? followUpDate,
     String? followUpNotes,
     String? priority,
+    String? product,
+    String? location,
+    String? businessDetails,
+    String? orderStatus,
   }) async {
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}/worker/calls'),
@@ -120,6 +128,10 @@ class ApiService {
         'followUpDate': followUpDate,
         'followUpNotes': followUpNotes,
         'priority': priority ?? 'medium',
+        'product': product,
+        'location': location,
+        'businessDetails': businessDetails,
+        'orderStatus': orderStatus,
       }),
     );
 

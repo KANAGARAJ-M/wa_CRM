@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
 import 'call_log_screen.dart';
+import 'call_screen.dart';
 
 class DialerScreen extends StatefulWidget {
   const DialerScreen({super.key});
@@ -113,19 +114,22 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
       }
     });
 
-    // Make the call using direct caller
-    try {
-      await FlutterPhoneDirectCaller.callNumber(number);
-      
-      // After call, show outcome dialog if we have a lead
-      if (lead != null && mounted) {
-        _showCallOutcomeDialog(lead);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error making call: $e'), backgroundColor: Colors.red),
-        );
+    // Make the call using CallScreen
+    if (lead != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => CallScreen(lead: lead)),
+      );
+    } else {
+      // For manual number entry, just call directly for now (or create temp lead)
+      try {
+        await FlutterPhoneDirectCaller.callNumber(number);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error making call: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
     }
   }
@@ -137,9 +141,9 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
       backgroundColor: Colors.transparent,
       builder: (context) => CallOutcomeSheet(
         lead: lead,
-        onOutcomeSelected: (outcome, notes, duration, followUpDate, followUpNotes, priority) async {
+        onOutcomeSelected: (outcome, notes, duration, followUpDate, followUpNotes, priority, product, location, businessDetails, orderStatus) async {
           Navigator.pop(context);
-          await _saveCallOutcome(lead, outcome, notes, duration, followUpDate, followUpNotes, priority);
+          await _saveCallOutcome(lead, outcome, notes, duration, followUpDate, followUpNotes, priority, product, location, businessDetails, orderStatus);
         },
       ),
     );
@@ -153,6 +157,10 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     String? followUpDate,
     String? followUpNotes,
     String priority,
+    String? product,
+    String? location,
+    String? businessDetails,
+    String? orderStatus,
   ) async {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
@@ -169,6 +177,10 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
         followUpDate: followUpDate,
         followUpNotes: followUpNotes,
         priority: priority,
+        product: product,
+        location: location,
+        businessDetails: businessDetails,
+        orderStatus: orderStatus,
       );
 
       await _fetchData();
@@ -595,16 +607,58 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                               ),
                             ),
                           ),
-                          if (lead.updatedAt != null) ...[
-                            const SizedBox(width: 8),
-                            Icon(Icons.access_time, size: 12, color: Colors.grey[500]),
+                          const SizedBox(width: 8),
+                          // Source Indicator
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (lead.source == 'whatsapp') 
+                                  ? const Color(0xFF25D366).withOpacity(0.1) 
+                                  : Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  (lead.source == 'whatsapp') ? Icons.chat : Icons.table_chart,
+                                  size: 10,
+                                  color: (lead.source == 'whatsapp') 
+                                      ? const Color(0xFF25D366) 
+                                      : Colors.blue,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (lead.source == 'whatsapp') ? 'WhatsApp' : 'Excel',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: (lead.source == 'whatsapp') 
+                                        ? const Color(0xFF25D366) 
+                                        : Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => _showLeadHistory(lead),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.history, size: 14, color: Color(0xFF22C55E)),
                             const SizedBox(width: 4),
-                            Text(
-                              DateFormat('MMM d, h:mm a').format(lead.updatedAt!),
-                              style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                            const Text(
+                              'View History',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF22C55E),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -708,6 +762,20 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                  if (call.workerName != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person_outline, size: 12, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Agent: ${call.workerName}',
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
               trailing: Container(
@@ -787,16 +855,232 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
         return Colors.blueGrey;
     }
   }
+
+  Future<void> _showLeadHistory(Lead lead) async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final apiService = ApiService(authService.token!);
+      
+      // Fetch calls for this specific lead
+      final history = await apiService.getCalls(leadId: lead.id, limit: 50);
+      
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF22C55E).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          lead.name[0].toUpperCase(),
+                          style: const TextStyle(color: Color(0xFF22C55E), fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'History: ${lead.name}',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            lead.phone,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: history.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.history, size: 48, color: Colors.grey[300]),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No history found',
+                              style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: history.length,
+                        itemBuilder: (context, index) {
+                          final call = history[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[200]!),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      DateFormat('MMM d, yyyy h:mm a').format(call.createdAt),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _getOutcomeColor(call.outcome).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        call.outcome.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: _getOutcomeColor(call.outcome),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                if (call.workerName != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.person_outline, size: 14, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Agent: ${call.workerName}',
+                                          style: TextStyle(fontSize: 12, color: Colors.grey[700], fontStyle: FontStyle.italic),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (call.notes != null && call.notes!.isNotEmpty)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.grey[200]!),
+                                    ),
+                                    child: Text(
+                                      call.notes!,
+                                      style: TextStyle(color: Colors.grey[800], fontSize: 14),
+                                    ),
+                                  ),
+                                if (call.location != null || call.businessDetails != null || call.orderStatus != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 12),
+                                    child: Wrap(
+                                      spacing: 12,
+                                      runSpacing: 8,
+                                      children: [
+                                        if (call.location != null)
+                                          _buildDetailChip(Icons.location_on, call.location!),
+                                        if (call.businessDetails != null)
+                                          _buildDetailChip(Icons.business, call.businessDetails!),
+                                        if (call.orderStatus != null)
+                                          _buildDetailChip(Icons.shopping_cart, call.orderStatus!.replaceAll('-', ' ')),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading history: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildDetailChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.grey[600]),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey[800]),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // Call Outcome Bottom Sheet
 class CallOutcomeSheet extends StatefulWidget {
   final Lead lead;
-  final Function(String outcome, String? notes, int duration, String? followUpDate, String? followUpNotes, String priority) onOutcomeSelected;
+  final int? initialDuration;
+  final Function(String outcome, String? notes, int duration, String? followUpDate, String? followUpNotes, String priority, String? product, String? location, String? businessDetails, String? orderStatus) onOutcomeSelected;
 
   const CallOutcomeSheet({
     super.key,
     required this.lead,
+    this.initialDuration,
     required this.onOutcomeSelected,
   });
 
@@ -807,16 +1091,29 @@ class CallOutcomeSheet extends StatefulWidget {
 class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
   String? _selectedOutcome;
   final TextEditingController _notesController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController(text: '0');
+  late TextEditingController _durationController;
   final TextEditingController _followUpNotesController = TextEditingController();
+  final TextEditingController _productController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _businessDetailsController = TextEditingController();
+  String _orderStatus = 'not-ordered';
   DateTime? _followUpDate;
   String _priority = 'medium';
+
+  @override
+  void initState() {
+    super.initState();
+    _durationController = TextEditingController(text: (widget.initialDuration ?? 0).toString());
+  }
 
   @override
   void dispose() {
     _notesController.dispose();
     _durationController.dispose();
     _followUpNotesController.dispose();
+    _productController.dispose();
+    _locationController.dispose();
+    _businessDetailsController.dispose();
     super.dispose();
   }
 
@@ -912,6 +1209,39 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                             widget.lead.phone,
                             style: TextStyle(color: Colors.grey[600], fontSize: 14),
                           ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: (widget.lead.source == 'whatsapp') 
+                                  ? const Color(0xFF25D366).withOpacity(0.1) 
+                                  : Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  (widget.lead.source == 'whatsapp') ? Icons.chat : Icons.table_chart,
+                                  size: 10,
+                                  color: (widget.lead.source == 'whatsapp') 
+                                      ? const Color(0xFF25D366) 
+                                      : Colors.blue,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (widget.lead.source == 'whatsapp') ? 'WhatsApp Lead' : 'Excel Lead',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: (widget.lead.source == 'whatsapp') 
+                                        ? const Color(0xFF25D366) 
+                                        : Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -957,10 +1287,13 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                 children: [
                   _buildOutcomeButton('contacted', 'Contacted', Icons.phone, Colors.blue),
                   _buildOutcomeButton('interested', 'Interested', Icons.thumb_up, Colors.green),
-                  _buildOutcomeButton('follow-up', 'Follow Up', Icons.schedule, Colors.orange),
                   _buildOutcomeButton('not-interested', 'Not Interested', Icons.thumb_down, Colors.red),
-                  _buildOutcomeButton('negotiation', 'Negotiation', Icons.handshake, Colors.purple),
+                  _buildOutcomeButton('follow-up', 'Follow Up', Icons.schedule, Colors.orange),
+                  _buildOutcomeButton('callback', 'Callback', Icons.phone_callback, Colors.blue),
                   _buildOutcomeButton('converted', 'Converted', Icons.star, Colors.teal),
+                  _buildOutcomeButton('wrong-number', 'Wrong Number', Icons.phonelink_erase, Colors.grey),
+                  _buildOutcomeButton('not-reachable', 'Not Reachable', Icons.signal_cellular_off, Colors.blueGrey),
+                  _buildOutcomeButton('other', 'Other', Icons.help_outline, Colors.purple),
                 ],
               ),
 
@@ -995,6 +1328,74 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                   ),
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              // Product Field
+              TextField(
+                controller: _productController,
+                decoration: InputDecoration(
+                  labelText: 'Product (optional)',
+                  hintText: 'e.g., Solar Panel, Insurance...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  prefixIcon: const Icon(Icons.shopping_bag_outlined),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Location Field
+              TextField(
+                controller: _locationController,
+                decoration: InputDecoration(
+                  labelText: 'Location',
+                  hintText: 'e.g., New York, NY',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  prefixIcon: const Icon(Icons.location_on_outlined),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Business Details Field
+              TextField(
+                controller: _businessDetailsController,
+                decoration: InputDecoration(
+                  labelText: 'Business Details',
+                  hintText: 'e.g., Retail Store, Tech Startup...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  prefixIcon: const Icon(Icons.business_outlined),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Order Status
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Order Status:', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _buildOrderStatusChip('not-ordered', 'Not Ordered', Colors.grey),
+                      _buildOrderStatusChip('ordered', 'Ordered', Colors.green),
+                      _buildOrderStatusChip('already-ordered', 'Already Ordered', Colors.blue),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
 
               const SizedBox(height: 16),
 
@@ -1046,23 +1447,31 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
               const SizedBox(height: 16),
 
               // Priority
+              // Priority
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Priority: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8.0),
+                    child: Text('Priority: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                  ),
                   const SizedBox(width: 12),
-                  ...['low', 'medium', 'high', 'urgent'].map((p) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(p.toUpperCase(), style: const TextStyle(fontSize: 11)),
-                      selected: _priority == p,
-                      onSelected: (_) => setState(() => _priority = p),
-                      selectedColor: _getPriorityColor(p).withOpacity(0.2),
-                      labelStyle: TextStyle(
-                        color: _priority == p ? _getPriorityColor(p) : Colors.grey[600],
-                        fontWeight: _priority == p ? FontWeight.bold : FontWeight.normal,
-                      ),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: ['low', 'medium', 'high', 'urgent'].map((p) => ChoiceChip(
+                        label: Text(p.toUpperCase(), style: const TextStyle(fontSize: 11)),
+                        selected: _priority == p,
+                        onSelected: (_) => setState(() => _priority = p),
+                        selectedColor: _getPriorityColor(p).withOpacity(0.2),
+                        labelStyle: TextStyle(
+                          color: _priority == p ? _getPriorityColor(p) : Colors.grey[600],
+                          fontWeight: _priority == p ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      )).toList(),
                     ),
-                  )),
+                  ),
                 ],
               ),
 
@@ -1095,6 +1504,10 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                                 _followUpDate?.toIso8601String(),
                                 _followUpNotesController.text.isNotEmpty ? _followUpNotesController.text : null,
                                 _priority,
+                                _productController.text.isNotEmpty ? _productController.text : null,
+                                _locationController.text.isNotEmpty ? _locationController.text : null,
+                                _businessDetailsController.text.isNotEmpty ? _businessDetailsController.text : null,
+                                _orderStatus,
                               );
                             },
                       style: ElevatedButton.styleFrom(
@@ -1158,5 +1571,20 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
       default:
         return Colors.grey;
     }
+  }
+
+  Widget _buildOrderStatusChip(String value, String label, Color color) {
+    final isSelected = _orderStatus == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => setState(() => _orderStatus = value),
+      selectedColor: color.withOpacity(0.2),
+      labelStyle: TextStyle(
+        color: isSelected ? color : Colors.grey[600],
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      backgroundColor: Colors.grey[100],
+    );
   }
 }

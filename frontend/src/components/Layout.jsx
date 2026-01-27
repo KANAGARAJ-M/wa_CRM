@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     MessageSquare, Settings, LogOut, Menu, X, ChevronLeft,
-    Users, MessageCircle, ChevronDown, ChevronRight, Building2, Phone, BarChart3
+    Users, MessageCircle, ChevronDown, ChevronRight, Building2, Phone, BarChart3, Shield
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -92,6 +92,29 @@ export default function Layout({ children }) {
 
                 {/* Navigation */}
                 <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+                    {/* Dashboard */}
+                    <NavLink
+                        to="/dashboard"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 mb-2
+                            ${isActive
+                                ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-500/30'
+                                : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
+                            }`
+                        }
+                    >
+                        <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
+                            <BarChart3 className="h-5 w-5" />
+                        </div>
+                        {sidebarOpen && (
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm">Dashboard</p>
+                                <p className="text-xs text-gray-500 truncate">Overview & Analytics</p>
+                            </div>
+                        )}
+                    </NavLink>
+
                     {/* Communication Section with Sub-items */}
                     <div>
                         <button
@@ -210,7 +233,7 @@ export default function Layout({ children }) {
                                     }
                                 >
                                     <Users className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Team Members</span>
+                                    <span className="text-sm font-medium">Agents</span>
                                 </NavLink>
 
                                 <NavLink
@@ -226,6 +249,21 @@ export default function Layout({ children }) {
                                 >
                                     <BarChart3 className="h-4 w-4" />
                                     <span className="text-sm font-medium">Call Analytics</span>
+                                </NavLink>
+
+                                <NavLink
+                                    to="/roles"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                        ${isActive
+                                            ? 'bg-blue-500/20 text-blue-400'
+                                            : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                        }`
+                                    }
+                                >
+                                    <Shield className="h-4 w-4" />
+                                    <span className="text-sm font-medium">Roles & Permissions</span>
                                 </NavLink>
                             </div>
                         )}

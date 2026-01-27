@@ -10,6 +10,8 @@ import CallAnalytics from './pages/CallAnalytics';
 import WorkerDashboard from './pages/worker/WorkerDashboard';
 import WorkerChat from './pages/worker/WorkerChat';
 import CompanySelection from './pages/CompanySelection';
+import Dashboard from './pages/Dashboard';
+import Roles from './pages/Roles';
 import Layout from './components/Layout';
 
 const AdminRoute = ({ children }) => {
@@ -122,7 +124,15 @@ function App() {
             path="/"
             element={
               <AdminRoute>
-                <Navigate to="/chats" replace />
+                <Navigate to="/dashboard" replace />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <AdminRoute>
+                <Dashboard />
               </AdminRoute>
             }
           />
@@ -163,6 +173,15 @@ function App() {
             element={
               <AdminRoute>
                 <CallAnalytics />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/roles"
+            element={
+              <AdminRoute>
+                <Roles />
               </AdminRoute>
             }
           />

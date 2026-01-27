@@ -34,17 +34,17 @@ export default function Workers() {
             setFormData({ name: '', email: '', password: '' });
             fetchWorkers();
         } catch (error) {
-            setError(error.response?.data?.message || 'Failed to create worker');
+            setError(error.response?.data?.message || 'Failed to create agent');
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('Are you sure you want to delete this worker?')) return;
+        if (!confirm('Are you sure you want to delete this agent?')) return;
         try {
             await api.delete(`/workers/${id}`);
             fetchWorkers();
         } catch (error) {
-            alert('Failed to delete worker');
+            alert('Failed to delete agent');
         }
     };
 
@@ -61,14 +61,14 @@ export default function Workers() {
                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 shadow-lg shadow-green-600/20 transition-all"
                     >
                         <Plus className="h-5 w-5" />
-                        Add Worker
+                        Add Agent
                     </button>
                 </div>
 
                 {loading ? (
                     <div className="text-center py-10">Loading...</div>
                 ) : workers.length === 0 ? (
-                    <div className="text-center py-10 text-gray-500">No workers found. Add your first team member!</div>
+                    <div className="text-center py-10 text-gray-500">No agents found. Add your first team member!</div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {workers.map(worker => (
@@ -91,7 +91,7 @@ export default function Workers() {
                                     </button>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-500">
-                                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Worker</span>
+                                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Agent</span>
                                     <span className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-medium">Active</span>
                                 </div>
                             </div>
@@ -103,7 +103,7 @@ export default function Workers() {
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white p-6 rounded-xl w-full max-w-md shadow-2xl animate-fadeIn">
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-gray-900">Add New Worker</h2>
+                                <h2 className="text-xl font-bold text-gray-900">Add New Agent</h2>
                                 <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
                                     <X className="h-5 w-5" />
                                 </button>
@@ -138,7 +138,7 @@ export default function Workers() {
                                             type="email"
                                             required
                                             className="pl-10 w-full border border-gray-300 rounded-lg py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                            placeholder="worker@company.com"
+                                            placeholder="agent@company.com"
                                             value={formData.email}
                                             onChange={e => setFormData({ ...formData, email: e.target.value })}
                                         />
@@ -181,7 +181,7 @@ export default function Workers() {
                                         type="submit"
                                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20"
                                     >
-                                        Create Worker
+                                        Create Agent
                                     </button>
                                 </div>
                             </form>

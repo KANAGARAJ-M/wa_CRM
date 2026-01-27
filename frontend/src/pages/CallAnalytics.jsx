@@ -23,6 +23,8 @@ export default function CallAnalytics() {
     });
     const [activeTab, setActiveTab] = useState('overview');
     const [showFilterPanel, setShowFilterPanel] = useState(false);
+    const [selectedLeadHistory, setSelectedLeadHistory] = useState(null);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     useEffect(() => {
         fetchWorkers();
@@ -74,6 +76,32 @@ export default function CallAnalytics() {
         } catch (error) {
             console.error('Error updating call:', error);
             alert('Failed to update call');
+        }
+    };
+
+    const fetchLeadHistory = async (leadId) => {
+        if (!leadId) return;
+        try {
+            // We can reuse the calls endpoint but filter by leadId to get full history
+            // Since we are admin (or have access to analytics), we should be able to see all calls for a lead
+            // We might need to ensure the backend supports filtering by leadId in the general /calls endpoint
+            // The current /calls endpoint supports filtering by workerId, status, etc.
+            // Let's assume we can filter by leadId or we might need to add it to the backend query
+            // Actually, looking at calls.routes.js, it doesn't explicitly filter by leadId in the query params
+            // But we can add it. For now, let's try to fetch and filter client side if needed, or better, update backend.
+            // Wait, I can't update backend easily in this step without context switch.
+            // Let's check if I can use the worker portal route? No, I am admin here.
+            // Let's check calls.routes.js again.
+            // It filters by: status, outcome, workerId, startDate, endDate.
+            // I should probably add leadId support to GET /api/calls in backend first.
+            // But for now, let's assume I will add it.
+
+            const response = await api.get(`/calls?leadId=${leadId}&limit=50`);
+            setSelectedLeadHistory(response.data.data);
+            setShowHistoryModal(true);
+        } catch (error) {
+            console.error('Error fetching lead history:', error);
+            alert('Failed to fetch history');
         }
     };
 
@@ -259,11 +287,10 @@ export default function CallAnalytics() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                                activeTab === tab.id
-                                    ? 'bg-green-600 text-white shadow-lg'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            }`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${activeTab === tab.id
+                                ? 'bg-green-600 text-white shadow-lg'
+                                : 'text-gray-600 hover:bg-gray-100'
+                                }`}
                         >
                             <tab.icon className="h-4 w-4" />
                             {tab.label}
@@ -393,6 +420,8 @@ export default function CallAnalytics() {
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Worker</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Status</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Outcome</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Details</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Order Status</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Duration</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Notes</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Date</th>
@@ -407,6 +436,12 @@ export default function CallAnalytics() {
                                                         {call.leadId?.name || call.leadName || 'Unknown'}
                                                     </p>
                                                     <p className="text-sm text-gray-500">{call.phoneNumber}</p>
+                                                    <button
+                                                        onClick={() => fetchLeadHistory(call.leadId?._id || call.leadId)}
+                                                        className="text-xs text-green-600 hover:text-green-700 hover:underline mt-1"
+                                                    >
+                                                        View History
+                                                    </button>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6">
@@ -421,6 +456,31 @@ export default function CallAnalytics() {
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${getOutcomeColor(call.outcome)}`}>
                                                     {call.outcome?.replace('-', ' ')}
                                                 </span>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <div className="flex flex-col gap-1">
+                                                    {call.location && (
+                                                        <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full w-fit">
+                                                            📍 {call.location}
+                                                        </span>
+                                                    )}
+                                                    {call.businessDetails && (
+                                                        <span className="text-xs text-gray-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit">
+                                                            🏢 {call.businessDetails}
+                                                        </span>
+                                                    )}
+                                                    {!call.location && !call.businessDetails && <span className="text-gray-400">-</span>}
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                {call.orderStatus ? (
+                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${call.orderStatus === 'ordered' ? 'bg-green-100 text-green-700' :
+                                                        call.orderStatus === 'already-ordered' ? 'bg-blue-100 text-blue-700' :
+                                                            'bg-gray-100 text-gray-700'
+                                                        }`}>
+                                                        {call.orderStatus.replace('-', ' ')}
+                                                    </span>
+                                                ) : <span className="text-gray-400">-</span>}
                                             </td>
                                             <td className="py-4 px-6">
                                                 <span className="text-gray-700">
@@ -547,6 +607,90 @@ export default function CallAnalytics() {
                     </div>
                 )}
             </div>
+
+            {/* History Modal */}
+            {showHistoryModal && selectedLeadHistory && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col animate-fadeIn">
+                        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Lead History</h2>
+                                <p className="text-sm text-gray-500">
+                                    {selectedLeadHistory[0]?.leadId?.name || selectedLeadHistory[0]?.leadName || 'Unknown Lead'} - {selectedLeadHistory[0]?.phoneNumber}
+                                </p>
+                            </div>
+                            <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <XCircle className="h-6 w-6" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <div className="space-y-6">
+                                {selectedLeadHistory.map((call, index) => (
+                                    <div key={call._id} className="relative pl-8 pb-6 border-l-2 border-gray-200 last:border-0 last:pb-0">
+                                        <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
+                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <span className="font-semibold text-gray-900">{call.workerId?.name || 'Unknown Agent'}</span>
+                                                    <span className="text-sm text-gray-500 mx-2">•</span>
+                                                    <span className="text-sm text-gray-500">{format(new Date(call.createdAt), 'MMM d, yyyy h:mm a')}</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(call.status)}`}>
+                                                        {call.status}
+                                                    </span>
+                                                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getOutcomeColor(call.outcome)}`}>
+                                                        {call.outcome}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {call.notes && (
+                                                <p className="text-gray-700 mb-3 bg-white p-3 rounded border border-gray-100 italic">
+                                                    "{call.notes}"
+                                                </p>
+                                            )}
+
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                                {call.location && (
+                                                    <div>
+                                                        <span className="text-gray-500 block text-xs">Location</span>
+                                                        <span className="font-medium">{call.location}</span>
+                                                    </div>
+                                                )}
+                                                {call.businessDetails && (
+                                                    <div>
+                                                        <span className="text-gray-500 block text-xs">Business</span>
+                                                        <span className="font-medium">{call.businessDetails}</span>
+                                                    </div>
+                                                )}
+                                                {call.orderStatus && (
+                                                    <div>
+                                                        <span className="text-gray-500 block text-xs">Order Status</span>
+                                                        <span className={`font-medium ${call.orderStatus === 'ordered' ? 'text-green-600' :
+                                                            call.orderStatus === 'already-ordered' ? 'text-blue-600' :
+                                                                'text-gray-600'
+                                                            }`}>
+                                                            {call.orderStatus.replace('-', ' ')}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <span className="text-gray-500 block text-xs">Duration</span>
+                                                    <span className="font-medium">{Math.floor(call.duration / 60)}m {call.duration % 60}s</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {selectedLeadHistory.length === 0 && (
+                                    <p className="text-center text-gray-500 py-4">No history found.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -36,7 +36,7 @@ const callSchema = new mongoose.Schema({
     // Call outcome
     outcome: {
         type: String,
-        enum: ['interested', 'not-interested', 'follow-up', 'callback', 'converted', 'wrong-number', 'not-reachable', 'other'],
+        enum: ['contacted', 'interested', 'not-interested', 'follow-up', 'callback', 'converted', 'wrong-number', 'not-reachable', 'other'],
         default: 'other'
     },
     // Duration in seconds
@@ -69,6 +69,23 @@ const callSchema = new mongoose.Schema({
         type: String,
         enum: ['low', 'medium', 'high', 'urgent'],
         default: 'medium'
+    },
+    product: {
+        type: String,
+        trim: true
+    },
+    location: {
+        type: String,
+        trim: true
+    },
+    businessDetails: {
+        type: String,
+        trim: true
+    },
+    orderStatus: {
+        type: String,
+        enum: ['not-ordered', 'ordered', 'already-ordered'],
+        default: 'not-ordered'
     }
 }, {
     timestamps: true

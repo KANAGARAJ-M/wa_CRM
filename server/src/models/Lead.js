@@ -52,6 +52,21 @@ const leadSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    assignedAgents: [{
+        agentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        assignedAt: {
+            type: Date,
+            default: Date.now
+        },
+        assignedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
+    }],
+    // Keep assignedTo for backward compatibility (points to latest assignee)
     assignedTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
