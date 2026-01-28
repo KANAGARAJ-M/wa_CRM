@@ -109,16 +109,16 @@ export default function Login() {
                     </form>
 
                     {/* Footer */}
-                    <div className="px-8 py-4 bg-gray-50 text-center border-t border-gray-100">
+                   {/* <div className="px-8 py-4 bg-gray-50 text-center border-t border-gray-100">
                         <p className="text-sm text-gray-500">
                             Default: admin@whatsappcrm.com / admin123
                         </p>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Branding */}
                 <p className="text-center text-white/80 text-sm mt-6">
-                    Powered by WhatsApp Cloud API
+                    {/* Powered by WhatsApp Cloud API */}
                 </p>
             </div>
         </div>
