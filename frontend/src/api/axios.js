@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://srv1304549.hstgr.cloud/api', // Production
+    baseURL: 'https://srv1304549.hstgr.cloud/api', // Production
     // baseURL: 'http://localhost:3001/api', // Local Development
 });
 
