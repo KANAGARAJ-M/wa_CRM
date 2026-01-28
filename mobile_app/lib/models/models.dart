@@ -10,6 +10,10 @@ class Lead {
   final DateTime? updatedAt;
   final DateTime? lastInteraction;
   final String? source;
+  final String? location;
+  final String? businessName;
+  final String? locationFilledBy;
+  final String? businessFilledBy;
 
   Lead({
     required this.id,
@@ -23,6 +27,10 @@ class Lead {
     this.updatedAt,
     this.lastInteraction,
     this.source,
+    this.location,
+    this.businessName,
+    this.locationFilledBy,
+    this.businessFilledBy,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
@@ -38,6 +46,10 @@ class Lead {
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
       lastInteraction: json['lastInteraction'] != null ? DateTime.parse(json['lastInteraction']) : null,
       source: json['source'] ?? 'manual',
+      location: json['location'],
+      businessName: json['businessName'],
+      locationFilledBy: json['locationFilledBy'] is Map ? json['locationFilledBy']['name'] : null,
+      businessFilledBy: json['businessFilledBy'] is Map ? json['businessFilledBy']['name'] : null,
     );
   }
 }

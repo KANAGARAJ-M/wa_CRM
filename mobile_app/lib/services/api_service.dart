@@ -130,7 +130,7 @@ class ApiService {
         'priority': priority ?? 'medium',
         'product': product,
         'location': location,
-        'businessDetails': businessDetails,
+        'businessName': businessDetails, // Mapping businessDetails arg to businessName field
         'orderStatus': orderStatus,
       }),
     );

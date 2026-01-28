@@ -13,7 +13,9 @@ router.get('/leads', auth, async (req, res) => {
                 { assignedTo: req.user._id },
                 { 'assignedAgents.agentId': req.user._id }
             ]
-        }).sort({ updatedAt: -1 });
+        }).populate('locationFilledBy', 'name')
+            .populate('businessFilledBy', 'name')
+            .sort({ updatedAt: -1 });
 
         res.json({ success: true, data: leads });
     } catch (error) {
@@ -133,22 +135,23 @@ router.post('/calls', auth, async (req, res) => {
             priority,
             product,
             location,
-            businessDetails,
-            orderStatus
+            businessName
         } = req.body;
 
         // Verify lead is assigned to worker (if leadId provided)
         let companyId;
+        let currentLead; // To store the fetched lead
+
         if (leadId) {
-            const lead = await Lead.findOne({
+            currentLead = await Lead.findOne({
                 _id: leadId,
                 assignedTo: req.user._id
             });
 
-            if (!lead) {
+            if (!currentLead) {
                 return res.status(403).json({ success: false, message: 'Lead not assigned to you' });
             }
-            companyId = lead.companyId;
+            companyId = currentLead.companyId;
         }
 
         // Fallback to user's company if not found from lead (e.g. manual call or lead missing company)
@@ -172,9 +175,6 @@ router.post('/calls', auth, async (req, res) => {
             followUpNotes,
             priority,
             product,
-            location,
-            businessDetails,
-            orderStatus,
             callStartTime: new Date(Date.now() - (duration || 0) * 1000),
             callEndTime: new Date()
         });
@@ -192,6 +192,18 @@ router.post('/calls', auth, async (req, res) => {
                     }
                 }
             };
+
+            // Update fixed fields if they are not already set
+            if (currentLead) {
+                if (location && !currentLead.location) {
+                    updateData.location = location;
+                    updateData.locationFilledBy = req.user._id;
+                }
+                if (businessName && !currentLead.businessName) {
+                    updateData.businessName = businessName;
+                    updateData.businessFilledBy = req.user._id;
+                }
+            }
 
             // Map Call Outcome to Lead Status/Stage
             if (outcome === 'interested') {

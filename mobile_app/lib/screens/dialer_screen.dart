@@ -1104,6 +1104,14 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
   void initState() {
     super.initState();
     _durationController = TextEditingController(text: (widget.initialDuration ?? 0).toString());
+    
+    // Initialize with existing values
+    if (widget.lead.location != null) {
+      _locationController.text = widget.lead.location!;
+    }
+    if (widget.lead.businessName != null) {
+      _businessDetailsController.text = widget.lead.businessName!;
+    }
   }
 
   @override
@@ -1349,14 +1357,19 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
               // Location Field
               TextField(
                 controller: _locationController,
+                readOnly: widget.lead.location != null,
                 decoration: InputDecoration(
                   labelText: 'Location',
                   hintText: 'e.g., New York, NY',
+                  helperText: widget.lead.locationFilledBy != null ? 'Filled by: ${widget.lead.locationFilledBy}' : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   prefixIcon: const Icon(Icons.location_on_outlined),
+                  filled: widget.lead.location != null,
+                  fillColor: widget.lead.location != null ? Colors.grey[100] : null,
+                  suffixIcon: widget.lead.location != null ? const Icon(Icons.lock, size: 16, color: Colors.grey) : null,
                 ),
               ),
 
@@ -1365,14 +1378,19 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
               // Business Details Field
               TextField(
                 controller: _businessDetailsController,
+                readOnly: widget.lead.businessName != null,
                 decoration: InputDecoration(
-                  labelText: 'Business Details',
+                  labelText: 'Business Name',
                   hintText: 'e.g., Retail Store, Tech Startup...',
+                  helperText: widget.lead.businessFilledBy != null ? 'Filled by: ${widget.lead.businessFilledBy}' : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   prefixIcon: const Icon(Icons.business_outlined),
+                  filled: widget.lead.businessName != null,
+                  fillColor: widget.lead.businessName != null ? Colors.grey[100] : null,
+                  suffixIcon: widget.lead.businessName != null ? const Icon(Icons.lock, size: 16, color: Colors.grey) : null,
                 ),
               ),
 

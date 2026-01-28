@@ -96,6 +96,23 @@ const leadSchema = new mongoose.Schema({
     lastInteraction: {
         type: Date,
         default: Date.now
+    },
+    // Fixed fields (once filled, cannot be changed by others)
+    location: {
+        type: String,
+        trim: true
+    },
+    locationFilledBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    businessName: {
+        type: String,
+        trim: true
+    },
+    businessFilledBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 }, {
     timestamps: true
