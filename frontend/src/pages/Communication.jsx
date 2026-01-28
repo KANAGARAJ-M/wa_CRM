@@ -318,10 +318,14 @@ export default function Communication() {
                 }
 
                 const headers = jsonData[0].map(h => String(h).toLowerCase().trim());
-                const nameIndex = headers.findIndex(h => h.includes('name'));
-                const phoneIndex = headers.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('contact'));
-                const emailIndex = headers.findIndex(h => h.includes('email'));
-                const notesIndex = headers.findIndex(h => h.includes('note') || h.includes('comment'));
+
+                // Helper to find column index based on keywords
+                const getColumnIndex = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
+
+                const nameIndex = getColumnIndex(['name', 'first', 'full', 'client', 'customer', 'lead', 'prospect']);
+                const phoneIndex = getColumnIndex(['phone', 'mobile', 'cell', 'tel', 'contact', 'whatsapp', 'call', 'num', 'no.']);
+                const emailIndex = getColumnIndex(['email', 'e-mail', 'mail']);
+                const notesIndex = getColumnIndex(['note', 'comment', 'remark', 'desc', 'message', 'info', 'detail']);
 
                 if (nameIndex === -1 && phoneIndex === -1) {
                     setImportError('Excel must have at least "Name" or "Phone" column');
@@ -1082,6 +1086,7 @@ export default function Communication() {
                                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1091,6 +1096,7 @@ export default function Communication() {
                                                             <td className="px-4 py-2 text-sm text-gray-900">{lead.name}</td>
                                                             <td className="px-4 py-2 text-sm text-gray-600">{lead.phone}</td>
                                                             <td className="px-4 py-2 text-sm text-gray-600">{lead.email || '-'}</td>
+                                                            <td className="px-4 py-2 text-sm text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]" title={lead.notes}>{lead.notes || '-'}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
