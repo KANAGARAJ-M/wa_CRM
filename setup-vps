@@ -1,0 +1,520 @@
+Alright, clean slate 😄 Let’s do this **from zero** on an **Ubuntu VPS** and get GitHub working the *right* way.
+
+I’ll assume:
+
+* Fresh Ubuntu (20.04 / 22.04 / 24.04)
+* You have SSH access to the VPS
+* Goal: clone & push GitHub repos
+
+---
+
+## 1️⃣ Update the system
+
+Always first.
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+---
+
+## 2️⃣ Install Git
+
+Git is usually not installed on a fresh VPS.
+
+```bash
+sudo apt install git -y
+```
+
+Verify:
+
+```bash
+git --version
+```
+
+---
+
+## 3️⃣ Configure Git (important)
+
+Set your GitHub identity:
+
+```bash
+git config --global user.name "E-buy-gms"
+git config --global user.email "gms.fashionr@gmail.com"
+```
+
+Check:
+
+```bash
+git config --global --list
+```
+
+---
+
+## 4️⃣ Generate SSH key (for GitHub login)
+
+This is how your VPS “logs in” to GitHub.
+
+```bash
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+When prompted:
+
+* **File location** → press Enter
+* **Passphrase** → optional (press Enter to skip)
+
+---
+
+## 5️⃣ Start SSH agent & add key
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
+
+---
+
+## 6️⃣ Copy the SSH public key
+
+```bash
+cat ~/.ssh/id_ed25519.pub
+```
+
+Copy **everything** it prints.
+
+---
+
+## 7️⃣ Add SSH key to GitHub
+
+On your **local browser**:
+
+1. GitHub → **Settings**
+2. **SSH and GPG keys**
+3. **New SSH key**
+4. Title: `Ubuntu VPS`
+5. Paste key → **Save**
+
+---
+
+## 8️⃣ Test GitHub login
+
+Back on the VPS:
+
+```bash
+ssh -T git@github.com
+```
+
+Type `yes` if asked.
+
+Success looks like:
+
+```
+Hi username! You've successfully authenticated...
+```
+
+🔥 GitHub access is now live.
+
+---
+
+## 9️⃣ Clone a repository
+
+Use **SSH URL**, not HTTPS.
+
+```bash
+git clone git@github.com:username/repository.git
+cd repository
+```
+
+---
+
+## 10️⃣ Push test (optional)
+
+```bash
+touch test.txt
+git add .
+git commit -m "Test from VPS"
+git push
+```
+
+No username. No password. Just works 😌
+
+---
+
+## 🧠 Pro VPS tips
+
+* One SSH key per server (good security hygiene)
+* Name keys clearly in GitHub
+* If you use multiple GitHub accounts, tell me — setup is slightly different
+
+---
+
+If you want, next I can help you:
+
+* 🔐 Use **multiple GitHub accounts**
+* 🤖 Setup **GitHub Actions** on VPS
+* 🚀 Auto-deploy from GitHub
+* 🧱 Lock down SSH security on the VPS
+
+Just say the word 👌
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Perfect — thanks for pasting the output. This actually tells us **everything is already set up correctly** 👍
+You just tripped on one very common GitHub gotcha.
+
+---
+
+## ✅ What’s working (important)
+
+This line confirms your VPS is **already logged into GitHub via SSH**:
+
+```
+Hi E-buy-gms! You've successfully authenticated
+```
+
+So authentication = ✅ DONE
+No issues with keys. No reinstall needed.
+
+---
+
+## ❌ What went wrong
+
+You tried to clone using **HTTPS**:
+
+```bash
+git clone https://github.com/E-buy-gms/CRM.git
+```
+
+GitHub **does NOT allow passwords anymore** for HTTPS.
+That’s why it keeps failing, even with `sudo`.
+
+> `sudo` does NOT help here — this is GitHub auth, not Linux permissions.
+
+---
+
+## ✅ The fix (1-line solution)
+
+Since SSH is already working, **use the SSH repo URL**:
+
+```bash
+git clone git@github.com:E-buy-gms/CRM.git
+```
+
+Run that **exactly** from here:
+
+```bash
+cd /var/www/html
+git clone git@github.com:E-buy-gms/CRM.git
+```
+
+That’s it. No username. No password. No token.
+
+---
+
+## 🧠 Why this works
+
+* `ssh -T git@github.com` → proves SSH auth is valid
+* `git@github.com:E-buy-gms/CRM.git` → uses that SSH identity
+* HTTPS → requires a **Personal Access Token**, not a password
+
+You already chose the better path (SSH), just needed the right URL 😉
+
+---
+
+## 🔍 Verify after clone
+
+```bash
+cd CRM
+ls
+git status
+```
+
+---
+
+## ⚠️ One small VPS best-practice note
+
+You’re doing everything as **root**. It works, but long-term it’s safer to:
+
+* Create a deploy user (e.g. `deploy`)
+* Own `/var/www/html` with that user
+* Use root only for system stuff
+
+If you want, I can:
+
+* 👤 Create a proper `deploy` user
+* 🔐 Fix folder permissions for Nginx
+* 🚀 Hook this repo to auto-deploy
+* 🧱 Secure SSH (disable root login)
+
+Just tell me what you want next 👌
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Nice, that’s a clean run so far 👌
+Repo cloned, deps installed — you’re ready for **PM2 + Nginx**. Let’s wire it up step-by-step.
+
+I’ll assume:
+
+* This is a **Node.js backend** in `CRM/server`
+* It listens on some port (very often `3000` or `5000`)
+* Nginx will act as a **reverse proxy**
+
+If your port is different, just swap it.
+
+---
+
+## 1️⃣ Install Node.js (verify first)
+
+Check Node version:
+
+```bash
+node -v
+npm -v
+```
+
+If Node is **not installed** or too old (≤14), install LTS:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+---
+
+## 2️⃣ Install PM2 globally
+
+```bash
+npm install -g pm2
+```
+
+Verify:
+
+```bash
+pm2 -v
+```
+
+---
+
+## 3️⃣ Start the app with PM2
+
+Go to your server folder (you’re already there):
+
+```bash
+cd /var/www/html/CRM/server
+```
+
+Check how the app starts (open `package.json`):
+
+```bash
+cat package.json
+```
+
+You’re looking for something like:
+
+```json
+"scripts": {
+  "start": "node index.js"
+}
+```
+
+### Start with PM2 (recommended)
+
+```bash
+pm2 start npm --name crm-api -- start
+```
+
+OR if you know the entry file:
+
+```bash
+pm2 start index.js --name crm-api
+```
+
+---
+
+## 4️⃣ Verify PM2 is running
+
+```bash
+pm2 status
+pm2 logs crm-api
+```
+
+Make sure there are **no errors**.
+
+---
+
+## 5️⃣ Make PM2 start on reboot
+
+Very important on a VPS:
+
+```bash
+pm2 startup
+```
+
+PM2 will output a command — **copy & run it** (it usually starts with `sudo`).
+
+Then:
+
+```bash
+pm2 save
+```
+
+---
+
+## 6️⃣ Find the app port
+
+Check where your app is listening:
+
+```bash
+ss -tulnp | grep node
+```
+
+Example output:
+
+```
+LISTEN 0 511 127.0.0.1:3000
+```
+
+👉 We’ll assume **3000** below.
+
+---
+
+## 7️⃣ Install Nginx
+
+```bash
+sudo apt install nginx -y
+```
+
+Check:
+
+```bash
+systemctl status nginx
+```
+
+---
+
+## 8️⃣ Configure Nginx for your app
+
+Create a new config:
+
+```bash
+sudo nano /etc/nginx/sites-available/crm
+```
+
+Paste this (adjust domain & port):
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com www.your-domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+If you **don’t have a domain yet**, use:
+
+```nginx
+server_name _;
+```
+
+---
+
+## 9️⃣ Enable the site
+
+```bash
+sudo ln -s /etc/nginx/sites-available/crm /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default
+```
+
+Test config:
+
+```bash
+sudo nginx -t
+```
+
+Reload Nginx:
+
+```bash
+sudo systemctl reload nginx
+```
+
+---
+
+## 🔟 Open firewall (if enabled)
+
+```bash
+sudo ufw allow 'Nginx Full'
+sudo ufw reload
+```
+
+---
+
+## ✅ Final check
+
+* Visit `http://YOUR_SERVER_IP`
+* Or `http://your-domain.com`
+
+If it loads → 🚀 you’re live.
+
+---
+
+## 🔥 Production upgrades (strongly recommended)
+
+Next logical steps:
+
+* 🔐 **HTTPS with Let’s Encrypt**
+* 📁 **Environment variables (.env)**
+* 🧍 **Run PM2 as non-root user**
+* 🔁 **Zero-downtime reloads**
+* 📊 **PM2 monitoring**
+
+Tell me:
+
+1. Which **port** your Node app uses
+2. Do you have a **domain name** yet?
+3. Want **HTTPS** next?
+
+I’ll lock it in properly 💪
