@@ -75,7 +75,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _makeCall(String phone) async {
-    final uri = Uri.parse('tel:$phone');
+    String number = phone.trim();
+    if (number.startsWith('91') && number.length == 12) {
+      number = number.substring(2);
+    }
+    final uri = Uri.parse('tel:$number');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
@@ -85,7 +89,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final authService = Provider.of<AuthService>(context, listen: false);
     await authService.logout();
     if (mounted) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const LoginScreen()));
     }
   }
 
@@ -93,7 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final userName = authService.user?['name'] ?? 'Agent';
-    
+
     String companyName = 'Agent Portal';
     if (authService.user != null && authService.user!['companies'] != null) {
       final companies = authService.user!['companies'];
@@ -105,7 +110,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111827), // Dark background for modern look
+      backgroundColor:
+          const Color(0xFF111827), // Dark background for modern look
       body: SafeArea(
         child: Column(
           children: [
@@ -147,7 +153,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             color: Colors.white.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                          child: const Icon(Icons.refresh_rounded,
+                              color: Colors.white, size: 20),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -159,7 +166,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             color: Colors.white.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.logout_rounded, color: Colors.white, size: 20),
+                          child: const Icon(Icons.logout_rounded,
+                              color: Colors.white, size: 20),
                         ),
                       ),
                     ],
@@ -286,7 +294,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildModernStatCard(String title, String value, Color color, IconData icon) {
+  Widget _buildModernStatCard(
+      String title, String value, Color color, IconData icon) {
     return Container(
       width: 140,
       padding: const EdgeInsets.all(20),
@@ -370,7 +379,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(24),
               itemCount: _leads.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) => _buildModernLeadItem(_leads[index]),
+              itemBuilder: (context, index) =>
+                  _buildModernLeadItem(_leads[index]),
             ),
     );
   }
@@ -392,7 +402,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(24),
               itemCount: _calls.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) => _buildModernCallItem(_calls[index]),
+              itemBuilder: (context, index) =>
+                  _buildModernCallItem(_calls[index]),
             ),
     );
   }
@@ -414,7 +425,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(24),
               itemCount: _followUps.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) => _buildModernCallItem(_followUps[index]),
+              itemBuilder: (context, index) =>
+                  _buildModernCallItem(_followUps[index]),
             ),
     );
   }
@@ -498,12 +510,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             children: [
               _buildIconBtn(Icons.chat_bubble_outline_rounded, Colors.blue, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)));
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)));
               }),
               const SizedBox(width: 12),
               _buildIconBtn(Icons.phone_rounded, Colors.green, () {
                 _makeCall(lead.phone);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => CallLogScreen(lead: lead)));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => CallLogScreen(lead: lead)));
               }),
             ],
           ),
@@ -603,36 +619,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   IconData _getOutcomeIcon(String outcome) {
     switch (outcome.toLowerCase()) {
-      case 'interested': return Icons.thumb_up_rounded;
-      case 'not-interested': return Icons.thumb_down_rounded;
-      case 'follow-up': return Icons.calendar_today_rounded;
-      case 'callback': return Icons.phone_callback_rounded;
-      case 'converted': return Icons.check_circle_rounded;
-      case 'wrong-number': return Icons.phonelink_erase_rounded;
-      default: return Icons.phone_rounded;
+      case 'interested':
+        return Icons.thumb_up_rounded;
+      case 'not-interested':
+        return Icons.thumb_down_rounded;
+      case 'follow-up':
+        return Icons.calendar_today_rounded;
+      case 'callback':
+        return Icons.phone_callback_rounded;
+      case 'converted':
+        return Icons.check_circle_rounded;
+      case 'wrong-number':
+        return Icons.phonelink_erase_rounded;
+      default:
+        return Icons.phone_rounded;
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'new': return Colors.blue;
-      case 'contacted': return Colors.orange;
-      case 'interested': return Colors.green;
-      case 'converted': return Colors.purple;
-      case 'closed': return Colors.grey;
-      case 'completed': return Colors.green;
-      default: return Colors.grey;
+      case 'new':
+        return Colors.blue;
+      case 'contacted':
+        return Colors.orange;
+      case 'interested':
+        return Colors.green;
+      case 'converted':
+        return Colors.purple;
+      case 'closed':
+        return Colors.grey;
+      case 'completed':
+        return Colors.green;
+      default:
+        return Colors.grey;
     }
   }
 
   Color _getOutcomeColor(String outcome) {
     switch (outcome.toLowerCase()) {
-      case 'interested': return Colors.green;
-      case 'not-interested': return Colors.red;
-      case 'follow-up': return Colors.blue;
-      case 'callback': return Colors.orange;
-      case 'converted': return Colors.purple;
-      default: return Colors.grey;
+      case 'interested':
+        return Colors.green;
+      case 'not-interested':
+        return Colors.red;
+      case 'follow-up':
+        return Colors.blue;
+      case 'callback':
+        return Colors.orange;
+      case 'converted':
+        return Colors.purple;
+      default:
+        return Colors.grey;
     }
   }
 }

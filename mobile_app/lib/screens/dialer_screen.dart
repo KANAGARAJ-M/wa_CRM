@@ -15,7 +15,8 @@ class DialerScreen extends StatefulWidget {
   State<DialerScreen> createState() => _DialerScreenState();
 }
 
-class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderStateMixin {
+class _DialerScreenState extends State<DialerScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _numberController = TextEditingController();
   late TabController _tabController;
   List<Lead> _leads = [];
@@ -44,15 +45,15 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = ApiService(authService.token!);
-      
+
       final results = await Future.wait([
         apiService.getLeads(),
         apiService.getCalls(),
       ]);
-      
+
       final leads = results[0] as List<Lead>;
       final calls = results[1] as List<CallLog>;
-      
+
       // Calculate stats
       final stats = <String, int>{'new': 0, 'contacted': 0, 'interested': 0};
       for (final lead in leads) {
@@ -61,7 +62,7 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
           stats[status] = (stats[status] ?? 0) + 1;
         }
       }
-      
+
       setState(() {
         _leads = leads;
         _callHistory = calls;
@@ -72,7 +73,9 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading data: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error loading data: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -87,7 +90,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
   void _onBackspace() {
     if (_numberController.text.isNotEmpty) {
       setState(() {
-        _numberController.text = _numberController.text.substring(0, _numberController.text.length - 1);
+        _numberController.text = _numberController.text
+            .substring(0, _numberController.text.length - 1);
       });
     }
   }
@@ -102,7 +106,9 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     final number = lead?.phone ?? _numberController.text;
     if (number.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a phone number'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Please enter a phone number'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -123,11 +129,17 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     } else {
       // For manual number entry, just call directly for now (or create temp lead)
       try {
-        await FlutterPhoneDirectCaller.callNumber(number);
+        String numberToCall = number.trim();
+        if (numberToCall.startsWith('91') && numberToCall.length == 12) {
+          numberToCall = numberToCall.substring(2);
+        }
+        await FlutterPhoneDirectCaller.callNumber(numberToCall);
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error making call: $e'), backgroundColor: Colors.red),
+            SnackBar(
+                content: Text('Error making call: $e'),
+                backgroundColor: Colors.red),
           );
         }
       }
@@ -141,18 +153,38 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
       backgroundColor: Colors.transparent,
       builder: (context) => CallOutcomeSheet(
         lead: lead,
-        onOutcomeSelected: (outcome, notes, duration, followUpDate, followUpNotes, priority, product, location, businessDetails, orderStatus) async {
+        onOutcomeSelected: (outcome,
+            notes,
+            duration,
+            followUpDate,
+            followUpNotes,
+            priority,
+            product,
+            location,
+            businessDetails,
+            orderStatus) async {
           Navigator.pop(context);
-          await _saveCallOutcome(lead, outcome, notes, duration, followUpDate, followUpNotes, priority, product, location, businessDetails, orderStatus);
+          await _saveCallOutcome(
+              lead,
+              outcome,
+              notes,
+              duration,
+              followUpDate,
+              followUpNotes,
+              priority,
+              product,
+              location,
+              businessDetails,
+              orderStatus);
         },
       ),
     );
   }
 
   Future<void> _saveCallOutcome(
-    Lead lead, 
-    String outcome, 
-    String? notes, 
+    Lead lead,
+    String outcome,
+    String? notes,
     int duration,
     String? followUpDate,
     String? followUpNotes,
@@ -165,7 +197,7 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = ApiService(authService.token!);
-      
+
       await apiService.logCall(
         leadId: lead.id,
         phoneNumber: lead.phone,
@@ -200,7 +232,9 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving outcome: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error saving outcome: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -219,7 +253,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
         ),
         title: const Text(
           'Call Center',
-          style: TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.bold),
+          style:
+              TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -263,18 +298,23 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    _numberController.text.isEmpty ? 'Enter number' : _numberController.text,
+                    _numberController.text.isEmpty
+                        ? 'Enter number'
+                        : _numberController.text,
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2,
-                      color: _numberController.text.isEmpty ? Colors.grey : const Color(0xFF1F2937),
+                      color: _numberController.text.isEmpty
+                          ? Colors.grey
+                          : const Color(0xFF1F2937),
                     ),
                   ),
                 ),
@@ -321,7 +361,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.call, color: Colors.white, size: 36),
+                        child: const Icon(Icons.call,
+                            color: Colors.white, size: 36),
                       ),
                     ),
                     // Backspace
@@ -381,7 +422,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
             if (subLabel.isNotEmpty)
               Text(
                 subLabel,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600], letterSpacing: 1),
+                style: TextStyle(
+                    fontSize: 10, color: Colors.grey[600], letterSpacing: 1),
               ),
           ],
         ),
@@ -399,9 +441,11 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
             children: [
               _buildStatCard('New', _stats['new'] ?? 0, Colors.blue),
               const SizedBox(width: 8),
-              _buildStatCard('Contacted', _stats['contacted'] ?? 0, Colors.orange),
+              _buildStatCard(
+                  'Contacted', _stats['contacted'] ?? 0, Colors.orange),
               const SizedBox(width: 8),
-              _buildStatCard('Interested', _stats['interested'] ?? 0, Colors.green),
+              _buildStatCard(
+                  'Interested', _stats['interested'] ?? 0, Colors.green),
             ],
           ),
         ),
@@ -428,7 +472,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
         // Leads List
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF22C55E)))
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF22C55E)))
               : _leads.isEmpty
                   ? _buildEmptyState()
                   : RefreshIndicator(
@@ -440,9 +485,10 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                         itemBuilder: (context, index) {
                           final lead = _leads[index];
                           final status = lead.status?.toLowerCase() ?? 'new';
-                          
+
                           // Apply filter
-                          if (_selectedFilter != 'all' && status != _selectedFilter) {
+                          if (_selectedFilter != 'all' &&
+                              status != _selectedFilter) {
                             return const SizedBox.shrink();
                           }
 
@@ -468,11 +514,13 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
           children: [
             Text(
               count.toString(),
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
+              style: TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.bold, color: color),
             ),
             Text(
               label,
-              style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                  fontSize: 12, color: color, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -504,12 +552,16 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
               color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.phone_disabled, size: 48, color: Colors.grey[400]),
+            child:
+                Icon(Icons.phone_disabled, size: 48, color: Colors.grey[400]),
           ),
           const SizedBox(height: 16),
           Text(
             'No leads assigned',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700]),
           ),
           const SizedBox(height: 8),
           Text(
@@ -528,7 +580,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF22C55E).withOpacity(0.05) : Colors.white,
+        color:
+            isActive ? const Color(0xFF22C55E).withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isActive ? const Color(0xFF22C55E) : Colors.grey[200]!,
@@ -566,7 +619,10 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                   child: Center(
                     child: Text(
                       lead.name[0].toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -579,21 +635,25 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                     children: [
                       Text(
                         lead.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.phone_android, size: 14, color: Colors.grey[600]),
+                          Icon(Icons.phone_android,
+                              size: 14, color: Colors.grey[600]),
                           const SizedBox(width: 4),
-                          Text(lead.phone, style: TextStyle(color: Colors.grey[600])),
+                          Text(lead.phone,
+                              style: TextStyle(color: Colors.grey[600])),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: _getStatusColor(status).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
@@ -610,30 +670,35 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                           const SizedBox(width: 8),
                           // Source Indicator
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: (lead.source == 'whatsapp') 
-                                  ? const Color(0xFF25D366).withOpacity(0.1) 
+                              color: (lead.source == 'whatsapp')
+                                  ? const Color(0xFF25D366).withOpacity(0.1)
                                   : Colors.blue.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               children: [
                                 Icon(
-                                  (lead.source == 'whatsapp') ? Icons.chat : Icons.table_chart,
+                                  (lead.source == 'whatsapp')
+                                      ? Icons.chat
+                                      : Icons.table_chart,
                                   size: 10,
-                                  color: (lead.source == 'whatsapp') 
-                                      ? const Color(0xFF25D366) 
+                                  color: (lead.source == 'whatsapp')
+                                      ? const Color(0xFF25D366)
                                       : Colors.blue,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  (lead.source == 'whatsapp') ? 'WhatsApp' : 'Excel',
+                                  (lead.source == 'whatsapp')
+                                      ? 'WhatsApp'
+                                      : 'Excel',
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: (lead.source == 'whatsapp') 
-                                        ? const Color(0xFF25D366) 
+                                    color: (lead.source == 'whatsapp')
+                                        ? const Color(0xFF25D366)
                                         : Colors.blue,
                                   ),
                                 ),
@@ -647,7 +712,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                         onTap: () => _showLeadHistory(lead),
                         child: Row(
                           children: [
-                            const Icon(Icons.history, size: 14, color: Color(0xFF22C55E)),
+                            const Icon(Icons.history,
+                                size: 14, color: Color(0xFF22C55E)),
                             const SizedBox(width: 4),
                             const Text(
                               'View History',
@@ -685,7 +751,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.call, color: Colors.white, size: 24),
+                    child:
+                        const Icon(Icons.call, color: Colors.white, size: 24),
                   ),
                 ),
               ],
@@ -706,7 +773,10 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
             const SizedBox(height: 16),
             Text(
               'No call history',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[600]),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Text(
@@ -735,7 +805,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
             ),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: _getStatusColor(call.status ?? 'completed').withOpacity(0.1),
+                backgroundColor: _getStatusColor(call.status ?? 'completed')
+                    .withOpacity(0.1),
                 child: Icon(
                   Icons.phone_callback,
                   color: _getStatusColor(call.status ?? 'completed'),
@@ -767,11 +838,15 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                       padding: const EdgeInsets.only(top: 2),
                       child: Row(
                         children: [
-                          const Icon(Icons.person_outline, size: 12, color: Colors.grey),
+                          const Icon(Icons.person_outline,
+                              size: 12, color: Colors.grey),
                           const SizedBox(width: 4),
                           Text(
                             'Agent: ${call.workerName}',
-                            style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                                fontStyle: FontStyle.italic),
                           ),
                         ],
                       ),
@@ -781,7 +856,8 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
               trailing: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getOutcomeColor(call.outcome ?? 'other').withOpacity(0.1),
+                  color: _getOutcomeColor(call.outcome ?? 'other')
+                      .withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -797,7 +873,10 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                 // Find the lead and make a call
                 final lead = _leads.firstWhere(
                   (l) => l.phone == call.phoneNumber,
-                  orElse: () => Lead(id: '', name: call.leadName ?? 'Unknown', phone: call.phoneNumber),
+                  orElse: () => Lead(
+                      id: '',
+                      name: call.leadName ?? 'Unknown',
+                      phone: call.phoneNumber),
                 );
                 _makeCall(lead: lead);
               },
@@ -860,10 +939,10 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = ApiService(authService.token!);
-      
+
       // Fetch calls for this specific lead
       final history = await apiService.getCalls(leadId: lead.id, limit: 50);
-      
+
       if (!mounted) return;
 
       showModalBottomSheet(
@@ -901,7 +980,10 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                       child: Center(
                         child: Text(
                           lead.name[0].toUpperCase(),
-                          style: const TextStyle(color: Color(0xFF22C55E), fontSize: 20, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Color(0xFF22C55E),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -912,11 +994,13 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                         children: [
                           Text(
                             'History: ${lead.name}',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           Text(
                             lead.phone,
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 14),
                           ),
                         ],
                       ),
@@ -935,11 +1019,13 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.history, size: 48, color: Colors.grey[300]),
+                            Icon(Icons.history,
+                                size: 48, color: Colors.grey[300]),
                             const SizedBox(height: 16),
                             Text(
                               'No history found',
-                              style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 16),
                             ),
                           ],
                         ),
@@ -961,16 +1047,22 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      DateFormat('MMM d, yyyy h:mm a').format(call.createdAt),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      DateFormat('MMM d, yyyy h:mm a')
+                                          .format(call.createdAt),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: _getOutcomeColor(call.outcome).withOpacity(0.1),
+                                        color: _getOutcomeColor(call.outcome)
+                                            .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -990,30 +1082,40 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                                     padding: const EdgeInsets.only(bottom: 8),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.person_outline, size: 14, color: Colors.grey),
+                                        const Icon(Icons.person_outline,
+                                            size: 14, color: Colors.grey),
                                         const SizedBox(width: 4),
                                         Text(
                                           'Agent: ${call.workerName}',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey[700], fontStyle: FontStyle.italic),
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                              fontStyle: FontStyle.italic),
                                         ),
                                       ],
                                     ),
                                   ),
-                                if (call.notes != null && call.notes!.isNotEmpty)
+                                if (call.notes != null &&
+                                    call.notes!.isNotEmpty)
                                   Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.grey[200]!),
+                                      border:
+                                          Border.all(color: Colors.grey[200]!),
                                     ),
                                     child: Text(
                                       call.notes!,
-                                      style: TextStyle(color: Colors.grey[800], fontSize: 14),
+                                      style: TextStyle(
+                                          color: Colors.grey[800],
+                                          fontSize: 14),
                                     ),
                                   ),
-                                if (call.location != null || call.businessDetails != null || call.orderStatus != null)
+                                if (call.location != null ||
+                                    call.businessDetails != null ||
+                                    call.orderStatus != null)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 12),
                                     child: Wrap(
@@ -1021,11 +1123,16 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
                                       runSpacing: 8,
                                       children: [
                                         if (call.location != null)
-                                          _buildDetailChip(Icons.location_on, call.location!),
+                                          _buildDetailChip(Icons.location_on,
+                                              call.location!),
                                         if (call.businessDetails != null)
-                                          _buildDetailChip(Icons.business, call.businessDetails!),
+                                          _buildDetailChip(Icons.business,
+                                              call.businessDetails!),
                                         if (call.orderStatus != null)
-                                          _buildDetailChip(Icons.shopping_cart, call.orderStatus!.replaceAll('-', ' ')),
+                                          _buildDetailChip(
+                                              Icons.shopping_cart,
+                                              call.orderStatus!
+                                                  .replaceAll('-', ' ')),
                                       ],
                                     ),
                                   ),
@@ -1042,7 +1149,9 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading history: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error loading history: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -1075,7 +1184,17 @@ class _DialerScreenState extends State<DialerScreen> with SingleTickerProviderSt
 class CallOutcomeSheet extends StatefulWidget {
   final Lead lead;
   final int? initialDuration;
-  final Function(String outcome, String? notes, int duration, String? followUpDate, String? followUpNotes, String priority, String? product, String? location, String? businessDetails, String? orderStatus) onOutcomeSelected;
+  final Function(
+      String outcome,
+      String? notes,
+      int duration,
+      String? followUpDate,
+      String? followUpNotes,
+      String priority,
+      String? product,
+      String? location,
+      String? businessDetails,
+      String? orderStatus) onOutcomeSelected;
 
   const CallOutcomeSheet({
     super.key,
@@ -1092,10 +1211,12 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
   String? _selectedOutcome;
   final TextEditingController _notesController = TextEditingController();
   late TextEditingController _durationController;
-  final TextEditingController _followUpNotesController = TextEditingController();
+  final TextEditingController _followUpNotesController =
+      TextEditingController();
   final TextEditingController _productController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
-  final TextEditingController _businessDetailsController = TextEditingController();
+  final TextEditingController _businessDetailsController =
+      TextEditingController();
   String _orderStatus = 'not-ordered';
   DateTime? _followUpDate;
   String _priority = 'medium';
@@ -1103,8 +1224,9 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
   @override
   void initState() {
     super.initState();
-    _durationController = TextEditingController(text: (widget.initialDuration ?? 0).toString());
-    
+    _durationController =
+        TextEditingController(text: (widget.initialDuration ?? 0).toString());
+
     // Initialize with existing values
     if (widget.lead.location != null) {
       _locationController.text = widget.lead.location!;
@@ -1139,7 +1261,8 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
       );
       if (time != null) {
         setState(() {
-          _followUpDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+          _followUpDate =
+              DateTime(date.year, date.month, date.day, time.hour, time.minute);
         });
       }
     }
@@ -1199,7 +1322,10 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                       child: Center(
                         child: Text(
                           widget.lead.name[0].toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -1210,19 +1336,22 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                         children: [
                           Text(
                             widget.lead.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 18),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             widget.lead.phone,
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 14),
                           ),
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: (widget.lead.source == 'whatsapp') 
-                                  ? const Color(0xFF25D366).withOpacity(0.1) 
+                              color: (widget.lead.source == 'whatsapp')
+                                  ? const Color(0xFF25D366).withOpacity(0.1)
                                   : Colors.blue.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -1230,20 +1359,24 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  (widget.lead.source == 'whatsapp') ? Icons.chat : Icons.table_chart,
+                                  (widget.lead.source == 'whatsapp')
+                                      ? Icons.chat
+                                      : Icons.table_chart,
                                   size: 10,
-                                  color: (widget.lead.source == 'whatsapp') 
-                                      ? const Color(0xFF25D366) 
+                                  color: (widget.lead.source == 'whatsapp')
+                                      ? const Color(0xFF25D366)
                                       : Colors.blue,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  (widget.lead.source == 'whatsapp') ? 'WhatsApp Lead' : 'Excel Lead',
+                                  (widget.lead.source == 'whatsapp')
+                                      ? 'WhatsApp Lead'
+                                      : 'Excel Lead',
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: (widget.lead.source == 'whatsapp') 
-                                        ? const Color(0xFF25D366) 
+                                    color: (widget.lead.source == 'whatsapp')
+                                        ? const Color(0xFF25D366)
                                         : Colors.blue,
                                   ),
                                 ),
@@ -1256,13 +1389,15 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                     // Click to Call Button
                     GestureDetector(
                       onTap: () async {
-                        await FlutterPhoneDirectCaller.callNumber(widget.lead.phone);
+                        await FlutterPhoneDirectCaller.callNumber(
+                            widget.lead.phone);
                       },
                       child: Container(
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [Colors.green, Colors.green.shade700]),
+                          gradient: LinearGradient(
+                              colors: [Colors.green, Colors.green.shade700]),
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
@@ -1293,15 +1428,24 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildOutcomeButton('contacted', 'Contacted', Icons.phone, Colors.blue),
-                  _buildOutcomeButton('interested', 'Interested', Icons.thumb_up, Colors.green),
-                  _buildOutcomeButton('not-interested', 'Not Interested', Icons.thumb_down, Colors.red),
-                  _buildOutcomeButton('follow-up', 'Follow Up', Icons.schedule, Colors.orange),
-                  _buildOutcomeButton('callback', 'Callback', Icons.phone_callback, Colors.blue),
-                  _buildOutcomeButton('converted', 'Converted', Icons.star, Colors.teal),
-                  _buildOutcomeButton('wrong-number', 'Wrong Number', Icons.phonelink_erase, Colors.grey),
-                  _buildOutcomeButton('not-reachable', 'Not Reachable', Icons.signal_cellular_off, Colors.blueGrey),
-                  _buildOutcomeButton('other', 'Other', Icons.help_outline, Colors.purple),
+                  _buildOutcomeButton(
+                      'contacted', 'Contacted', Icons.phone, Colors.blue),
+                  _buildOutcomeButton(
+                      'interested', 'Interested', Icons.thumb_up, Colors.green),
+                  _buildOutcomeButton('not-interested', 'Not Interested',
+                      Icons.thumb_down, Colors.red),
+                  _buildOutcomeButton(
+                      'follow-up', 'Follow Up', Icons.schedule, Colors.orange),
+                  _buildOutcomeButton('callback', 'Callback',
+                      Icons.phone_callback, Colors.blue),
+                  _buildOutcomeButton(
+                      'converted', 'Converted', Icons.star, Colors.teal),
+                  _buildOutcomeButton('wrong-number', 'Wrong Number',
+                      Icons.phonelink_erase, Colors.grey),
+                  _buildOutcomeButton('not-reachable', 'Not Reachable',
+                      Icons.signal_cellular_off, Colors.blueGrey),
+                  _buildOutcomeButton(
+                      'other', 'Other', Icons.help_outline, Colors.purple),
                 ],
               ),
 
@@ -1314,7 +1458,8 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                 decoration: InputDecoration(
                   labelText: 'Call Duration (seconds)',
                   prefixIcon: const Icon(Icons.timer),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
 
@@ -1361,15 +1506,20 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                 decoration: InputDecoration(
                   labelText: 'Location',
                   hintText: 'e.g., New York, NY',
-                  helperText: widget.lead.locationFilledBy != null ? 'Filled by: ${widget.lead.locationFilledBy}' : null,
+                  helperText: widget.lead.locationFilledBy != null
+                      ? 'Filled by: ${widget.lead.locationFilledBy}'
+                      : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   prefixIcon: const Icon(Icons.location_on_outlined),
                   filled: widget.lead.location != null,
-                  fillColor: widget.lead.location != null ? Colors.grey[100] : null,
-                  suffixIcon: widget.lead.location != null ? const Icon(Icons.lock, size: 16, color: Colors.grey) : null,
+                  fillColor:
+                      widget.lead.location != null ? Colors.grey[100] : null,
+                  suffixIcon: widget.lead.location != null
+                      ? const Icon(Icons.lock, size: 16, color: Colors.grey)
+                      : null,
                 ),
               ),
 
@@ -1382,15 +1532,21 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                 decoration: InputDecoration(
                   labelText: 'Business Name',
                   hintText: 'e.g., Retail Store, Tech Startup...',
-                  helperText: widget.lead.businessFilledBy != null ? 'Filled by: ${widget.lead.businessFilledBy}' : null,
+                  helperText: widget.lead.businessFilledBy != null
+                      ? 'Filled by: ${widget.lead.businessFilledBy}'
+                      : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   prefixIcon: const Icon(Icons.business_outlined),
                   filled: widget.lead.businessName != null,
-                  fillColor: widget.lead.businessName != null ? Colors.grey[100] : null,
-                  suffixIcon: widget.lead.businessName != null ? const Icon(Icons.lock, size: 16, color: Colors.grey) : null,
+                  fillColor: widget.lead.businessName != null
+                      ? Colors.grey[100]
+                      : null,
+                  suffixIcon: widget.lead.businessName != null
+                      ? const Icon(Icons.lock, size: 16, color: Colors.grey)
+                      : null,
                 ),
               ),
 
@@ -1400,14 +1556,17 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Order Status:', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Text('Order Status:',
+                      style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: [
-                      _buildOrderStatusChip('not-ordered', 'Not Ordered', Colors.grey),
+                      _buildOrderStatusChip(
+                          'not-ordered', 'Not Ordered', Colors.grey),
                       _buildOrderStatusChip('ordered', 'Ordered', Colors.green),
-                      _buildOrderStatusChip('already-ordered', 'Already Ordered', Colors.blue),
+                      _buildOrderStatusChip(
+                          'already-ordered', 'Already Ordered', Colors.blue),
                     ],
                   ),
                 ],
@@ -1433,10 +1592,13 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                       Expanded(
                         child: Text(
                           _followUpDate != null
-                              ? DateFormat('MMM d, yyyy h:mm a').format(_followUpDate!)
+                              ? DateFormat('MMM d, yyyy h:mm a')
+                                  .format(_followUpDate!)
                               : 'Schedule Follow-up (optional)',
                           style: TextStyle(
-                            color: _followUpDate != null ? const Color(0xFF1F2937) : Colors.grey[500],
+                            color: _followUpDate != null
+                                ? const Color(0xFF1F2937)
+                                : Colors.grey[500],
                           ),
                         ),
                       ),
@@ -1457,7 +1619,8 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                   maxLines: 2,
                   decoration: InputDecoration(
                     hintText: 'Follow-up notes (optional)...',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
@@ -1471,23 +1634,33 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                 children: [
                   const Padding(
                     padding: EdgeInsets.only(top: 8.0),
-                    child: Text('Priority: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                    child: Text('Priority: ',
+                        style: TextStyle(fontWeight: FontWeight.w500)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: ['low', 'medium', 'high', 'urgent'].map((p) => ChoiceChip(
-                        label: Text(p.toUpperCase(), style: const TextStyle(fontSize: 11)),
-                        selected: _priority == p,
-                        onSelected: (_) => setState(() => _priority = p),
-                        selectedColor: _getPriorityColor(p).withOpacity(0.2),
-                        labelStyle: TextStyle(
-                          color: _priority == p ? _getPriorityColor(p) : Colors.grey[600],
-                          fontWeight: _priority == p ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      )).toList(),
+                      children: ['low', 'medium', 'high', 'urgent']
+                          .map((p) => ChoiceChip(
+                                label: Text(p.toUpperCase(),
+                                    style: const TextStyle(fontSize: 11)),
+                                selected: _priority == p,
+                                onSelected: (_) =>
+                                    setState(() => _priority = p),
+                                selectedColor:
+                                    _getPriorityColor(p).withOpacity(0.2),
+                                labelStyle: TextStyle(
+                                  color: _priority == p
+                                      ? _getPriorityColor(p)
+                                      : Colors.grey[600],
+                                  fontWeight: _priority == p
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ))
+                          .toList(),
                     ),
                   ),
                 ],
@@ -1503,7 +1676,8 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: const Text('Cancel'),
                     ),
@@ -1517,14 +1691,24 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                           : () {
                               widget.onOutcomeSelected(
                                 _selectedOutcome!,
-                                _notesController.text.isNotEmpty ? _notesController.text : null,
+                                _notesController.text.isNotEmpty
+                                    ? _notesController.text
+                                    : null,
                                 int.tryParse(_durationController.text) ?? 0,
                                 _followUpDate?.toIso8601String(),
-                                _followUpNotesController.text.isNotEmpty ? _followUpNotesController.text : null,
+                                _followUpNotesController.text.isNotEmpty
+                                    ? _followUpNotesController.text
+                                    : null,
                                 _priority,
-                                _productController.text.isNotEmpty ? _productController.text : null,
-                                _locationController.text.isNotEmpty ? _locationController.text : null,
-                                _businessDetailsController.text.isNotEmpty ? _businessDetailsController.text : null,
+                                _productController.text.isNotEmpty
+                                    ? _productController.text
+                                    : null,
+                                _locationController.text.isNotEmpty
+                                    ? _locationController.text
+                                    : null,
+                                _businessDetailsController.text.isNotEmpty
+                                    ? _businessDetailsController.text
+                                    : null,
                                 _orderStatus,
                               );
                             },
@@ -1532,7 +1716,8 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                         backgroundColor: const Color(0xFF22C55E),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: const Text('Save Outcome'),
                     ),
@@ -1546,7 +1731,8 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
     );
   }
 
-  Widget _buildOutcomeButton(String value, String label, IconData icon, Color color) {
+  Widget _buildOutcomeButton(
+      String value, String label, IconData icon, Color color) {
     final isSelected = _selectedOutcome == value;
 
     return GestureDetector(
