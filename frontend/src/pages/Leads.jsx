@@ -33,6 +33,8 @@ export default function Leads() {
     const [workers, setWorkers] = useState([]);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [selectedWorker, setSelectedWorker] = useState('');
+    const [agentSearchQuery, setAgentSearchQuery] = useState('');
+    const [isAgentDropdownOpen, setIsAgentDropdownOpen] = useState(false);
 
     // Tab State
     const [tabs, setTabs] = useState([
@@ -337,6 +339,8 @@ export default function Leads() {
             });
             setShowAssignModal(false);
             setSelectedWorker('');
+            setAgentSearchQuery('');
+            setIsAgentDropdownOpen(false);
             updateActiveTab({ selectedLeads: [] });
             fetchLeads();
             alert('Leads assigned successfully');
@@ -929,23 +933,82 @@ export default function Leads() {
 
                             <div className="mb-6">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Select Agent</label>
-                                <select
-                                    value={selectedWorker}
-                                    onChange={(e) => setSelectedWorker(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                >
-                                    <option value="">Select an agent...</option>
-                                    {workers.map(worker => (
-                                        <option key={worker._id} value={worker._id}>
-                                            {worker.name} ({worker.email})
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <div
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-green-500 cursor-pointer bg-white flex items-center justify-between"
+                                        onClick={() => setIsAgentDropdownOpen(!isAgentDropdownOpen)}
+                                    >
+                                        <span className={selectedWorker ? 'text-gray-900' : 'text-gray-500'}>
+                                            {selectedWorker
+                                                ? workers.find(w => w._id === selectedWorker)?.name || 'Unknown Agent'
+                                                : 'Select an agent...'}
+                                        </span>
+                                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                                    </div>
+
+                                    {isAgentDropdownOpen && (
+                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-hidden flex flex-col">
+                                            <div className="p-2 border-b border-gray-100">
+                                                <div className="relative">
+                                                    <Search className="h-4 w-4 text-gray-400 absolute left-3 top-2.5" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search agents..."
+                                                        className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-green-500 transition-colors"
+                                                        value={agentSearchQuery}
+                                                        onChange={(e) => setAgentSearchQuery(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="overflow-y-auto flex-1">
+                                                {workers
+                                                    .filter(w =>
+                                                        w.name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+                                                        w.email.toLowerCase().includes(agentSearchQuery.toLowerCase())
+                                                    )
+                                                    .map(worker => (
+                                                        <div
+                                                            key={worker._id}
+                                                            onClick={() => {
+                                                                setSelectedWorker(worker._id);
+                                                                setIsAgentDropdownOpen(false);
+                                                                setAgentSearchQuery('');
+                                                            }}
+                                                            className={`px-4 py-2 hover:bg-green-50 cursor-pointer flex items-center justify-between group ${selectedWorker === worker._id ? 'bg-green-50/50 text-green-700' : 'text-gray-700'
+                                                                }`}
+                                                        >
+                                                            <div>
+                                                                <div className="font-medium">{worker.name}</div>
+                                                                <div className="text-xs text-gray-500 group-hover:text-green-600">{worker.email}</div>
+                                                            </div>
+                                                            {selectedWorker === worker._id && (
+                                                                <div className="h-2 w-2 rounded-full bg-green-500" />
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                {workers.filter(w =>
+                                                    w.name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+                                                    w.email.toLowerCase().includes(agentSearchQuery.toLowerCase())
+                                                ).length === 0 && (
+                                                        <div className="p-4 text-center text-gray-500 text-sm">
+                                                            No agents found
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex justify-end gap-3">
                                 <button
-                                    onClick={() => setShowAssignModal(false)}
+                                    onClick={() => {
+                                        setShowAssignModal(false);
+                                        setAgentSearchQuery('');
+                                        setIsAgentDropdownOpen(false);
+                                    }}
                                     className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                                 >
                                     Cancel
