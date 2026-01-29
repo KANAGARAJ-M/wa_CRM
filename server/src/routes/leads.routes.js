@@ -48,7 +48,7 @@ router.post('/bulk', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin/Agent
 router.post('/', auth, async (req, res) => {
     try {
-        const { name, phone, email, source, notes, priority, value, assignedDateTime, callType } = req.body;
+        const { name, phone, email, source, notes, priority, value, leadDate, callType } = req.body;
 
         if (!name || !phone) {
             return res.status(400).json({
@@ -81,7 +81,7 @@ router.post('/', auth, async (req, res) => {
             notes,
             priority,
             value,
-            assignedDateTime,
+            leadDate,
             callType,
             stage: 'new',
             status: 'new',
@@ -348,7 +348,7 @@ router.put('/assign', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin/Agent
 router.put('/:id', auth, async (req, res) => {
     try {
-        const { name, phone, email, stage, status, notes, priority, value, assignedDateTime, callType } = req.body;
+        const { name, phone, email, stage, status, notes, priority, value, leadDate, callType } = req.body;
 
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
@@ -374,7 +374,7 @@ router.put('/:id', auth, async (req, res) => {
 
         const lead = await Lead.findOneAndUpdate(
             query,
-            { name, phone, email, stage, status, notes, priority, value, assignedDateTime, callType },
+            { name, phone, email, stage, status, notes, priority, value, leadDate, callType },
             { new: true }
         );
 
