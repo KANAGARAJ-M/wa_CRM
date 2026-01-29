@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     MessageSquare, Settings, LogOut, Menu, X, ChevronLeft,
-    Users, MessageCircle, ChevronDown, ChevronRight, Building2, Phone, BarChart3, Shield
+    Users, MessageCircle, ChevronDown, ChevronRight, Building2, Phone, BarChart3, Shield, Clock
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -93,29 +93,31 @@ export default function Layout({ children }) {
                 {/* Navigation */}
                 <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                     {/* Dashboard */}
-                    <NavLink
-                        to="/dashboard"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 mb-2
-                            ${isActive
-                                ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-500/30'
-                                : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
-                            }`
-                        }
-                    >
-                        <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
-                            <BarChart3 className="h-5 w-5" />
-                        </div>
-                        {sidebarOpen && (
-                            <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm">Dashboard</p>
-                                <p className="text-xs text-gray-500 truncate">Overview & Analytics</p>
+                    {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('view_analytics')) && (
+                        <NavLink
+                            to="/dashboard"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 mb-2
+                                ${isActive
+                                    ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-500/30'
+                                    : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
+                                }`
+                            }
+                        >
+                            <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
+                                <BarChart3 className="h-5 w-5" />
                             </div>
-                        )}
-                    </NavLink>
+                            {sidebarOpen && (
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm">Dashboard</p>
+                                    <p className="text-xs text-gray-500 truncate">Overview & Analytics</p>
+                                </div>
+                            )}
+                        </NavLink>
+                    )}
 
-                    {/* Communication Section with Sub-items */}
+                    {/* Communication Section */}
                     <div>
                         <button
                             onClick={() => {
@@ -167,130 +169,162 @@ export default function Layout({ children }) {
                                     <span className="text-sm font-medium">Chats</span>
                                 </NavLink>
 
-                                <NavLink
-                                    to="/leads"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
-                                        ${isActive
-                                            ? 'bg-green-500/20 text-green-400'
-                                            : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
-                                        }`
-                                    }
-                                >
-                                    <span className="text-sm font-medium">Leads</span>
-                                </NavLink>
+                                {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('view_all_leads') || user?.customRole?.permissions?.includes('view_own_leads')) && (
+                                    <NavLink
+                                        to="/leads"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className={({ isActive }) =>
+                                            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                            ${isActive
+                                                ? 'bg-green-500/20 text-green-400'
+                                                : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                            }`
+                                        }
+                                    >
+                                        <span className="text-sm font-medium">Leads</span>
+                                    </NavLink>
+                                )}
                             </div>
                         )}
                     </div>
 
                     {/* Company Section */}
-                    <div className="mt-2">
-                        <button
-                            onClick={() => {
-                                if (sidebarOpen) {
-                                    setCompanyExpanded(!companyExpanded);
-                                } else {
-                                    navigate('/workers');
-                                }
-                            }}
-                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
-                                ${isCompanyActive
-                                    ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-400 border border-blue-500/30'
-                                    : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
-                                }`}
-                        >
-                            <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
-                                <Building2 className="h-5 w-5" />
-                            </div>
-                            {sidebarOpen && (
-                                <>
-                                    <div className="flex-1 min-w-0 text-left">
-                                        <p className="font-medium text-sm">Company</p>
-                                        <p className="text-xs text-gray-500 truncate">Management</p>
+                    {(user?.role === 'admin' || user?.role === 'superadmin' ||
+                        user?.customRole?.permissions?.includes('manage_workers') ||
+                        user?.customRole?.permissions?.includes('view_analytics') ||
+                        user?.customRole?.permissions?.includes('manage_roles')) && (
+                            <div className="mt-2">
+                                <button
+                                    onClick={() => {
+                                        if (sidebarOpen) {
+                                            setCompanyExpanded(!companyExpanded);
+                                        } else {
+                                            navigate('/workers');
+                                        }
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                                    ${isCompanyActive
+                                            ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-400 border border-blue-500/30'
+                                            : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
+                                        }`}
+                                >
+                                    <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
+                                        <Building2 className="h-5 w-5" />
                                     </div>
-                                    {companyExpanded ? (
-                                        <ChevronDown className="h-4 w-4 text-gray-400" />
-                                    ) : (
-                                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                                    {sidebarOpen && (
+                                        <>
+                                            <div className="flex-1 min-w-0 text-left">
+                                                <p className="font-medium text-sm">Company</p>
+                                                <p className="text-xs text-gray-500 truncate">Management</p>
+                                            </div>
+                                            {companyExpanded ? (
+                                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                                            ) : (
+                                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                                            )}
+                                        </>
                                     )}
-                                </>
-                            )}
-                        </button>
+                                </button>
 
-                        {/* Sub Navigation Items */}
-                        {sidebarOpen && companyExpanded && (
-                            <div className="mt-1 ml-4 pl-4 border-l border-gray-700/50 space-y-1">
-                                <NavLink
-                                    to="/workers"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
-                                        ${isActive
-                                            ? 'bg-blue-500/20 text-blue-400'
-                                            : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
-                                        }`
-                                    }
-                                >
-                                    <Users className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Agents</span>
-                                </NavLink>
+                                {/* Sub Navigation Items */}
+                                {sidebarOpen && companyExpanded && (
+                                    <div className="mt-1 ml-4 pl-4 border-l border-gray-700/50 space-y-1">
+                                        {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('manage_workers')) && (
+                                            <NavLink
+                                                to="/workers"
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className={({ isActive }) =>
+                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                ${isActive
+                                                        ? 'bg-blue-500/20 text-blue-400'
+                                                        : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                                    }`
+                                                }
+                                            >
+                                                <Users className="h-4 w-4" />
+                                                <span className="text-sm font-medium">Agents</span>
+                                            </NavLink>
+                                        )}
 
-                                <NavLink
-                                    to="/call-analytics"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
-                                        ${isActive
-                                            ? 'bg-blue-500/20 text-blue-400'
-                                            : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
-                                        }`
-                                    }
-                                >
-                                    <BarChart3 className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Call Analytics</span>
-                                </NavLink>
+                                        {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('manage_workers')) && (
+                                            <NavLink
+                                                to="/agent-status"
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className={({ isActive }) =>
+                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                ${isActive
+                                                        ? 'bg-blue-500/20 text-blue-400'
+                                                        : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                                    }`
+                                                }
+                                            >
+                                                <Clock className="h-4 w-4" />
+                                                <span className="text-sm font-medium">Agent Status</span>
+                                            </NavLink>
+                                        )}
 
-                                <NavLink
-                                    to="/roles"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
-                                        ${isActive
-                                            ? 'bg-blue-500/20 text-blue-400'
-                                            : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
-                                        }`
-                                    }
-                                >
-                                    <Shield className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Roles & Permissions</span>
-                                </NavLink>
+                                        {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('view_analytics')) && (
+                                            <NavLink
+                                                to="/call-analytics"
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className={({ isActive }) =>
+                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                ${isActive
+                                                        ? 'bg-blue-500/20 text-blue-400'
+                                                        : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                                    }`
+                                                }
+                                            >
+                                                <BarChart3 className="h-4 w-4" />
+                                                <span className="text-sm font-medium">Call Analytics</span>
+                                            </NavLink>
+                                        )}
+
+                                        {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('manage_roles')) && (
+                                            <NavLink
+                                                to="/roles"
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className={({ isActive }) =>
+                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                ${isActive
+                                                        ? 'bg-blue-500/20 text-blue-400'
+                                                        : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                                    }`
+                                                }
+                                            >
+                                                <Shield className="h-4 w-4" />
+                                                <span className="text-sm font-medium">Roles & Permissions</span>
+                                            </NavLink>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
-                    </div>
 
                     {/* Settings */}
-                    <NavLink
-                        to="/settings"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group
-                            ${isActive
-                                ? 'bg-gradient-to-r from-green-500/20 to-teal-500/20 text-green-400 border border-green-500/30'
-                                : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
-                            }`
-                        }
-                    >
-                        <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
-                            <Settings className="h-5 w-5" />
-                        </div>
-                        {sidebarOpen && (
-                            <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm">Settings</p>
-                                <p className="text-xs text-gray-500 truncate">WhatsApp Configuration</p>
+                    {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('manage_settings')) && (
+                        <NavLink
+                            to="/settings"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group
+                                ${isActive
+                                    ? 'bg-gradient-to-r from-green-500/20 to-teal-500/20 text-green-400 border border-green-500/30'
+                                    : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
+                                }`
+                            }
+                        >
+                            <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
+                                <Settings className="h-5 w-5" />
                             </div>
-                        )}
-                    </NavLink>
+                            {sidebarOpen && (
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm">Settings</p>
+                                    <p className="text-xs text-gray-500 truncate">WhatsApp Configuration</p>
+                                </div>
+                            )}
+                        </NavLink>
+                    )}
                 </nav>
 
                 {/* User Section */}
@@ -343,6 +377,6 @@ export default function Layout({ children }) {
                     {children}
                 </main>
             </div>
-        </div>
+        </div >
     );
 }

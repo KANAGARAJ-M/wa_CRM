@@ -5,11 +5,21 @@ const router = express.Router();
 
 // @route   GET /api/workers
 // @desc    Get all workers for the company
-// @access  Private/Admin
-router.get('/', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.get('/', auth, async (req, res) => {
     try {
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canManageWorkers = isAdmin || permissions.includes('manage_workers');
+
+        if (!canManageWorkers) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
         const workers = await User.find({
@@ -25,9 +35,19 @@ router.get('/', auth, adminOnly, async (req, res) => {
 
 // @route   POST /api/workers
 // @desc    Create a new worker
-// @access  Private/Admin
-router.post('/', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.post('/', auth, async (req, res) => {
     try {
+        // Permission Check
+        const currentUser = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(currentUser.role);
+        const permissions = currentUser.customRole?.permissions || [];
+        const canManageWorkers = isAdmin || permissions.includes('manage_workers');
+
+        if (!canManageWorkers) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const { name, email, password, roleId, companyId } = req.body;
 
         // If roleId is provided, derive the company from the role
@@ -105,9 +125,19 @@ router.post('/', auth, adminOnly, async (req, res) => {
 
 // @route   DELETE /api/workers/:id
 // @desc    Delete a worker
-// @access  Private/Admin
-router.delete('/:id', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.delete('/:id', auth, async (req, res) => {
     try {
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canManageWorkers = isAdmin || permissions.includes('manage_workers');
+
+        if (!canManageWorkers) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }

@@ -14,6 +14,7 @@ class Lead {
   final String? businessName;
   final String? locationFilledBy;
   final String? businessFilledBy;
+  final String? callType;
 
   Lead({
     required this.id,
@@ -31,6 +32,7 @@ class Lead {
     this.businessName,
     this.locationFilledBy,
     this.businessFilledBy,
+    this.callType,
   });
 
   factory Lead.fromJson(Map<String, dynamic> json) {
@@ -50,6 +52,7 @@ class Lead {
       businessName: json['businessName'],
       locationFilledBy: json['locationFilledBy'] is Map ? json['locationFilledBy']['name'] : null,
       businessFilledBy: json['businessFilledBy'] is Map ? json['businessFilledBy']['name'] : null,
+      callType: json['callType'],
     );
   }
 }
@@ -149,6 +152,10 @@ class WorkerStats {
   final int totalCalls;
   final int todayCalls;
   final int totalLeads;
+  final int dialedLeads;
+  final int avgCallDuration;
+  final int orders;
+  final int followUps;
   final int conversions;
   final double conversionRate;
 
@@ -156,6 +163,10 @@ class WorkerStats {
     required this.totalCalls,
     required this.todayCalls,
     required this.totalLeads,
+    required this.dialedLeads,
+    required this.avgCallDuration,
+    required this.orders,
+    required this.followUps,
     required this.conversions,
     required this.conversionRate,
   });
@@ -165,6 +176,10 @@ class WorkerStats {
       totalCalls: json['totalCalls'] ?? 0,
       todayCalls: json['todayCalls'] ?? 0,
       totalLeads: json['totalLeads'] ?? 0,
+      dialedLeads: json['dialedLeads'] ?? 0,
+      avgCallDuration: json['avgCallDuration'] ?? 0,
+      orders: json['orders'] ?? 0,
+      followUps: json['followUps'] ?? 0,
       conversions: json['conversions'] ?? 0,
       conversionRate: double.tryParse(json['conversionRate']?.toString() ?? '0') ?? 0,
     );

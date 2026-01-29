@@ -270,6 +270,31 @@ router.get('/stats', auth, async (req, res) => {
             createdAt: { $gte: today }
         });
         const totalLeads = await Lead.countDocuments({ assignedTo: req.user._id });
+
+        // Get unique leads dialed
+        const dialedLeadsList = await Call.distinct('leadId', { workerId: req.user._id });
+        const dialedLeads = dialedLeadsList.length;
+
+        // Calculate average call duration
+        const durationAgg = await Call.aggregate([
+            { $match: { workerId: req.user._id, duration: { $gt: 0 } } },
+            { $group: { _id: null, avgDuration: { $avg: '$duration' } } }
+        ]);
+        const avgCallDuration = durationAgg.length > 0 ? Math.round(durationAgg[0].avgDuration) : 0;
+
+        // Count orders (calls with orderStatus)
+        const orders = await Call.countDocuments({
+            workerId: req.user._id,
+            orderStatus: { $exists: true, $ne: null, $ne: '' }
+        });
+
+        // Count pending follow-ups
+        const followUps = await Call.countDocuments({
+            workerId: req.user._id,
+            followUpDate: { $exists: true, $gte: new Date() },
+            status: { $nin: ['converted', 'not-interested', 'closed'] }
+        });
+
         const conversions = await Call.countDocuments({
             workerId: req.user._id,
             outcome: 'converted'
@@ -281,6 +306,10 @@ router.get('/stats', auth, async (req, res) => {
                 totalCalls,
                 todayCalls,
                 totalLeads,
+                dialedLeads,
+                avgCallDuration,
+                orders,
+                followUps,
                 conversions,
                 conversionRate: totalCalls > 0 ? ((conversions / totalCalls) * 100).toFixed(1) : 0
             }

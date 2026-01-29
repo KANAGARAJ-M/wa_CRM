@@ -19,8 +19,18 @@ router.post('/send', auth, async (req, res) => {
         }
 
         // Check permissions
-        if (req.user.role === 'worker') {
-            const lead = await Lead.findOne({ phone: phone, assignedTo: req.user._id });
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        if (!canViewAll && canViewOwn) {
+            const lead = await Lead.findOne({ phone: phone, assignedTo: user._id, companyId: req.companyId });
             if (!lead) {
                 return res.status(403).json({ success: false, message: 'Not authorized to message this lead' });
             }
@@ -108,8 +118,18 @@ router.post('/mark-read', auth, async (req, res) => {
         }
 
         // Check permissions
-        if (req.user.role === 'worker') {
-            const lead = await Lead.findOne({ phone: contactPhone, assignedTo: req.user._id });
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        if (!canViewAll && canViewOwn) {
+            const lead = await Lead.findOne({ phone: contactPhone, assignedTo: user._id, companyId: req.companyId });
             if (!lead) {
                 return res.status(403).json({ success: false, message: 'Not authorized' });
             }
@@ -178,8 +198,8 @@ router.post('/mark-read', auth, async (req, res) => {
 
 // @route   GET /api/whatsapp/messages
 // @desc    Get all WhatsApp messages, optionally filtered by phoneNumberId
-// @access  Private/Admin
-router.get('/messages', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.get('/messages', auth, async (req, res) => {
     try {
         const { phoneNumberId, page = 1, limit = 50 } = req.query;
 
@@ -187,9 +207,33 @@ router.get('/messages', auth, adminOnly, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const query = { companyId: req.companyId };
         if (phoneNumberId) {
             query.phoneNumberId = phoneNumberId;
+        }
+
+        // If cannot view all, filter by assigned leads
+        if (!canViewAll && canViewOwn) {
+            const leads = await Lead.find({ assignedTo: user._id, companyId: req.companyId }).select('phone');
+            const phoneNumbers = leads.map(l => l.phone);
+
+            // Filter messages where from OR to is in phoneNumbers
+            // Note: This might be slow if there are many leads/messages. Indexing 'from' and 'to' is recommended.
+            query.$or = [
+                { from: { $in: phoneNumbers } },
+                { to: { $in: phoneNumbers } }
+            ];
         }
 
         const messages = await WhatsAppMessage.find(query)

@@ -11,6 +11,7 @@ import WorkerDashboard from './pages/worker/WorkerDashboard';
 import WorkerChat from './pages/worker/WorkerChat';
 import CompanySelection from './pages/CompanySelection';
 import Dashboard from './pages/Dashboard';
+import AgentStatus from './pages/AgentStatus';
 import Roles from './pages/Roles';
 import Layout from './components/Layout';
 
@@ -29,7 +30,11 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  if (user.role === 'worker') {
+  // If user is a worker, check if they have a custom role (which implies they are an agent with permissions)
+  // If they are a basic worker without a custom role, send them to worker dashboard
+  // Or if we want to force ALL workers to worker dashboard unless they have specific permissions?
+  // Let's assume if they have a customRole, they use the main CRM.
+  if (user.role === 'worker' && !user.customRole) {
     return <Navigate to="/worker/dashboard" />;
   }
 
@@ -173,6 +178,14 @@ function App() {
             element={
               <AdminRoute>
                 <CallAnalytics />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/agent-status"
+            element={
+              <AdminRoute>
+                <AgentStatus />
               </AdminRoute>
             }
           />

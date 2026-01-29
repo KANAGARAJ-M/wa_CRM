@@ -45,8 +45,8 @@ router.post('/bulk', auth, adminOnly, async (req, res) => {
 
 // @route   POST /api/leads
 // @desc    Create a single lead
-// @access  Private/Admin
-router.post('/', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.post('/', auth, async (req, res) => {
     try {
         const { name, phone, email, source, notes, priority, value, assignedDateTime, callType } = req.body;
 
@@ -61,7 +61,18 @@ router.post('/', auth, adminOnly, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
-        const lead = await Lead.create({
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        const leadData = {
             companyId: req.companyId,
             name,
             phone,
@@ -75,7 +86,16 @@ router.post('/', auth, adminOnly, async (req, res) => {
             stage: 'new',
             status: 'new',
             uploadDate: new Date()
-        });
+        };
+
+        // If user can only view own leads, auto-assign to them?
+        // Or just let them create unassigned leads?
+        // Let's auto-assign if they are not admin/view_all, to ensure they can see it.
+        if (!canViewAll && canViewOwn) {
+            leadData.assignedTo = user._id;
+        }
+
+        const lead = await Lead.create(leadData);
 
         res.status(201).json({
             success: true,
@@ -92,8 +112,8 @@ router.post('/', auth, adminOnly, async (req, res) => {
 
 // @route   GET /api/leads
 // @desc    Get leads filtered by date
-// @access  Private/Admin
-router.get('/', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.get('/', auth, async (req, res) => {
     try {
         const { date, startDate, endDate, page = 1, limit = 50, search } = req.query;
 
@@ -101,7 +121,23 @@ router.get('/', auth, adminOnly, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const query = { companyId: req.companyId };
+
+        // If cannot view all, filter by assignedTo
+        if (!canViewAll && canViewOwn) {
+            query.assignedTo = user._id;
+        }
 
         if (date) {
             const startOfDay = new Date(date);
@@ -160,18 +196,36 @@ router.get('/', auth, adminOnly, async (req, res) => {
 
 // @route   GET /api/leads/kanban
 // @desc    Get leads grouped by stage for Kanban board
-// @access  Private/Admin
-router.get('/kanban', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.get('/kanban', auth, async (req, res) => {
     try {
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        const query = { companyId: req.companyId };
+
+        // If cannot view all, filter by assignedTo
+        if (!canViewAll && canViewOwn) {
+            query.assignedTo = user._id;
         }
 
         const stages = ['new', 'contacted', 'interested', 'negotiation', 'converted', 'lost'];
 
         const result = await Promise.all(
             stages.map(async (stage) => {
-                const leads = await Lead.find({ stage, companyId: req.companyId })
+                const leads = await Lead.find({ ...query, stage })
                     .sort({ stageOrder: 1, updatedAt: -1 })
                     .populate('assignedTo', 'name email');
                 return {
@@ -222,14 +276,32 @@ router.put('/:id/stage', auth, adminOnly, async (req, res) => {
 
 // @route   GET /api/leads/:id
 // @desc    Get single lead by ID
-// @access  Private/Admin
-router.get('/:id', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.get('/:id', auth, async (req, res) => {
     try {
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
-        const lead = await Lead.findOne({ _id: req.params.id, companyId: req.companyId })
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        const query = { _id: req.params.id, companyId: req.companyId };
+
+        // If cannot view all, filter by assignedTo
+        if (!canViewAll && canViewOwn) {
+            query.assignedTo = user._id;
+        }
+
+        const lead = await Lead.findOne(query)
             .populate('assignedTo', 'name email');
 
         if (!lead) {
@@ -273,8 +345,8 @@ router.put('/assign', auth, adminOnly, async (req, res) => {
 
 // @route   PUT /api/leads/:id
 // @desc    Update lead
-// @access  Private/Admin
-router.put('/:id', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.put('/:id', auth, async (req, res) => {
     try {
         const { name, phone, email, stage, status, notes, priority, value, assignedDateTime, callType } = req.body;
 
@@ -282,14 +354,32 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        const query = { _id: req.params.id, companyId: req.companyId };
+
+        // If cannot view all, ensure lead is assigned to user
+        if (!canViewAll && canViewOwn) {
+            query.assignedTo = user._id;
+        }
+
         const lead = await Lead.findOneAndUpdate(
-            { _id: req.params.id, companyId: req.companyId },
+            query,
             { name, phone, email, stage, status, notes, priority, value, assignedDateTime, callType },
             { new: true }
         );
 
         if (!lead) {
-            return res.status(404).json({ success: false, message: 'Lead not found' });
+            return res.status(404).json({ success: false, message: 'Lead not found or access denied' });
         }
 
         res.json({ success: true, data: lead });
@@ -301,17 +391,39 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
 
 // @route   DELETE /api/leads/:id
 // @desc    Delete lead
-// @access  Private/Admin
-router.delete('/:id', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Agent
+router.delete('/:id', auth, async (req, res) => {
     try {
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
-        const lead = await Lead.findOneAndDelete({ _id: req.params.id, companyId: req.companyId });
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canDelete = isAdmin || permissions.includes('delete_leads');
+
+        if (!canDelete) {
+            return res.status(403).json({ success: false, message: 'Access denied. Delete permission required.' });
+        }
+
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        const query = { _id: req.params.id, companyId: req.companyId };
+
+        // If cannot view all, ensure lead is assigned to user (assuming they can only delete what they can see)
+        if (!canViewAll && canViewOwn) {
+            query.assignedTo = user._id;
+        } else if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        const lead = await Lead.findOneAndDelete(query);
 
         if (!lead) {
-            return res.status(404).json({ success: false, message: 'Lead not found' });
+            return res.status(404).json({ success: false, message: 'Lead not found or access denied' });
         }
 
         res.json({ success: true, message: 'Lead deleted successfully' });

@@ -7,11 +7,25 @@ const router = express.Router();
 // @route   GET /api/settings
 // @desc    Get all settings
 // @access  Private/Admin
-router.get('/', auth, adminOnly, async (req, res) => {
+// @route   GET /api/settings
+// @desc    Get all settings
+// @access  Private/Admin/Agent
+router.get('/', auth, async (req, res) => {
     try {
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
+
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canManageSettings = isAdmin || permissions.includes('manage_settings');
+
+        if (!canManageSettings) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const company = await Company.findById(req.companyId);
         if (!company) {
             return res.status(404).json({ success: false, message: 'Company not found' });
@@ -26,8 +40,21 @@ router.get('/', auth, adminOnly, async (req, res) => {
 // @route   PUT /api/settings
 // @desc    Update settings
 // @access  Private/Admin
-router.put('/', auth, adminOnly, async (req, res) => {
+// @route   PUT /api/settings
+// @desc    Update settings
+// @access  Private/Admin/Agent
+router.put('/', auth, async (req, res) => {
     try {
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canManageSettings = isAdmin || permissions.includes('manage_settings');
+
+        if (!canManageSettings) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const { whatsappConfigs, name, address, phone, website } = req.body;
 
         if (!req.companyId) {

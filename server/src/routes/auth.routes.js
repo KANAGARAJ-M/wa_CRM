@@ -33,7 +33,8 @@ router.post('/login', [
 
         // Find user
         const user = await User.findOne({ email: email.toLowerCase() })
-            .populate('companies', 'name');
+            .populate('companies', 'name')
+            .populate('customRole');
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -84,6 +85,7 @@ router.post('/login', [
 router.get('/me', auth, async (req, res) => {
     try {
         await req.user.populate('companies', 'name');
+        await req.user.populate('customRole');
 
         res.json({
             success: true,

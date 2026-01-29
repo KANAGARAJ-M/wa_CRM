@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../services/attendance_service.dart';
 import '../models/models.dart';
 import 'login_screen.dart';
 import 'chat_screen.dart';
@@ -25,6 +26,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   WorkerStats? _stats;
   bool _isLoading = true;
   String? _error;
+  String _attendanceStatus = 'CHECKED_OUT';
+  bool _isAttendanceLoading = false;
 
   @override
   void initState() {
@@ -44,11 +47,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = ApiService(authService.token!);
 
+      final attendanceService = AttendanceService(authService.token!);
+
       final results = await Future.wait([
         apiService.getLeads(),
         apiService.getStats(),
         apiService.getCalls(),
         apiService.getFollowUps(),
+        attendanceService.getStatus(),
       ]);
 
       if (mounted) {
@@ -57,6 +63,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _stats = results[1] as WorkerStats;
           _calls = results[2] as List<CallLog>;
           _followUps = results[3] as List<CallLog>;
+          final statusData = results[4] as Map<String, dynamic>;
+          _attendanceStatus = statusData['status'] ?? 'CHECKED_OUT';
           _isLoading = false;
         });
       }
@@ -91,6 +99,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (mounted) {
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+    }
+  }
+
+  Future<void> _toggleAttendance() async {
+    setState(() => _isAttendanceLoading = true);
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final attendanceService = AttendanceService(authService.token!);
+
+      if (_attendanceStatus == 'CHECKED_OUT') {
+        await attendanceService.checkIn();
+        setState(() => _attendanceStatus = 'CHECKED_IN');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Checked in successfully')),
+        );
+      } else {
+        await attendanceService.checkOut();
+        setState(() => _attendanceStatus = 'CHECKED_OUT');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Checked out successfully. Call logs synced.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isAttendanceLoading = false);
+      }
     }
   }
 
@@ -175,6 +213,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
+            
+            // Attendance Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isAttendanceLoading ? null : _toggleAttendance,
+                  icon: _isAttendanceLoading 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Icon(_attendanceStatus == 'CHECKED_OUT' ? Icons.login : Icons.logout),
+                  label: Text(_attendanceStatus == 'CHECKED_OUT' ? 'CHECK IN' : 'CHECK OUT'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _attendanceStatus == 'CHECKED_OUT' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              ),
+            ),
 
             // Stats Carousel (Manual Implementation)
             if (_stats != null)
@@ -184,25 +242,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   children: [
+                    _buildProgressStatCard(
+                      'Assigned vs Dialed',
+                      '${_stats!.dialedLeads} / ${_stats!.totalLeads}',
+                      _stats!.totalLeads > 0 ? _stats!.dialedLeads / _stats!.totalLeads : 0,
+                      const Color(0xFF3B82F6),
+                      Icons.assignment_turned_in_rounded,
+                    ),
+                    const SizedBox(width: 16),
+                    _buildModernStatCard(
+                      'Avg Call Duration',
+                      '${_stats!.avgCallDuration}s',
+                      const Color(0xFF8B5CF6),
+                      Icons.timer_rounded,
+                    ),
+                    const SizedBox(width: 16),
+                    _buildModernStatCard(
+                      'Orders',
+                      '${_stats!.orders}',
+                      const Color(0xFFF59E0B),
+                      Icons.shopping_cart_rounded,
+                    ),
+                    const SizedBox(width: 16),
+                    _buildModernStatCard(
+                      'Pending Follow-ups',
+                      '${_stats!.followUps}',
+                      const Color(0xFFEF4444),
+                      Icons.event_repeat_rounded,
+                    ),
+                    const SizedBox(width: 16),
                     _buildModernStatCard(
                       'Today\'s Calls',
                       '${_stats!.todayCalls}',
-                      const Color(0xFF8B5CF6),
-                      Icons.phone_callback_rounded,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildModernStatCard(
-                      'Conversions',
-                      '${_stats!.conversions}',
                       const Color(0xFF10B981),
-                      Icons.check_circle_outline_rounded,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildModernStatCard(
-                      'Total Leads',
-                      '${_stats!.totalLeads}',
-                      const Color(0xFF3B82F6),
-                      Icons.people_outline_rounded,
+                      Icons.phone_callback_rounded,
                     ),
                   ],
                 ),
@@ -297,7 +370,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildModernStatCard(
       String title, String value, Color color, IconData icon) {
     return Container(
-      width: 140,
+      width: 150,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: color,
@@ -329,7 +402,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 value,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -341,6 +414,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressStatCard(
+      String title, String value, double progress, Color color, IconData icon) {
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.white.withOpacity(0.2),
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                minHeight: 4,
+                borderRadius: BorderRadius.circular(2),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -504,6 +656,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                if (lead.callType != null || lead.source != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        (lead.callType ?? lead.source!).toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

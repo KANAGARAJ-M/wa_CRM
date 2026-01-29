@@ -5,9 +5,12 @@ const { auth } = require('../middleware/auth.middleware');
 
 // Middleware to check if user is admin (or has permission to manage roles)
 const checkRolePermission = async (req, res, next) => {
-    // For now, only allow admins or superadmins to manage roles
-    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-        // TODO: Check for 'manage_roles' permission in customRole
+    const user = req.user;
+    const isAdmin = ['admin', 'superadmin'].includes(user.role);
+    const permissions = user.customRole?.permissions || [];
+    const canManageRoles = isAdmin || permissions.includes('manage_roles');
+
+    if (!canManageRoles) {
         return res.status(403).json({ message: 'Access denied' });
     }
     next();
@@ -16,7 +19,7 @@ const checkRolePermission = async (req, res, next) => {
 const User = require('../models/User');
 
 // Get all roles for the current company
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, checkRolePermission, async (req, res) => {
     try {
         const companyId = req.companyId;
 
@@ -43,7 +46,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Get users for a specific role
-router.get('/:id/users', auth, async (req, res) => {
+router.get('/:id/users', auth, checkRolePermission, async (req, res) => {
     try {
         const role = await Role.findById(req.params.id);
 
