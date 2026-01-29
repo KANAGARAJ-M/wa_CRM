@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import {
     Shield, Plus, Edit2, Trash2, Check, X,
-    AlertCircle, Loader2, Lock
+    AlertCircle, Loader2, Lock, User, Mail, Eye, EyeOff
 } from 'lucide-react';
 
 const PERMISSIONS = [
@@ -29,6 +29,17 @@ export default function Roles() {
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+
+    // User Modal State
+    const [showUserModal, setShowUserModal] = useState(false);
+    const [userFormData, setUserFormData] = useState({ name: '', email: '', password: '', roleId: '' });
+    const [showPassword, setShowPassword] = useState(false);
+    const [creatingUser, setCreatingUser] = useState(false);
+
+    // View Users State
+    const [viewingRole, setViewingRole] = useState(null);
+    const [roleUsers, setRoleUsers] = useState([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
 
     useEffect(() => {
         fetchRoles();
@@ -113,6 +124,48 @@ export default function Roles() {
         }
     };
 
+    const handleOpenUserModal = (role) => {
+        setUserFormData({
+            name: '',
+            email: '',
+            password: '',
+            roleId: role._id
+        });
+        setShowUserModal(true);
+    };
+
+    const handleUserSubmit = async (e) => {
+        e.preventDefault();
+        setCreatingUser(true);
+        try {
+            await api.post('/workers', userFormData);
+            setShowUserModal(false);
+            setUserFormData({ name: '', email: '', password: '', roleId: '' });
+            fetchRoles(); // Refresh counts
+            alert('User created/assigned successfully');
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to create user');
+        } finally {
+            setCreatingUser(false);
+        }
+    };
+
+    const handleViewUsers = async (role) => {
+        setViewingRole(role);
+        setLoadingUsers(true);
+        try {
+            // Fetch users specifically for this role (from the role's company)
+            const response = await api.get(`/roles/${role._id}/users`);
+            const users = response.data.data || [];
+            setRoleUsers(users);
+        } catch (error) {
+            console.error('Error fetching role users:', error);
+            alert('Failed to load users');
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
@@ -166,6 +219,22 @@ export default function Roles() {
                             <p className="text-sm text-gray-500 mb-4 h-10 line-clamp-2">
                                 {role.description || 'No description provided'}
                             </p>
+
+                            <div className="flex items-center justify-between mb-4 bg-gray-50 p-3 rounded-lg">
+                                <button
+                                    onClick={() => handleViewUsers(role)}
+                                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                                >
+                                    <User className="h-4 w-4" />
+                                    <span className="font-medium">{role.userCount || 0} Users</span>
+                                </button>
+                                <button
+                                    onClick={() => handleOpenUserModal(role)}
+                                    className="px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg text-xs font-bold transition-colors border border-green-200"
+                                >
+                                    + Add User
+                                </button>
+                            </div>
 
                             <div className="space-y-3">
                                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -294,6 +363,152 @@ export default function Roles() {
                                 ) : (
                                     editingRole ? 'Update Role' : 'Create Role'
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* User Modal */}
+            {showUserModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fadeIn">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-800">Add User to Role</h2>
+                            <button onClick={() => setShowUserModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUserSubmit} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        required
+                                        className="pl-10 w-full border border-gray-200 rounded-xl py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="John Doe"
+                                        value={userFormData.name}
+                                        onChange={e => setUserFormData({ ...userFormData, name: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                                    <input
+                                        type="email"
+                                        required
+                                        className="pl-10 w-full border border-gray-200 rounded-xl py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="user@company.com"
+                                        value={userFormData.email}
+                                        onChange={e => setUserFormData({ ...userFormData, email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        required
+                                        className="pl-10 pr-10 w-full border border-gray-200 rounded-xl py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        placeholder="••••••••"
+                                        value={userFormData.password}
+                                        onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    >
+                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700">
+                                <p>User will be automatically assigned to the company this role belongs to.</p>
+                            </div>
+
+                            <div className="pt-4 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowUserModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={creatingUser}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 font-medium transition-all shadow-lg shadow-green-600/20 flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {creatingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                    Create User
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* View Users Modal */}
+            {viewingRole && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fadeIn flex flex-col max-h-[80vh]">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">Users in {viewingRole.name}</h2>
+                                <p className="text-sm text-gray-500">{roleUsers.length} users assigned</p>
+                            </div>
+                            <button onClick={() => setViewingRole(null)} className="text-gray-400 hover:text-gray-600">
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto">
+                            {loadingUsers ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+                                </div>
+                            ) : roleUsers.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <User className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                                    <p>No users assigned to this role.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {roleUsers.map(user => (
+                                        <div key={user._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center text-white font-bold shadow-sm">
+                                                    {user.name[0].toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-semibold text-gray-800">{user.name}</h4>
+                                                    <p className="text-xs text-gray-500">{user.email}</p>
+                                                </div>
+                                            </div>
+                                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-lg">
+                                                Active
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl flex justify-end">
+                            <button
+                                onClick={() => setViewingRole(null)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors"
+                            >
+                                Close
                             </button>
                         </div>
                     </div>

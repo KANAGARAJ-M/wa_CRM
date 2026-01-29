@@ -1,5 +1,5 @@
 const express = require('express');
-const { User } = require('../models');
+const { User, Role, Company } = require('../models');
 const { auth, adminOnly } = require('../middleware');
 const router = express.Router();
 
@@ -13,9 +13,8 @@ router.get('/', auth, adminOnly, async (req, res) => {
         }
 
         const workers = await User.find({
-            role: 'worker',
             companies: req.companyId
-        }).select('-password');
+        }).select('-password').populate('customRole', 'name');
 
         res.json({ success: true, data: workers });
     } catch (error) {
@@ -29,23 +28,72 @@ router.get('/', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.post('/', auth, adminOnly, async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, roleId, companyId } = req.body;
 
-        if (!req.companyId) {
+        // If roleId is provided, derive the company from the role
+        let targetCompanyId = companyId || req.companyId;
+
+        if (roleId) {
+            const role = await Role.findById(roleId);
+            if (role && role.company) {
+                targetCompanyId = role.company.toString();
+            }
+        }
+
+        if (!targetCompanyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
+        console.log('Create worker body:', req.body);
+
         let user = await User.findOne({ email: email.toLowerCase() });
+
         if (user) {
-            return res.status(400).json({ success: false, message: 'User already exists' });
+            // If user exists, check if they are already in this company
+            if (user.companies.some(c => c.toString() === targetCompanyId.toString())) {
+                // If roleId is provided, update the role
+                if (roleId) {
+                    user.customRole = roleId;
+                    await user.save();
+                    return res.status(200).json({ success: true, data: user.toJSON(), message: 'User role updated' });
+                }
+                return res.status(400).json({ success: false, message: 'User already in this company' });
+            }
+
+            // Add company to user
+            user.companies.push(targetCompanyId);
+
+            if (roleId) {
+                user.customRole = roleId;
+            }
+
+            await user.save();
+
+            // Also add user to company's users array
+            await Company.findByIdAndUpdate(targetCompanyId, {
+                $addToSet: { users: user._id }
+            });
+
+            return res.status(200).json({ success: true, data: user.toJSON() });
         }
 
-        user = await User.create({
+        const userData = {
             name,
             email,
             password,
             role: 'worker',
-            companies: [req.companyId]
+            companies: [targetCompanyId]
+        };
+
+        if (roleId) {
+            userData.customRole = roleId;
+        }
+
+        user = await User.create(userData);
+
+        // Add user to company's users array
+        await Company.findByIdAndUpdate(targetCompanyId, {
+            $addToSet: { users: user._id }
         });
 
         res.status(201).json({ success: true, data: user.toJSON() });

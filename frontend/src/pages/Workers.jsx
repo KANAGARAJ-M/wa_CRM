@@ -9,7 +9,6 @@ export default function Workers() {
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-
     useEffect(() => {
         fetchWorkers();
     }, []);
@@ -91,7 +90,9 @@ export default function Workers() {
                                     </button>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-500">
-                                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Agent</span>
+                                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">
+                                        {worker.customRole?.name || 'Agent'}
+                                    </span>
                                     <span className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-medium">Active</span>
                                 </div>
                             </div>
@@ -144,6 +145,7 @@ export default function Workers() {
                                         />
                                     </div>
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                                     <div className="relative">

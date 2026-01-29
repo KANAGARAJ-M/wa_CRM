@@ -41,7 +41,7 @@ const AdminRoute = ({ children }) => {
 };
 
 const WorkerRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, currentCompany } = useAuth();
 
   if (loading) {
     return (
@@ -55,10 +55,10 @@ const WorkerRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  // Allow admins to access worker pages? Maybe not for now.
-  // if (user.role !== 'worker') {
-  //   return <Navigate to="/" />;
-  // }
+  // Workers also need a company context
+  if (!currentCompany) {
+    return <Navigate to="/select-company" />;
+  }
 
   return children;
 };

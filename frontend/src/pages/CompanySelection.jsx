@@ -20,7 +20,15 @@ export default function CompanySelection() {
     const fetchCompanies = async () => {
         try {
             const res = await api.get('/companies/mine');
-            setCompanies(res.data.data);
+            const companyList = res.data.data;
+            setCompanies(companyList);
+
+            // Auto-select if user has only one company
+            if (companyList.length === 1) {
+                selectCompany(companyList[0]);
+                navigate('/');
+                return;
+            }
         } catch (error) {
             console.error(error);
         } finally {

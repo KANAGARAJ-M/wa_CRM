@@ -13,22 +13,50 @@ const checkRolePermission = async (req, res, next) => {
     next();
 };
 
+const User = require('../models/User');
+
 // Get all roles for the current company
 router.get('/', auth, async (req, res) => {
     try {
-        // Assuming req.user.companyId is set by auth middleware or we use the first company
-        // For now, let's assume we pass companyId in query or header, or derive from user
-        // In the current app context, users seem to have 'companies' array.
-        // Let's assume the frontend sends 'x-company-id' header or we use the first one.
-
-        const companyId = req.headers['x-company-id'] || req.user.companies[0];
+        const companyId = req.companyId;
 
         if (!companyId) {
             return res.status(400).json({ message: 'Company context required' });
         }
 
-        const roles = await Role.find({ company: companyId });
-        res.json({ data: roles });
+        const roles = await Role.find({ company: companyId }).lean();
+        console.log(`Fetching roles for company: ${companyId}. Found ${roles.length} roles.`);
+
+        const rolesWithCounts = await Promise.all(roles.map(async (role) => {
+            const userCount = await User.countDocuments({
+                customRole: role._id,
+                companies: role.company
+            });
+            console.log(`Role ${role.name} (${role._id}): ${userCount} users`);
+            return { ...role, userCount };
+        }));
+
+        res.json({ data: rolesWithCounts });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Get users for a specific role
+router.get('/:id/users', auth, async (req, res) => {
+    try {
+        const role = await Role.findById(req.params.id);
+
+        if (!role) {
+            return res.status(404).json({ message: 'Role not found' });
+        }
+
+        const users = await User.find({
+            customRole: role._id,
+            companies: role.company
+        }).select('-password');
+
+        res.json({ data: users });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
