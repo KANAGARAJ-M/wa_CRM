@@ -236,6 +236,8 @@ export default function Leads() {
                 const phoneIndex = getColumnIndex(['phone', 'mobile', 'cell', 'tel', 'contact', 'whatsapp', 'call', 'num', 'no.']);
                 const emailIndex = getColumnIndex(['email', 'e-mail', 'mail']);
                 const notesIndex = getColumnIndex(['note', 'comment', 'remark', 'desc', 'message', 'info', 'detail']);
+                const callTypeIndex = getColumnIndex(['call type', 'type', 'call_type']);
+                const assignedDateIndex = getColumnIndex(['assigned date', 'assign date', 'date assigned', 'assigned_at']);
 
                 if (nameIndex === -1 && phoneIndex === -1) {
                     setImportError('Excel must have at least "Name" or "Phone" column');
@@ -252,6 +254,41 @@ export default function Leads() {
                     const email = emailIndex !== -1 ? String(row[emailIndex] || '').trim() : '';
                     const notes = notesIndex !== -1 ? String(row[notesIndex] || '').trim() : '';
 
+                    let callType = 'fresh';
+                    if (callTypeIndex !== -1) {
+                        const val = String(row[callTypeIndex] || '').trim().toLowerCase();
+                        if (['fresh', 'call back', 'paid'].includes(val)) {
+                            callType = val;
+                        }
+                    }
+
+                    let assignedDateTime = null;
+
+                    if (assignedDateIndex !== -1 && row[assignedDateIndex]) {
+                        const val = row[assignedDateIndex];
+                        if (typeof val === 'number') {
+                            // Excel serial date to JS Date
+                            assignedDateTime = new Date(Math.round((val - 25569) * 86400 * 1000));
+                        } else {
+                            // Try parsing custom format: DD.MM.YYYY HH.MM PM (e.g. 12.01.2025 01.30 PM)
+                            const customDateMatch = String(val).trim().match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{1,2})[\.:](\d{2})\s*(AM|PM|am|pm)$/i);
+
+                            if (customDateMatch) {
+                                const [_, day, month, year, hours, minutes, meridian] = customDateMatch;
+                                let hour = parseInt(hours);
+                                if (meridian.toUpperCase() === 'PM' && hour < 12) hour += 12;
+                                if (meridian.toUpperCase() === 'AM' && hour === 12) hour = 0;
+                                assignedDateTime = new Date(year, parseInt(month) - 1, day, hour, parseInt(minutes));
+                            } else {
+                                // Fallback to standard JS parsing
+                                const d = new Date(val);
+                                if (!isNaN(d.getTime())) {
+                                    assignedDateTime = d;
+                                }
+                            }
+                        }
+                    }
+
                     phone = phone.replace(/[\s\-\(\)\.]/g, '');
 
                     if (!name && !phone) continue;
@@ -263,7 +300,9 @@ export default function Leads() {
                         notes: notes,
                         source: 'excel_upload',
                         stage: 'new',
-                        status: 'new'
+                        status: 'new',
+                        callType,
+                        assignedDateTime
                     });
                 }
 
@@ -793,6 +832,12 @@ export default function Leads() {
                                                             <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                                                 Received
                                                             </th>
+                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                                Type
+                                                            </th>
+                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                                Assigned Date
+                                                            </th>
                                                             <th scope="col" className="relative px-6 py-4">
                                                                 <span className="sr-only">Actions</span>
                                                             </th>
@@ -881,6 +926,17 @@ export default function Leads() {
                                                                             </span>
                                                                         )}
                                                                     </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                                                                        ${lead.callType === 'paid' ? 'bg-purple-100 text-purple-800' :
+                                                                            lead.callType === 'call back' ? 'bg-orange-100 text-orange-800' :
+                                                                                'bg-blue-100 text-blue-800'}`}>
+                                                                        {lead.callType || 'fresh'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                    {lead.assignedDateTime ? formatLeadTime(lead.assignedDateTime) : '-'}
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0">
@@ -1219,6 +1275,8 @@ export default function Leads() {
                                                         <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
                                                         <th className="px-4 py-2 text-left font-medium text-gray-700">Phone</th>
                                                         <th className="px-4 py-2 text-left font-medium text-gray-700">Email</th>
+                                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Type</th>
+                                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Assigned</th>
                                                         <th className="px-4 py-2 text-left font-medium text-gray-700">Notes</th>
                                                     </tr>
                                                 </thead>
@@ -1228,6 +1286,8 @@ export default function Leads() {
                                                             <td className="px-4 py-2 text-gray-900">{lead.name}</td>
                                                             <td className="px-4 py-2 text-gray-600">{lead.phone}</td>
                                                             <td className="px-4 py-2 text-gray-600">{lead.email || '-'}</td>
+                                                            <td className="px-4 py-2 text-gray-600 capitalize">{lead.callType || 'fresh'}</td>
+                                                            <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{lead.assignedDateTime ? formatLeadTime(lead.assignedDateTime) : '-'}</td>
                                                             <td className="px-4 py-2 text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]" title={lead.notes}>{lead.notes || '-'}</td>
                                                         </tr>
                                                     ))}

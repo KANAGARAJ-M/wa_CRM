@@ -97,6 +97,14 @@ const leadSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    assignedDateTime: {
+        type: Date
+    },
+    callType: {
+        type: String,
+        enum: ['fresh', 'call back', 'paid'],
+        default: 'fresh'
+    },
     // Fixed fields (once filled, cannot be changed by others)
     location: {
         type: String,

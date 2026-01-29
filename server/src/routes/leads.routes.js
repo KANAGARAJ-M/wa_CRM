@@ -48,7 +48,7 @@ router.post('/bulk', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.post('/', auth, adminOnly, async (req, res) => {
     try {
-        const { name, phone, email, source, notes, priority, value } = req.body;
+        const { name, phone, email, source, notes, priority, value, assignedDateTime, callType } = req.body;
 
         if (!name || !phone) {
             return res.status(400).json({
@@ -70,6 +70,8 @@ router.post('/', auth, adminOnly, async (req, res) => {
             notes,
             priority,
             value,
+            assignedDateTime,
+            callType,
             stage: 'new',
             status: 'new',
             uploadDate: new Date()
@@ -274,7 +276,7 @@ router.put('/assign', auth, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.put('/:id', auth, adminOnly, async (req, res) => {
     try {
-        const { name, phone, email, stage, status, notes, priority, value } = req.body;
+        const { name, phone, email, stage, status, notes, priority, value, assignedDateTime, callType } = req.body;
 
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
@@ -282,7 +284,7 @@ router.put('/:id', auth, adminOnly, async (req, res) => {
 
         const lead = await Lead.findOneAndUpdate(
             { _id: req.params.id, companyId: req.companyId },
-            { name, phone, email, stage, status, notes, priority, value },
+            { name, phone, email, stage, status, notes, priority, value, assignedDateTime, callType },
             { new: true }
         );
 
