@@ -14,6 +14,8 @@ export default function Settings() {
     const [companyProfile, setCompanyProfile] = useState({
         name: '', address: '', phone: '', website: ''
     });
+    const [products, setProducts] = useState([]);
+    const [newProduct, setNewProduct] = useState('');
     const [showTokens, setShowTokens] = useState({});
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -36,6 +38,7 @@ export default function Settings() {
                 phone: data.phone || '',
                 website: data.website || ''
             });
+            setProducts(data.products || []);
         } catch (error) {
             console.error('Error fetching settings:', error);
             setError('Failed to load settings');
@@ -79,6 +82,7 @@ export default function Settings() {
         try {
             await api.put('/settings', {
                 whatsappConfigs,
+                products,
                 ...companyProfile
             });
             setSuccess('Settings saved successfully!');
@@ -96,6 +100,17 @@ export default function Settings() {
             ...prev,
             [index]: !prev[index]
         }));
+    };
+
+    const handleAddProduct = () => {
+        if (newProduct.trim()) {
+            setProducts([...products, newProduct.trim()]);
+            setNewProduct('');
+        }
+    };
+
+    const handleRemoveProduct = (index) => {
+        setProducts(products.filter((_, i) => i !== index));
     };
 
     const checkSubscriptionStatus = async () => {
@@ -226,6 +241,53 @@ export default function Settings() {
                     </div>
                 </div>
 
+
+                {/* Products Management */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                    <div className="px-6 py-4 border-b border-gray-200">
+                        <div className="flex items-center gap-3">
+                            <LayoutGrid className="h-5 w-5 text-gray-700" />
+                            <h2 className="text-lg font-semibold text-gray-800">Products / Services</h2>
+                        </div>
+                    </div>
+                    <div className="p-6">
+                        <div className="flex gap-2 mb-4">
+                            <input
+                                type="text"
+                                value={newProduct}
+                                onChange={(e) => setNewProduct(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleAddProduct()}
+                                placeholder="Add a product or service..."
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            />
+                            <button
+                                onClick={handleAddProduct}
+                                disabled={!newProduct.trim()}
+                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                            >
+                                <Plus className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        {products.length === 0 ? (
+                            <p className="text-gray-500 text-center py-4">No products added yet.</p>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {products.map((product, index) => (
+                                    <div key={index} className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full text-gray-700">
+                                        <span>{product}</span>
+                                        <button
+                                            onClick={() => handleRemoveProduct(index)}
+                                            className="text-gray-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
                 {/* Webhook Subscription Status */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
                     <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
@@ -494,6 +556,6 @@ export default function Settings() {
                     </ol>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

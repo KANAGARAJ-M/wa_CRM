@@ -36,7 +36,11 @@ const companySchema = new mongoose.Schema({
         ref: 'User'
     },
     // WhatsApp Integrations for this Company
-    whatsappConfigs: [whatsappConfigSchema]
+    whatsappConfigs: [whatsappConfigSchema],
+    products: [{
+        type: String,
+        trim: true
+    }]
 }, {
     timestamps: true
 });

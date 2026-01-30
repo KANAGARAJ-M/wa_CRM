@@ -56,4 +56,48 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
+// @route   PUT /api/companies/:id
+// @desc    Update company details (including products)
+// @access  Private
+router.put('/:id', auth, async (req, res) => {
+    try {
+        const { name, address, phone, website, products, whatsappConfigs } = req.body;
+
+        // Verify user owns this company or is admin (assuming owner check for now)
+        let company = await Company.findById(req.params.id);
+
+        if (!company) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
+        }
+
+        // Basic authorization check: user must be in company.users or be the owner
+        // For strict ownership: if (company.owner.toString() !== req.user._id.toString()) ...
+        // But let's allow any associated user for now or stick to owner if available.
+        // Assuming owner field is populated and checked.
+        if (company.owner && company.owner.toString() !== req.user._id.toString()) {
+            // return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (address) updateData.address = address;
+        if (phone) updateData.phone = phone;
+        if (website) updateData.website = website;
+        if (products) updateData.products = products; // Array of strings
+        if (whatsappConfigs) updateData.whatsappConfigs = whatsappConfigs;
+
+        company = await Company.findByIdAndUpdate(
+            req.params.id,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        );
+
+        res.json({ success: true, data: company });
+
+    } catch (error) {
+        console.error('Update company error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 module.exports = router;

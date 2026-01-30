@@ -21,10 +21,14 @@ class _DialerScreenState extends State<DialerScreen>
   late TabController _tabController;
   List<Lead> _leads = [];
   List<CallLog> _callHistory = [];
+
   Map<String, int> _stats = {'new': 0, 'contacted': 0, 'interested': 0};
   bool _isLoading = true;
   String _selectedFilter = 'all';
   String? _activeLeadId;
+  String _searchQuery = '';
+  DateTimeRange? _selectedDateRange;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -36,6 +40,7 @@ class _DialerScreenState extends State<DialerScreen>
   @override
   void dispose() {
     _numberController.dispose();
+    _searchController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -431,12 +436,68 @@ class _DialerScreenState extends State<DialerScreen>
     );
   }
 
+  Future<void> _selectDateRange() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _selectedDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF22C55E),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1F2937),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDateRange) {
+      setState(() {
+        _selectedDateRange = picked;
+      });
+    }
+  }
+
   Widget _buildLeadsTab() {
+    // Filter leads
+    final filteredLeads = _leads.where((lead) {
+      final status = lead.status?.toLowerCase() ?? 'new';
+      
+      // Status Filter
+      bool statusMatch = _selectedFilter == 'all' || status == _selectedFilter;
+
+      // Search Filter
+      bool searchMatch = true;
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        searchMatch = lead.name.toLowerCase().contains(query) ||
+            lead.phone.contains(query);
+      }
+
+      // Date Filter
+      bool dateMatch = true;
+      if (_selectedDateRange != null) {
+        if (lead.updatedAt != null) {
+          final start = _selectedDateRange!.start;
+          final end = _selectedDateRange!.end.add(const Duration(days: 1));
+          dateMatch = lead.updatedAt!.isAfter(start) && lead.updatedAt!.isBefore(end);
+        } else {
+          dateMatch = false;
+        }
+      }
+
+      return statusMatch && searchMatch && dateMatch;
+    }).toList();
+
     return Column(
       children: [
-        // Stats Cards
-        Container(
-          padding: const EdgeInsets.all(16),
+        // Stats Cards - Keep existing ones or collapse them if needed to save space
+         Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
               _buildStatCard('New', _stats['new'] ?? 0, Colors.blue),
@@ -450,7 +511,82 @@ class _DialerScreenState extends State<DialerScreen>
           ),
         ),
 
-        // Filter
+        // Search and Date Filter Row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  decoration: InputDecoration(
+                    hintText: 'Search leads...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty 
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 16),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          ) 
+                        : null,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: _selectDateRange,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _selectedDateRange != null ? const Color(0xFF22C55E) : Colors.grey.withOpacity(0.3)
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.calendar_today, 
+                    color: _selectedDateRange != null ? const Color(0xFF22C55E) : Colors.grey[600],
+                    size: 20,
+                  ),
+                ),
+              ),
+              if (_selectedDateRange != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: InkWell(
+                    onTap: () => setState(() => _selectedDateRange = null),
+                     borderRadius: BorderRadius.circular(12),
+                     child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8)
+                        ),
+                        child: const Icon(Icons.close, color: Colors.red, size: 16),
+                     ),
+                  ),
+                )
+            ],
+          ),
+        ),
+
+        // Filter Chips
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -469,30 +605,35 @@ class _DialerScreenState extends State<DialerScreen>
 
         const SizedBox(height: 8),
 
+        // Date Range Display (Optional, if date selected)
+         if (_selectedDateRange != null)
+           Padding(
+             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+             child: Row(
+               children: [
+                 Text(
+                   'Filtered by date: ${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}',
+                   style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                 ),
+               ],
+             ),
+           ),
+
         // Leads List
         Expanded(
           child: _isLoading
               ? const Center(
                   child: CircularProgressIndicator(color: Color(0xFF22C55E)))
-              : _leads.isEmpty
+              : filteredLeads.isEmpty
                   ? _buildEmptyState()
                   : RefreshIndicator(
                       onRefresh: _fetchData,
                       color: const Color(0xFF22C55E),
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: _leads.length,
+                        itemCount: filteredLeads.length,
                         itemBuilder: (context, index) {
-                          final lead = _leads[index];
-                          final status = lead.status?.toLowerCase() ?? 'new';
-
-                          // Apply filter
-                          if (_selectedFilter != 'all' &&
-                              status != _selectedFilter) {
-                            return const SizedBox.shrink();
-                          }
-
-                          return _buildLeadCard(lead);
+                          return _buildLeadCard(filteredLeads[index]);
                         },
                       ),
                     ),
@@ -1213,10 +1354,15 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
   late TextEditingController _durationController;
   final TextEditingController _followUpNotesController =
       TextEditingController();
-  final TextEditingController _productController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _businessDetailsController =
       TextEditingController();
+  
+  // Product Dropdown State
+  List<String> _products = [];
+  String? _selectedProduct;
+  bool _isLoadingProducts = false;
+
   String _orderStatus = 'not-ordered';
   DateTime? _followUpDate;
   String _priority = 'medium';
@@ -1234,6 +1380,27 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
     if (widget.lead.businessName != null) {
       _businessDetailsController.text = widget.lead.businessName!;
     }
+    _fetchProducts();
+  }
+
+  Future<void> _fetchProducts() async {
+    setState(() => _isLoadingProducts = true);
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final apiService = ApiService(authService.token!);
+      final products = await apiService.getProducts();
+      if (mounted) {
+        setState(() {
+          _products = products;
+          _isLoadingProducts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingProducts = false);
+        // Fallback or just show empty dropdown
+      }
+    }
   }
 
   @override
@@ -1241,7 +1408,6 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
     _notesController.dispose();
     _durationController.dispose();
     _followUpNotesController.dispose();
-    _productController.dispose();
     _locationController.dispose();
     _businessDetailsController.dispose();
     super.dispose();
@@ -1454,12 +1620,15 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
               // Duration
               TextField(
                 controller: _durationController,
+                readOnly: true,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Call Duration (seconds)',
                   prefixIcon: const Icon(Icons.timer),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[100],
                 ),
               ),
 
@@ -1484,17 +1653,31 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
 
               const SizedBox(height: 16),
 
-              // Product Field
-              TextField(
-                controller: _productController,
+              // Product Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedProduct,
+                items: _products.map((product) {
+                  return DropdownMenuItem(
+                    value: product,
+                    child: Text(product),
+                  );
+                }).toList(),
+                onChanged: _isLoadingProducts ? null : (value) {
+                  setState(() => _selectedProduct = value);
+                },
                 decoration: InputDecoration(
                   labelText: 'Product (optional)',
-                  hintText: 'e.g., Solar Panel, Insurance...',
+                  hintText: _isLoadingProducts ? 'Loading products...' : 'Select a product',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
-                  prefixIcon: const Icon(Icons.shopping_bag_outlined),
+                  prefixIcon: _isLoadingProducts 
+                    ? const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    : const Icon(Icons.shopping_bag_outlined),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1700,9 +1883,7 @@ class _CallOutcomeSheetState extends State<CallOutcomeSheet> {
                                     ? _followUpNotesController.text
                                     : null,
                                 _priority,
-                                _productController.text.isNotEmpty
-                                    ? _productController.text
-                                    : null,
+                                _selectedProduct,
                                 _locationController.text.isNotEmpty
                                     ? _locationController.text
                                     : null,

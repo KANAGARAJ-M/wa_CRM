@@ -1,5 +1,5 @@
 const express = require('express');
-const { Lead, Call, WhatsAppMessage } = require('../models');
+const { Lead, Call, WhatsAppMessage, Company } = require('../models');
 const { auth } = require('../middleware');
 const router = express.Router();
 
@@ -316,6 +316,34 @@ router.get('/stats', auth, async (req, res) => {
         });
     } catch (error) {
         console.error('Get worker stats error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// @route   GET /api/worker/products
+// @desc    Get products for the worker's company
+// @access  Private (Worker)
+router.get('/products', auth, async (req, res) => {
+    try {
+        let companyId = req.companyId;
+
+        // Fallback checks if companyId middleware didn't set it (though it should)
+        if (!companyId && req.user.companies && req.user.companies.length > 0) {
+            companyId = req.user.companies[0];
+        }
+
+        if (!companyId) {
+            return res.json({ success: true, data: [] });
+        }
+
+        const company = await Company.findById(companyId).select('products');
+        if (!company) {
+            return res.json({ success: true, data: [] });
+        }
+
+        res.json({ success: true, data: company.products || [] });
+    } catch (error) {
+        console.error('Get worker products error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });

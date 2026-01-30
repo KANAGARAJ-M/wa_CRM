@@ -139,4 +139,18 @@ class ApiService {
       throw Exception('Failed to log call');
     }
   }
+  Future<List<String>> getProducts() async {
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/worker/products'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List<dynamic> productsJson = data['data'] ?? [];
+      return productsJson.map((e) => e.toString()).toList();
+    }
+    // Fallback or empty if failed, or throw exception
+    return [];
+  }
 }

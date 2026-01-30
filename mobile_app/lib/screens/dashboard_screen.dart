@@ -11,6 +11,8 @@ import 'chat_screen.dart';
 import 'call_log_screen.dart';
 import 'dialer_screen.dart';
 
+import 'package:permission_handler/permission_handler.dart';
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -19,7 +21,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _selectedIndex = 0;
+  int _currentIndex = 0;
   List<Lead> _leads = [];
   List<CallLog> _calls = [];
   List<CallLog> _followUps = [];
@@ -27,26 +29,107 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   String? _error;
   String _attendanceStatus = 'CHECKED_OUT';
+
   bool _isAttendanceLoading = false;
+  
+  // Filter States
+  String _leadsFilter = 'all'; // 'all' (Assigned) or 'pending'
+  String _searchQuery = '';
+  DateTimeRange? _selectedDateRange;
+  final TextEditingController _searchController = TextEditingController();
+
+  // Colors - White Theme
+  static const Color kBgColor = Color(0xFFF8FAFC); // Slate-50
+  static const Color kCardColor = Colors.white;
+  static const Color kPrimaryColor = Color(0xFF2563EB); // Blue-600
+  static const Color kSecondaryColor = Color(0xFF64748B); // Slate-500
+  static const Color kTextColor = Color(0xFF1E293B); // Slate-800
+  static const Color kSubTextColor = Color(0xFF94A3B8); // Slate-400
 
   @override
   void initState() {
     super.initState();
+    _checkPermissions();
     _loadData();
+  }
+
+  Future<void> _checkPermissions() async {
+    final permissions = [
+      Permission.phone,
+      Permission.contacts,
+      // Permission.callLog (use phone state instead or check specific platform handling)
+    ];
+
+    bool allGranted = true;
+    for (var permission in permissions) {
+      if (!await permission.isGranted) {
+        allGranted = false;
+        break;
+      }
+    }
+
+    if (!allGranted) {
+      _requestPermissions(permissions);
+    }
+  }
+  
+  Future<void> _requestPermissions(List<Permission> permissions) async {
+    Map<Permission, PermissionStatus> statuses = await permissions.request();
+    
+    bool permanentlyDenied = false;
+    statuses.forEach((key, value) {
+      if (value.isPermanentlyDenied) {
+        permanentlyDenied = true;
+      }
+    });
+
+    if (permanentlyDenied && mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Permissions Required'),
+          content: const Text(
+            'This app requires Phone, Contacts, and Call Log permissions to function properly. '
+            'Please enable them in the app settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                openAppSettings();
+                Navigator.pop(context);
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData({bool showLoading = true}) async {
     if (showLoading) {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _error = null;
+        });
+      }
     }
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = ApiService(authService.token!);
-
       final attendanceService = AttendanceService(authService.token!);
 
       final results = await Future.wait([
@@ -111,20 +194,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (_attendanceStatus == 'CHECKED_OUT') {
         await attendanceService.checkIn();
         setState(() => _attendanceStatus = 'CHECKED_IN');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Checked in successfully')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Checked in successfully')),
+          );
+        }
       } else {
         await attendanceService.checkOut();
         setState(() => _attendanceStatus = 'CHECKED_OUT');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Checked out successfully. Call logs synced.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Checked out successfully. Call logs synced.')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isAttendanceLoading = false);
@@ -134,252 +223,451 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final userName = authService.user?['name'] ?? 'Agent';
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: kBgColor,
+        body: Center(child: CircularProgressIndicator(color: kPrimaryColor)),
+      );
+    }
 
-    String companyName = 'Agent Portal';
-    if (authService.user != null && authService.user!['companies'] != null) {
-      final companies = authService.user!['companies'];
-      if (companies is List && companies.isNotEmpty) {
-        if (companies[0] is Map) {
-          companyName = companies[0]['name'] ?? 'Agent Portal';
-        }
-      }
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: kBgColor,
+        body: Center(
+            child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error loading data', style: TextStyle(color: Colors.red[300])),
+            const SizedBox(height: 10),
+            ElevatedButton(onPressed: _loadData, child: const Text('Retry'))
+          ],
+        )),
+      );
     }
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFF111827), // Dark background for modern look
+      backgroundColor: kBgColor,
       body: SafeArea(
-        child: Column(
+        child: IndexedStack(
+          index: _currentIndex,
           children: [
-            // Custom Header
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        companyName,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 14,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Hello, $userName',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _loadData(showLoading: true),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.refresh_rounded,
-                              color: Colors.white, size: 20),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      GestureDetector(
-                        onTap: _logout,
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.logout_rounded,
-                              color: Colors.white, size: 20),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
-            // Attendance Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isAttendanceLoading ? null : _toggleAttendance,
-                  icon: _isAttendanceLoading 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Icon(_attendanceStatus == 'CHECKED_OUT' ? Icons.login : Icons.logout),
-                  label: Text(_attendanceStatus == 'CHECKED_OUT' ? 'CHECK IN' : 'CHECK OUT'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _attendanceStatus == 'CHECKED_OUT' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                ),
-              ),
-            ),
-
-            // Stats Carousel (Manual Implementation)
-            if (_stats != null)
-              SizedBox(
-                height: 140,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  children: [
-                    _buildProgressStatCard(
-                      'Assigned vs Dialed',
-                      '${_stats!.dialedLeads} / ${_stats!.totalLeads}',
-                      _stats!.totalLeads > 0 ? _stats!.dialedLeads / _stats!.totalLeads : 0,
-                      const Color(0xFF3B82F6),
-                      Icons.assignment_turned_in_rounded,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildModernStatCard(
-                      'Avg Call Duration',
-                      '${_stats!.avgCallDuration}s',
-                      const Color(0xFF8B5CF6),
-                      Icons.timer_rounded,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildModernStatCard(
-                      'Orders',
-                      '${_stats!.orders}',
-                      const Color(0xFFF59E0B),
-                      Icons.shopping_cart_rounded,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildModernStatCard(
-                      'Pending Follow-ups',
-                      '${_stats!.followUps}',
-                      const Color(0xFFEF4444),
-                      Icons.event_repeat_rounded,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildModernStatCard(
-                      'Today\'s Calls',
-                      '${_stats!.todayCalls}',
-                      const Color(0xFF10B981),
-                      Icons.phone_callback_rounded,
-                    ),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 32),
-
-            // Custom Tab Switcher
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  _buildTabButton(0, 'Leads'),
-                  _buildTabButton(1, 'Calls'),
-                  _buildTabButton(2, 'Follow-ups'),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Content Area
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(32),
-                    topRight: Radius.circular(32),
-                  ),
-                ),
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _error != null
-                        ? Center(child: Text('Error: $_error'))
-                        : ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(32),
-                              topRight: Radius.circular(32),
-                            ),
-                            child: _buildSelectedView(),
-                          ),
-              ),
-            ),
+            _buildHomeTab(),
+            _buildLeadsTab(),
+            _buildActivityTab(),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const DialerScreen()),
-          );
-        },
-        backgroundColor: const Color(0xFF111827),
-        child: const Icon(Icons.dialpad_rounded, color: Colors.white),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          backgroundColor: Colors.white,
+          selectedItemColor: kPrimaryColor,
+          unselectedItemColor: kSecondaryColor,
+          type: BottomNavigationBarType.fixed,
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.people_alt_rounded), label: 'Leads'),
+            BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Activity'),
+          ],
+        ),
+      ),
+      floatingActionButton: _currentIndex == 0 || _currentIndex == 1
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DialerScreen()),
+                );
+              },
+              backgroundColor: kPrimaryColor,
+              child: const Icon(Icons.dialpad_rounded, color: Colors.white),
+            )
+          : null,
+    );
+  }
+
+  // --- HOME TAB ---
+  Widget _buildHomeTab() {
+    final authService = Provider.of<AuthService>(context);
+    final userName = authService.user?['name'] ?? 'Agent';
+
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Welcome back,',
+                      style: TextStyle(color: kSecondaryColor, fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                        color: kTextColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: _logout,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.logout_rounded, color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Attendance Card
+            _buildAttendanceCard(),
+            const SizedBox(height: 24),
+
+            // Stats Section
+            if (_stats != null) _buildNewStatsLayout(),
+            
+            const SizedBox(height: 24),
+
+            // Today's Follow-ups Preview
+             if (_followUps.isNotEmpty) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Follow-ups Due',
+                      style: TextStyle(
+                        color: kTextColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _currentIndex = 2),
+                      child: const Text('View All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _followUps.take(3).length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) => _buildCallLogItem(_followUps[index]),
+                ),
+             ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTabButton(int index, String text) {
-    final isSelected = _selectedIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedIndex = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF10B981) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+  Widget _buildNewStatsLayout() {
+    return Column(
+      children: [
+        // Row 1: Assigned vs Dialed (Progress) AND Orders
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: _buildAssignedVsDialedCard(),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: _buildModernStatCard(
+                'Orders',
+                '${_stats!.orders}',
+                Icons.shopping_bag_rounded,
+                Colors.orange,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Row 2: Avg Call Duration (Single Box)
+        _buildLargeStatCard(
+          'Avg. Call Duration',
+          '${_stats!.avgCallDuration}s',
+          Icons.timer_rounded,
+          const Color(0xFF8B5CF6),
+        ),
+        const SizedBox(height: 16),
+        // Row 3: Others
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernStatCard(
+                'Today Calls',
+                '${_stats!.todayCalls}',
+                Icons.phone_in_talk_rounded,
+                Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildModernStatCard(
+                'Assigned / Pending',
+                '${_stats!.totalLeads} / ${(_stats!.totalLeads - _stats!.dialedLeads)}',
+                Icons.assignment_ind_rounded,
+                Colors.redAccent,
+                onTap: () => setState(() => _currentIndex = 1),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAssignedVsDialedCard() {
+    double progress = _stats!.totalLeads > 0 ? _stats!.dialedLeads / _stats!.totalLeads : 0;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.assignment_turned_in_rounded, color: Colors.blue, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Progress',
+                style: TextStyle(color: kSecondaryColor, fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '${_stats!.dialedLeads} / ${_stats!.totalLeads}',
+            style: const TextStyle(
+              color: kTextColor,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
           ),
+          const SizedBox(height: 4),
+          const Text(
+            'Dialed vs Assigned',
+            style: TextStyle(color: kSubTextColor, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.grey[100],
+            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildLargeStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: color.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  color: kTextColor,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: kSecondaryColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceCard() {
+    final isCheckedIn = _attendanceStatus == 'CHECKED_IN';
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isCheckedIn
+              ? [const Color(0xFF059669), const Color(0xFF10B981)]
+              : [const Color(0xFFDC2626), const Color(0xFFEF4444)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: (isCheckedIn ? Colors.green : Colors.red).withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isCheckedIn ? Icons.timer_rounded : Icons.timer_off_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isCheckedIn ? 'You are Online' : 'You are Offline',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isCheckedIn ? 'Tracking duration...' : 'Check in to start calls',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _isAttendanceLoading ? null : _toggleAttendance,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: isCheckedIn ? Colors.green : Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            child: _isAttendanceLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(isCheckedIn ? 'Check Out' : 'Check In'),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildModernStatCard(
-      String title, String value, Color color, IconData icon) {
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.all(20),
+      String title, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(24),
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -390,248 +678,271 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: Colors.white, size: 20),
+            child: Icon(icon, color: color, size: 24),
           ),
+          const SizedBox(height: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 value,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressStatCard(
-      String title, String value, double progress, Color color, IconData icon) {
-    return Container(
-      width: 160,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              ),
-              Text(
-                '${(progress * 100).toInt()}%',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
+                  color: kTextColor,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Colors.white.withOpacity(0.2),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                minHeight: 4,
-                borderRadius: BorderRadius.circular(2),
-              ),
               const SizedBox(height: 4),
               Text(
                 title,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                style: const TextStyle(
+                  color: kSecondaryColor,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ],
       ),
-    );
+    ),
+  );
+}
+
+  // --- LEADS TAB ---
+  
+  List<Lead> get _filteredLeads {
+    return _leads.where((lead) {
+      if (_leadsFilter == 'pending') {
+        // Define 'pending' logic here. E.g., status is 'new', or 'follow-up'?, or simply not 'converted'/'not-interested'?
+        // The user said "assinded vs pending".
+        // Usually, Pending means not yet acted upon or future follow-up.
+        // Let's assume 'Pending' means leads that are NOT in a final state (like converted, not-interested).
+        // OR better: Leads that have not been dialed yet (status == 'new') for strict "Pending" meaning "To do".
+        // User previously said "pending to be convert as assiged / pending".
+        // And stats uses "totalLeads - dialedLeads" for pending.
+        // So let's try to match that: Pending = Not Dialed.
+        // However, we don't have 'dialed' flag directly on Lead, but we might infer from status or lastInteraction.
+        // If lastInteraction is null, it's definitely pending/new.
+        if (lead.lastInteraction != null) {
+             return false; // It has been interacted with, so not "strictly" pending in "To Do" sense?
+             // But what about follow-ups? They are also pending tasks.
+             // If user wants "Assigned" list (All) vs "Pending" list.
+             // Let's stick to: Pending = No interaction yet (Status 'new' or null).
+        }
+      }
+
+      final matchesSearch = lead.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          lead.phone.contains(_searchQuery);
+      
+      bool matchesDate = true;
+      if (_selectedDateRange != null) {
+        // Use updatedAt or fallback to a default if null for filtering? 
+        // If updatedAt is null, we assume it matches or doesn't match based on requirement.
+        // Here we'll treat null as "no date" and strictly filter if date is present.
+        if (lead.updatedAt != null) {
+          final start = _selectedDateRange!.start;
+          final end = _selectedDateRange!.end.add(const Duration(days: 1)); // End of day
+          matchesDate = lead.updatedAt!.isAfter(start) && lead.updatedAt!.isBefore(end);
+        } else {
+             matchesDate = false; 
+        }
+      }
+      
+      return matchesSearch && matchesDate;
+    }).toList();
   }
 
-  Widget _buildSelectedView() {
-    switch (_selectedIndex) {
-      case 0:
-        return _buildLeadsList();
-      case 1:
-        return _buildCallsList();
-      case 2:
-        return _buildFollowUpsList();
-      default:
-        return const SizedBox();
+  Future<void> _selectDateRange() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _selectedDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: kPrimaryColor,
+              onPrimary: Colors.white,
+              onSurface: kTextColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDateRange) {
+      setState(() {
+        _selectedDateRange = picked;
+      });
     }
   }
 
-  Widget _buildLeadsList() {
-    return RefreshIndicator(
-      onRefresh: _handleRefresh,
-      color: const Color(0xFF10B981),
-      child: _leads.isEmpty
-          ? SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6,
-                child: _buildEmptyState('No leads assigned'),
+  Widget _buildLeadsTab() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          color: kBgColor,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                   const Text(
+                    'Leads',
+                    style: TextStyle(
+                      color: kTextColor,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const Spacer(),
+                   if (_selectedDateRange != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: InputChip(
+                        label: Text(
+                          '${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}',
+                          style: const TextStyle(fontSize: 12, color: Colors.white),
+                        ),
+                        backgroundColor: kPrimaryColor,
+                        onDeleted: () {
+                          setState(() {
+                            _selectedDateRange = null;
+                          });
+                        },
+                        deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white),
+                      ),
+                    ),
+                  InkWell(
+                    onTap: _selectDateRange,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.calendar_today_rounded, 
+                        color: _selectedDateRange != null ? kPrimaryColor : kTextColor, 
+                        size: 20
+                      ),
+                    ),
+                  )
+                ],
               ),
-            )
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24),
-              itemCount: _leads.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) =>
-                  _buildModernLeadItem(_leads[index]),
-            ),
-    );
-  }
+              const SizedBox(height: 20),
 
-  Widget _buildCallsList() {
-    return RefreshIndicator(
-      onRefresh: _handleRefresh,
-      color: const Color(0xFF10B981),
-      child: _calls.isEmpty
-          ? SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6,
-                child: _buildEmptyState('No call history'),
+              // Filter Tabs
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildFilterTab('All Assigned', 'all')),
+                    Expanded(child: _buildFilterTab('Pending', 'pending')),
+                  ],
+                ),
               ),
-            )
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24),
-              itemCount: _calls.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) =>
-                  _buildModernCallItem(_calls[index]),
-            ),
-    );
-  }
-
-  Widget _buildFollowUpsList() {
-    return RefreshIndicator(
-      onRefresh: _handleRefresh,
-      color: const Color(0xFF10B981),
-      child: _followUps.isEmpty
-          ? SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6,
-                child: _buildEmptyState('No pending follow-ups'),
+              const SizedBox(height: 16),
+              // Search Bar
+              TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                style: const TextStyle(color: kTextColor),
+                decoration: InputDecoration(
+                  hintText: 'Search leads by name or phone...',
+                  hintStyle: const TextStyle(color: kSecondaryColor),
+                  prefixIcon: const Icon(Icons.search, color: kSecondaryColor),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  suffixIcon: _searchQuery.isNotEmpty 
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: kSecondaryColor),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null, 
+                ),
               ),
-            )
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24),
-              itemCount: _followUps.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) =>
-                  _buildModernCallItem(_followUps[index]),
-            ),
-    );
-  }
-
-  Widget _buildEmptyState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.info_outline, size: 64, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: TextStyle(color: Colors.grey[500], fontSize: 16),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _handleRefresh,
+            child: _filteredLeads.isEmpty
+                ? _buildEmptyState(_leads.isEmpty ? 'No leads assigned' : 'No matching leads found')
+                : ListView.separated(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: _filteredLeads.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) => _buildLeadItem(_filteredLeads[index]),
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildModernLeadItem(Lead lead) {
+  Widget _buildLeadItem(Lead lead) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Center(
-              child: Text(
-                lead.name[0].toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF111827),
-                ),
-              ),
+          CircleAvatar(
+            backgroundColor: kPrimaryColor.withOpacity(0.1),
+            child: Text(
+              lead.name.characters.first.toUpperCase(),
+              style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 16),
@@ -642,92 +953,188 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   lead.name,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
-                  ),
+                      color: kTextColor, fontWeight: FontWeight.w600, fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   lead.phone,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: const TextStyle(color: kSecondaryColor, fontSize: 13),
                 ),
-                if (lead.callType != null || lead.source != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        (lead.callType ?? lead.source!).toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
+                if (lead.status != null) ...[
+                   const SizedBox(height: 4),
+                   Container(
+                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                     decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4)
+                     ),
+                     child: Text(
+                        lead.status!.toUpperCase(),
+                        style: const TextStyle(color: kTextColor, fontSize: 10),
+                     ),
+                   )
+                ]
               ],
             ),
           ),
           Row(
             children: [
-              _buildIconBtn(Icons.chat_bubble_outline_rounded, Colors.blue, () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)));
-              }),
-              const SizedBox(width: 12),
-              _buildIconBtn(Icons.phone_rounded, Colors.green, () {
-                _makeCall(lead.phone);
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => CallLogScreen(lead: lead)));
-              }),
+               IconButton(
+                icon: const Icon(Icons.chat_bubble_outline, color: kPrimaryColor), 
+                onPressed: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)));
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.phone, color: Color(0xFF10B981)), 
+                onPressed: () {
+                    _makeCall(lead.phone);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => CallLogScreen(lead: lead)));
+                },
+              ),
             ],
-          ),
+          )
         ],
       ),
     );
   }
 
-  Widget _buildModernCallItem(CallLog call) {
+  // --- ACTIVITY TAB ---
+  Widget _buildActivityTab() {
+    // Filter calls to get orders
+    final orders = _calls.where((c) => c.orderStatus != null || c.outcome.toLowerCase() == 'converted').toList();
+
+    return DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Activity',
+                      style: TextStyle(
+                        color: kTextColor,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: kBgColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.tune_rounded, color: kTextColor, size: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: kBgColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: TabBar(
+                    indicator: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    labelColor: kPrimaryColor,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    unselectedLabelColor: kSecondaryColor,
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+                    tabs: const [
+                      Tab(text: 'Calls'),
+                      Tab(text: 'Follow-ups'),
+                      Tab(text: 'Orders'),
+                    ],
+                    dividerColor: Colors.transparent,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                 _buildListOrEmpty(_calls, 'No recent calls'),
+                 _buildListOrEmpty(_followUps, 'No pending follow-ups'),
+                 _buildListOrEmpty(orders, 'No orders found'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildListOrEmpty(List<CallLog> items, String emptyMsg) {
+     if (items.isEmpty) return _buildEmptyState(emptyMsg);
+     return RefreshIndicator(
+        onRefresh: _handleRefresh,
+        child: ListView.separated(
+           padding: const EdgeInsets.symmetric(horizontal: 20),
+           itemCount: items.length,
+           separatorBuilder: (_, __) => const SizedBox(height: 12),
+           itemBuilder: (context, index) => _buildCallLogItem(items[index]),
+        ),
+     );
+  }
+
+  Widget _buildCallLogItem(CallLog log) {
+    Color outcomeColor = _getOutcomeColor(log.outcome);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: _getOutcomeColor(call.outcome).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: outcomeColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              _getOutcomeIcon(call.outcome),
-              color: _getOutcomeColor(call.outcome),
-              size: 20,
-            ),
+            child: Icon(_getOutcomeIcon(log.outcome), color: outcomeColor, size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -735,57 +1142,117 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  call.leadName ?? 'Unknown',
+                  log.leadName ?? 'Unknown',
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
-                  ),
+                      color: kTextColor, fontWeight: FontWeight.w600, fontSize: 16),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  DateFormat('MMM d, h:mm a').format(call.createdAt),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
+                 Text(
+                  DateFormat('MMM d, h:mm a').format(log.createdAt),
+                  style: const TextStyle(color: kSecondaryColor, fontSize: 12),
                 ),
+                if (log.notes != null && log.notes!.isNotEmpty) ...[
+                   const SizedBox(height: 6),
+                   Text(
+                      log.notes!,
+                      style: const TextStyle(color: kSecondaryColor, fontSize: 13, fontStyle: FontStyle.italic),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                   )
+                ]
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getStatusColor(call.status).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+          Column(
+             crossAxisAlignment: CrossAxisAlignment.end,
+             children: [
+                Text(
+                   '${log.duration}s',
+                   style: const TextStyle(color: kSecondaryColor, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 5),
+                Container(
+                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                   decoration: BoxDecoration(
+                      border: Border.all(color: outcomeColor.withOpacity(0.5)),
+                      borderRadius: BorderRadius.circular(4)
+                   ),
+                   child: Text(
+                      log.outcome.toUpperCase(),
+                      style: TextStyle(color: outcomeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                   ),
+                )
+             ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterTab(String label, String value) {
+    final isSelected = _leadsFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _leadsFilter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? kPrimaryColor : kSecondaryColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
             ),
-            child: Text(
-              call.outcome.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: _getStatusColor(call.status),
-              ),
-            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inbox, size: 64, color: Colors.grey[700]),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(color: Colors.grey[500], fontSize: 16),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildIconBtn(IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-    );
+  Color _getOutcomeColor(String outcome) {
+    switch (outcome.toLowerCase()) {
+      case 'interested':
+        return Colors.green;
+      case 'not-interested':
+        return Colors.red;
+      case 'follow-up':
+        return Colors.orange;
+      case 'callback':
+        return Colors.blue;
+      case 'converted':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
   }
 
   IconData _getOutcomeIcon(String outcome) {
@@ -803,43 +1270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'wrong-number':
         return Icons.phonelink_erase_rounded;
       default:
-        return Icons.phone_rounded;
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'new':
-        return Colors.blue;
-      case 'contacted':
-        return Colors.orange;
-      case 'interested':
-        return Colors.green;
-      case 'converted':
-        return Colors.purple;
-      case 'closed':
-        return Colors.grey;
-      case 'completed':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _getOutcomeColor(String outcome) {
-    switch (outcome.toLowerCase()) {
-      case 'interested':
-        return Colors.green;
-      case 'not-interested':
-        return Colors.red;
-      case 'follow-up':
-        return Colors.blue;
-      case 'callback':
-        return Colors.orange;
-      case 'converted':
-        return Colors.purple;
-      default:
-        return Colors.grey;
+        return Icons.phone_missed_rounded;
     }
   }
 }
