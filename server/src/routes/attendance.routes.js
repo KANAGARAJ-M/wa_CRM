@@ -112,4 +112,92 @@ router.get('/all', auth, async (req, res) => {
     }
 });
 
+// Get detailed logs with check-in/checkout and call info (Admin)
+router.get('/detailed-logs', auth, async (req, res) => {
+    try {
+        const { date, agentId, startDate, endDate } = req.query;
+        let query = {};
+
+        if (agentId) {
+            query.agent = agentId;
+        }
+
+        if (date) {
+            const start = new Date(date);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(date);
+            end.setHours(23, 59, 59, 999);
+            query.checkInTime = { $gte: start, $lte: end };
+        } else if (startDate || endDate) {
+            query.checkInTime = {};
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                query.checkInTime.$gte = start;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                query.checkInTime.$lte = end;
+            }
+        }
+
+        const records = await Attendance.find(query)
+            .populate('agent', 'name email role')
+            .sort({ checkInTime: -1 });
+
+        // Process records to summarize call logs
+        const processedRecords = records.map(record => {
+            const callLogs = record.callLogs || [];
+
+            // Categorize calls
+            const incomingCalls = callLogs.filter(c => c.type === 'INCOMING');
+            const outgoingCalls = callLogs.filter(c => c.type === 'OUTGOING');
+            const missedCalls = callLogs.filter(c => c.type === 'MISSED');
+
+            // Calculate durations
+            const totalIncomingDuration = incomingCalls.reduce((acc, c) => acc + (c.duration || 0), 0);
+            const totalOutgoingDuration = outgoingCalls.reduce((acc, c) => acc + (c.duration || 0), 0);
+            const totalDuration = totalIncomingDuration + totalOutgoingDuration;
+
+            // Calculate session duration
+            let sessionDuration = 0;
+            if (record.checkInTime && record.checkOutTime) {
+                sessionDuration = Math.floor((new Date(record.checkOutTime) - new Date(record.checkInTime)) / 1000);
+            }
+
+            return {
+                _id: record._id,
+                agent: record.agent,
+                checkInTime: record.checkInTime,
+                checkOutTime: record.checkOutTime,
+                status: record.status,
+                sessionDuration,
+                callSummary: {
+                    totalCalls: callLogs.length,
+                    incomingCount: incomingCalls.length,
+                    outgoingCount: outgoingCalls.length,
+                    missedCount: missedCalls.length,
+                    totalIncomingDuration,
+                    totalOutgoingDuration,
+                    totalDuration
+                },
+                callLogs: callLogs.map(c => ({
+                    number: c.number,
+                    name: c.name,
+                    type: c.type,
+                    date: c.date,
+                    duration: c.duration,
+                    simDisplayName: c.simDisplayName
+                }))
+            };
+        });
+
+        res.json({ success: true, data: processedRecords });
+    } catch (error) {
+        console.error('Get detailed logs error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 module.exports = router;

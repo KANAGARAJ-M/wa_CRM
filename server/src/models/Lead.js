@@ -71,6 +71,22 @@ const leadSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
+    // Stage change history
+    stageHistory: [{
+        stage: {
+            type: String,
+            enum: ['new', 'contacted', 'interested', 'negotiation', 'converted', 'lost']
+        },
+        changedAt: {
+            type: Date,
+            default: Date.now
+        },
+        changedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        notes: String
+    }],
     // Notes/Comments timeline
     commentHistory: [{
         timestamp: { type: Date, default: Date.now },

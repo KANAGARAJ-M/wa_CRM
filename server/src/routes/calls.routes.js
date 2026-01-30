@@ -184,7 +184,9 @@ router.post('/', auth, async (req, res) => {
             priority,
             location,
             businessDetails,
-            orderStatus
+            orderStatus,
+            callDirection,
+            simDisplayName
         } = req.body;
 
         // Get companyId from lead or header
@@ -213,6 +215,8 @@ router.post('/', auth, async (req, res) => {
             location,
             businessDetails,
             orderStatus,
+            callDirection: callDirection || 'OUTGOING',
+            simDisplayName,
             callStartTime: new Date(Date.now() - (duration || 0) * 1000),
             callEndTime: new Date()
         });

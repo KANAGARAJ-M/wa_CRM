@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import {
     Search, Loader2, Users, Clock, Plus, Phone, Mail, Edit2, Trash2,
     Upload, FileSpreadsheet, Download, Info, AlertCircle, X, ChevronDown, ChevronRight,
-    MessageSquare, RefreshCw, UserPlus
+    MessageSquare, RefreshCw, UserPlus, History, GitBranch, Eye
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +35,10 @@ export default function Leads() {
     const [selectedWorker, setSelectedWorker] = useState('');
     const [agentSearchQuery, setAgentSearchQuery] = useState('');
     const [isAgentDropdownOpen, setIsAgentDropdownOpen] = useState(false);
+
+    // Lead History Modal State
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [selectedLeadHistory, setSelectedLeadHistory] = useState(null);
 
     // Tab State
     const [tabs, setTabs] = useState([
@@ -127,6 +131,11 @@ export default function Leads() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const viewLeadHistory = (lead) => {
+        setSelectedLeadHistory(lead);
+        setShowHistoryModal(true);
     };
 
     const startChat = (lead) => {
@@ -350,23 +359,150 @@ export default function Leads() {
             return;
         }
 
-        const exportData = leadsToExport.map((lead, index) => ({
-            'S.No': index + 1,
-            'Date': format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss'),
-            'Name': lead.name,
-            'Phone': lead.phone,
-            'Email': lead.email || '',
-            'Source (Ad)': lead.source || 'Manual',
-            'Stage': lead.stage,
-            'Status': lead.status,
-            'Assigned To': lead.assignedTo?.name || 'Unassigned',
-            'Notes': lead.notes || ''
-        }));
+        // Main leads data with all details
+        const exportData = leadsToExport.map((lead, index) => {
+            // Get assignment history as formatted string
+            const assignmentHistory = (lead.assignedAgents || [])
+                .map((a, i) => `${i + 1}. ${a.agentId?.name || 'Unknown'} (${a.assignedAt ? format(new Date(a.assignedAt), 'MMM d, yyyy h:mm a') : 'N/A'})`)
+                .join(' → ') || 'No history';
 
-        const ws = XLSX.utils.json_to_sheet(exportData);
+            // Get first and current assignment
+            const firstAssignment = lead.assignedAgents?.[0];
+            const lastAssignment = lead.assignedAgents?.[lead.assignedAgents?.length - 1];
+
+            // Get stage history as formatted string
+            const stageHistory = (lead.stageHistory || [])
+                .map((s, i) => `${s.stage} (${s.changedAt ? format(new Date(s.changedAt), 'MMM d, yyyy h:mm a') : 'N/A'} by ${s.changedBy?.name || 'System'})`)
+                .join(' → ') || 'No history';
+
+            // Get comments as formatted string
+            const comments = (lead.commentHistory || [])
+                .map(c => `[${c.timestamp ? format(new Date(c.timestamp), 'MMM d, h:mm a') : ''}] ${c.content}`)
+                .join(' | ') || '';
+
+            return {
+                'S.No': index + 1,
+                'Created Date': format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss'),
+                'Lead Date': lead.leadDate ? format(new Date(lead.leadDate), 'yyyy-MM-dd HH:mm:ss') : '',
+                'Name': lead.name,
+                'Phone': lead.phone,
+                'Email': lead.email || '',
+                'Source': lead.source || 'Manual',
+                'Stage': lead.stage,
+                'Status': lead.status,
+                'Call Type': lead.callType || 'fresh',
+                'Priority': lead.priority || '-',
+                'Value': lead.value || '',
+                'Current Agent': lead.assignedTo?.name || 'Unassigned',
+                'Current Agent Email': lead.assignedTo?.email || '',
+                'First Assigned Agent': firstAssignment?.agentId?.name || 'N/A',
+                'First Assignment Date': firstAssignment?.assignedAt ? format(new Date(firstAssignment.assignedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+                'Last Assignment Date': lastAssignment?.assignedAt ? format(new Date(lastAssignment.assignedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+                'Total Assignments': lead.assignedAgents?.length || 0,
+                'Assignment History': assignmentHistory,
+                'Stage History': stageHistory,
+                'Total Stage Changes': lead.stageHistory?.length || 0,
+                'Notes': lead.notes || '',
+                'Comment History': comments,
+                'Last Interaction': lead.lastInteraction ? format(new Date(lead.lastInteraction), 'yyyy-MM-dd HH:mm:ss') : ''
+            };
+        });
+
+        // Create workbook with multiple sheets
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Leads');
-        XLSX.writeFile(wb, `leads_export_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
+
+        // Main Leads Sheet
+        const wsLeads = XLSX.utils.json_to_sheet(exportData);
+
+        // Set column widths for better readability
+        const colWidths = [
+            { wch: 5 },   // S.No
+            { wch: 20 },  // Created Date
+            { wch: 20 },  // Lead Date
+            { wch: 20 },  // Name
+            { wch: 15 },  // Phone
+            { wch: 25 },  // Email
+            { wch: 12 },  // Source
+            { wch: 12 },  // Stage
+            { wch: 12 },  // Status
+            { wch: 12 },  // Call Type
+            { wch: 10 },  // Priority
+            { wch: 10 },  // Value
+            { wch: 20 },  // Current Agent
+            { wch: 25 },  // Current Agent Email
+            { wch: 20 },  // First Assigned Agent
+            { wch: 20 },  // First Assignment Date
+            { wch: 20 },  // Last Assignment Date
+            { wch: 8 },   // Total Assignments
+            { wch: 50 },  // Assignment History
+            { wch: 50 },  // Stage History
+            { wch: 8 },   // Total Stage Changes
+            { wch: 30 },  // Notes
+            { wch: 50 },  // Comment History
+            { wch: 20 }   // Last Interaction
+        ];
+        wsLeads['!cols'] = colWidths;
+
+        XLSX.utils.book_append_sheet(wb, wsLeads, 'Leads');
+
+        // Assignment History Sheet (detailed)
+        const assignmentData = [];
+        leadsToExport.forEach(lead => {
+            (lead.assignedAgents || []).forEach((assignment, idx) => {
+                assignmentData.push({
+                    'Lead Name': lead.name,
+                    'Lead Phone': lead.phone,
+                    'Assignment #': idx + 1,
+                    'Agent Name': assignment.agentId?.name || 'Unknown',
+                    'Agent Email': assignment.agentId?.email || '',
+                    'Assigned At': assignment.assignedAt ? format(new Date(assignment.assignedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+                    'Assigned By': assignment.assignedBy?.name || 'System',
+                    'Is Current': idx === (lead.assignedAgents?.length - 1) ? 'Yes' : 'No'
+                });
+            });
+        });
+        if (assignmentData.length > 0) {
+            const wsAssignments = XLSX.utils.json_to_sheet(assignmentData);
+            XLSX.utils.book_append_sheet(wb, wsAssignments, 'Assignment History');
+        }
+
+        // Stage History Sheet (detailed)
+        const stageData = [];
+        leadsToExport.forEach(lead => {
+            (lead.stageHistory || []).forEach((change, idx) => {
+                stageData.push({
+                    'Lead Name': lead.name,
+                    'Lead Phone': lead.phone,
+                    'Change #': idx + 1,
+                    'Stage': change.stage,
+                    'Changed At': change.changedAt ? format(new Date(change.changedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+                    'Changed By': change.changedBy?.name || 'System',
+                    'Notes': change.notes || ''
+                });
+            });
+        });
+        if (stageData.length > 0) {
+            const wsStages = XLSX.utils.json_to_sheet(stageData);
+            XLSX.utils.book_append_sheet(wb, wsStages, 'Stage History');
+        }
+
+        // Summary Sheet
+        const summaryData = [
+            { 'Metric': 'Total Leads', 'Value': leadsToExport.length },
+            { 'Metric': 'Assigned Leads', 'Value': leadsToExport.filter(l => l.assignedTo).length },
+            { 'Metric': 'Unassigned Leads', 'Value': leadsToExport.filter(l => !l.assignedTo).length },
+            { 'Metric': 'New Stage', 'Value': leadsToExport.filter(l => l.stage === 'new').length },
+            { 'Metric': 'Contacted Stage', 'Value': leadsToExport.filter(l => l.stage === 'contacted').length },
+            { 'Metric': 'Interested Stage', 'Value': leadsToExport.filter(l => l.stage === 'interested').length },
+            { 'Metric': 'Negotiation Stage', 'Value': leadsToExport.filter(l => l.stage === 'negotiation').length },
+            { 'Metric': 'Converted Stage', 'Value': leadsToExport.filter(l => l.stage === 'converted').length },
+            { 'Metric': 'Lost Stage', 'Value': leadsToExport.filter(l => l.stage === 'lost').length },
+            { 'Metric': 'Export Date', 'Value': format(new Date(), 'yyyy-MM-dd HH:mm:ss') }
+        ];
+        const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+        XLSX.writeFile(wb, `leads_detailed_export_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
     };
 
     const handleAssignLeads = async () => {
@@ -902,11 +1038,30 @@ export default function Leads() {
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                                     {lead.assignedTo ? (
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold">
-                                                                                {lead.assignedTo.name[0]}
+                                                                        <div className="flex flex-col gap-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold">
+                                                                                    {lead.assignedTo.name[0]}
+                                                                                </div>
+                                                                                <span className="font-medium text-gray-700">{lead.assignedTo.name}</span>
                                                                             </div>
-                                                                            <span className="font-medium text-gray-700">{lead.assignedTo.name}</span>
+                                                                            {/* Show last assignment date */}
+                                                                            {lead.assignedAgents && lead.assignedAgents.length > 0 && (
+                                                                                <div className="text-xs text-gray-400 ml-8 flex items-center gap-1">
+                                                                                    <Clock className="h-3 w-3" />
+                                                                                    {format(new Date(lead.assignedAgents[lead.assignedAgents.length - 1].assignedAt), 'MMM d, h:mm a')}
+                                                                                </div>
+                                                                            )}
+                                                                            {/* History count badge */}
+                                                                            {lead.assignedAgents && lead.assignedAgents.length > 1 && (
+                                                                                <button
+                                                                                    onClick={() => viewLeadHistory(lead)}
+                                                                                    className="text-xs text-indigo-600 hover:text-indigo-700 ml-8 flex items-center gap-1"
+                                                                                >
+                                                                                    <GitBranch className="h-3 w-3" />
+                                                                                    {lead.assignedAgents.length} assignments
+                                                                                </button>
+                                                                            )}
                                                                         </div>
                                                                     ) : (
                                                                         <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-50 text-gray-400 border border-dashed border-gray-200">
@@ -940,6 +1095,13 @@ export default function Leads() {
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0">
+                                                                        <button
+                                                                            onClick={() => viewLeadHistory(lead)}
+                                                                            className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 transition-all shadow-sm border border-indigo-100"
+                                                                            title="View History"
+                                                                        >
+                                                                            <History className="h-4 w-4" />
+                                                                        </button>
                                                                         <button
                                                                             onClick={() => startChat(lead)}
                                                                             className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 hover:text-green-700 transition-all shadow-sm border border-green-100"
@@ -1333,6 +1495,164 @@ export default function Leads() {
                     </div>
                 )
             }
+
+            {/* Lead History Modal */}
+            {showHistoryModal && selectedLeadHistory && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-fadeIn">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                    <History className="h-5 w-5 text-indigo-500" />
+                                    Lead History
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {selectedLeadHistory.name} - {selectedLeadHistory.phone}
+                                </p>
+                            </div>
+                            <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {/* Agent Assignment History */}
+                            <div className="mb-8">
+                                <h4 className="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                    <GitBranch className="h-4 w-4 text-indigo-500" />
+                                    Agent Assignment History
+                                </h4>
+                                {selectedLeadHistory.assignedAgents && selectedLeadHistory.assignedAgents.length > 0 ? (
+                                    <div className="relative">
+                                        {/* Timeline line */}
+                                        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-indigo-100"></div>
+
+                                        {selectedLeadHistory.assignedAgents.map((assignment, index) => (
+                                            <div key={index} className="relative pl-10 pb-6 last:pb-0">
+                                                {/* Timeline dot */}
+                                                <div className={`absolute left-2 w-5 h-5 rounded-full flex items-center justify-center ${index === selectedLeadHistory.assignedAgents.length - 1
+                                                    ? 'bg-indigo-500'
+                                                    : 'bg-indigo-200'
+                                                    }`}>
+                                                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                                                </div>
+
+                                                <div className={`p-4 rounded-lg border ${index === selectedLeadHistory.assignedAgents.length - 1
+                                                    ? 'bg-indigo-50 border-indigo-200'
+                                                    : 'bg-gray-50 border-gray-200'
+                                                    }`}>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-sm font-bold">
+                                                                {assignment.agentId?.name?.[0] || '?'}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-gray-900">
+                                                                    {assignment.agentId?.name || 'Unknown Agent'}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500">
+                                                                    {assignment.agentId?.email || ''}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-medium text-gray-700">
+                                                                {format(new Date(assignment.assignedAt), 'MMM d, yyyy')}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {format(new Date(assignment.assignedAt), 'h:mm a')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    {assignment.assignedBy && (
+                                                        <p className="text-xs text-gray-500 mt-2">
+                                                            Assigned by: {assignment.assignedBy.name || 'System'}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-sm bg-gray-50 p-4 rounded-lg">No assignment history available.</p>
+                                )}
+                            </div>
+
+                            {/* Stage Change History */}
+                            <div>
+                                <h4 className="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-green-500" />
+                                    Stage Change History
+                                </h4>
+                                {selectedLeadHistory.stageHistory && selectedLeadHistory.stageHistory.length > 0 ? (
+                                    <div className="relative">
+                                        {/* Timeline line */}
+                                        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-green-100"></div>
+
+                                        {selectedLeadHistory.stageHistory.map((change, index) => (
+                                            <div key={index} className="relative pl-10 pb-6 last:pb-0">
+                                                {/* Timeline dot */}
+                                                <div className={`absolute left-2 w-5 h-5 rounded-full flex items-center justify-center ${index === selectedLeadHistory.stageHistory.length - 1
+                                                    ? 'bg-green-500'
+                                                    : 'bg-green-200'
+                                                    }`}>
+                                                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                                                </div>
+
+                                                <div className={`p-4 rounded-lg border ${index === selectedLeadHistory.stageHistory.length - 1
+                                                    ? 'bg-green-50 border-green-200'
+                                                    : 'bg-gray-50 border-gray-200'
+                                                    }`}>
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${change.stage === 'new' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                                                change.stage === 'contacted' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+                                                                    change.stage === 'interested' ? 'bg-green-50 text-green-700 border-green-100' :
+                                                                        change.stage === 'negotiation' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                                                            change.stage === 'converted' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                                                                'bg-gray-50 text-gray-700 border-gray-100'
+                                                                }`}>
+                                                                {change.stage?.charAt(0).toUpperCase() + change.stage?.slice(1)}
+                                                            </span>
+                                                            {change.notes && (
+                                                                <p className="text-sm text-gray-600 mt-2">{change.notes}</p>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-medium text-gray-700">
+                                                                {format(new Date(change.changedAt), 'MMM d, yyyy')}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {format(new Date(change.changedAt), 'h:mm a')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    {change.changedBy && (
+                                                        <p className="text-xs text-gray-500 mt-2">
+                                                            Updated by: {change.changedBy.name || 'System'}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-sm bg-gray-50 p-4 rounded-lg">No stage history available.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+                            <button
+                                onClick={() => setShowHistoryModal(false)}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

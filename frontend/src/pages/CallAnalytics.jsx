@@ -4,7 +4,8 @@ import {
     Phone, PhoneCall, PhoneMissed, PhoneOff, Users, TrendingUp,
     Calendar, Clock, CheckCircle, XCircle, RefreshCw, Filter,
     ChevronDown, Search, Download, BarChart3, PieChart, Activity,
-    AlertCircle, ArrowUpRight, ArrowDownRight, UserCheck, Target
+    AlertCircle, ArrowUpRight, ArrowDownRight, UserCheck, Target,
+    PhoneIncoming, PhoneOutgoing, LogIn, LogOut, Timer
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
@@ -14,6 +15,7 @@ export default function CallAnalytics() {
     const [followUps, setFollowUps] = useState([]);
     const [loading, setLoading] = useState(true);
     const [workers, setWorkers] = useState([]);
+    const [detailedLogs, setDetailedLogs] = useState([]);
     const [filters, setFilters] = useState({
         workerId: '',
         status: '',
@@ -25,6 +27,8 @@ export default function CallAnalytics() {
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [selectedLeadHistory, setSelectedLeadHistory] = useState(null);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [selectedAttendance, setSelectedAttendance] = useState(null);
+    const [showAttendanceModal, setShowAttendanceModal] = useState(false);
 
     useEffect(() => {
         fetchWorkers();
@@ -53,15 +57,23 @@ export default function CallAnalytics() {
             if (filters.startDate) queryParams.append('startDate', filters.startDate);
             if (filters.endDate) queryParams.append('endDate', filters.endDate);
 
-            const [analyticsRes, callsRes, followUpsRes] = await Promise.all([
+            // Build attendance query params
+            const attendanceParams = new URLSearchParams();
+            if (filters.workerId) attendanceParams.append('agentId', filters.workerId);
+            if (filters.startDate) attendanceParams.append('startDate', filters.startDate);
+            if (filters.endDate) attendanceParams.append('endDate', filters.endDate);
+
+            const [analyticsRes, callsRes, followUpsRes, detailedLogsRes] = await Promise.all([
                 api.get(`/calls/analytics?${queryParams}`),
                 api.get(`/calls?${queryParams}&limit=100`),
-                api.get('/calls/follow-ups')
+                api.get('/calls/follow-ups'),
+                api.get(`/attendance/detailed-logs?${attendanceParams}`)
             ]);
 
             setAnalytics(analyticsRes.data.data);
             setCalls(callsRes.data.data || []);
             setFollowUps(followUpsRes.data.data || []);
+            setDetailedLogs(detailedLogsRes.data.data || []);
         } catch (error) {
             console.error('Error fetching analytics:', error);
         } finally {
@@ -277,10 +289,11 @@ export default function CallAnalytics() {
                 )}
 
                 {/* Tabs */}
-                <div className="flex gap-2 mb-6 bg-white p-1 rounded-xl shadow-sm border border-gray-200 w-fit">
+                <div className="flex gap-2 mb-6 bg-white p-1 rounded-xl shadow-sm border border-gray-200 w-fit flex-wrap">
                     {[
                         { id: 'overview', label: 'Overview', icon: PieChart },
                         { id: 'calls', label: 'Call Log', icon: Phone },
+                        { id: 'attendance', label: 'Attendance Logs', icon: Clock },
                         { id: 'workers', label: 'Worker Performance', icon: Users },
                         { id: 'followups', label: 'Follow-ups', icon: Calendar }
                     ].map(tab => (
@@ -418,6 +431,7 @@ export default function CallAnalytics() {
                                     <tr>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Lead</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Worker</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Direction</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Status</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Outcome</th>
                                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Details</th>
@@ -446,6 +460,23 @@ export default function CallAnalytics() {
                                             </td>
                                             <td className="py-4 px-6">
                                                 <span className="text-gray-700">{call.workerId?.name || 'Unknown'}</span>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full w-fit ${call.callDirection === 'INCOMING' ? 'bg-green-100 text-green-700' :
+                                                        call.callDirection === 'OUTGOING' ? 'bg-blue-100 text-blue-700' :
+                                                            call.callDirection === 'MISSED' ? 'bg-red-100 text-red-700' :
+                                                                'bg-gray-100 text-gray-700'
+                                                        }`}>
+                                                        {call.callDirection === 'INCOMING' && <PhoneIncoming className="h-3 w-3" />}
+                                                        {call.callDirection === 'OUTGOING' && <PhoneOutgoing className="h-3 w-3" />}
+                                                        {call.callDirection === 'MISSED' && <PhoneMissed className="h-3 w-3" />}
+                                                        {call.callDirection || 'OUTGOING'}
+                                                    </span>
+                                                    {call.simDisplayName && (
+                                                        <span className="text-xs text-gray-500">via {call.simDisplayName}</span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="py-4 px-6">
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(call.status)}`}>
@@ -483,9 +514,16 @@ export default function CallAnalytics() {
                                                 ) : <span className="text-gray-400">-</span>}
                                             </td>
                                             <td className="py-4 px-6">
-                                                <span className="text-gray-700">
-                                                    {call.duration ? `${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}` : '-'}
-                                                </span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-gray-700 font-medium">
+                                                        {call.duration ? `${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}` : '-'}
+                                                    </span>
+                                                    {call.callStartTime && call.callEndTime && (
+                                                        <span className="text-xs text-gray-500">
+                                                            {format(new Date(call.callStartTime), 'h:mm a')} - {format(new Date(call.callEndTime), 'h:mm a')}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="py-4 px-6">
                                                 <p className="text-sm text-gray-600 truncate max-w-xs" title={call.notes}>
@@ -505,6 +543,147 @@ export default function CallAnalytics() {
                                 <div className="text-center py-12 text-gray-500">
                                     <Phone className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                                     <p>No calls found for the selected filters</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Attendance Logs Tab */}
+                {activeTab === 'attendance' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                <Clock className="h-5 w-5 text-green-500" />
+                                Attendance Logs with Call Details
+                            </h3>
+                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                {detailedLogs.length} sessions
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Agent</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Check-In</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Check-Out</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Session Duration</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Calls Summary</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Total Talk Time</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Status</th>
+                                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {detailedLogs.map(log => (
+                                        <tr key={log._id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white font-bold">
+                                                        {log.agent?.name?.[0]?.toUpperCase() || 'A'}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">{log.agent?.name || 'Unknown'}</p>
+                                                        <p className="text-sm text-gray-500">{log.agent?.email || ''}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center gap-2">
+                                                    <LogIn className="h-4 w-4 text-green-500" />
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">
+                                                            {format(new Date(log.checkInTime), 'h:mm a')}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {format(new Date(log.checkInTime), 'MMM d, yyyy')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                {log.checkOutTime ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <LogOut className="h-4 w-4 text-red-500" />
+                                                        <div>
+                                                            <p className="font-medium text-gray-900">
+                                                                {format(new Date(log.checkOutTime), 'h:mm a')}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {format(new Date(log.checkOutTime), 'MMM d, yyyy')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                                        <Timer className="h-3 w-3 animate-pulse" />
+                                                        Active
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <span className="font-medium text-gray-900">
+                                                    {log.sessionDuration > 0
+                                                        ? `${Math.floor(log.sessionDuration / 3600)}h ${Math.floor((log.sessionDuration % 3600) / 60)}m`
+                                                        : '-'}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <div className="flex flex-wrap gap-2">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                                        <PhoneIncoming className="h-3 w-3" />
+                                                        {log.callSummary?.incomingCount || 0} In
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                                        <PhoneOutgoing className="h-3 w-3" />
+                                                        {log.callSummary?.outgoingCount || 0} Out
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                                        <PhoneMissed className="h-3 w-3" />
+                                                        {log.callSummary?.missedCount || 0} Missed
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-gray-900">
+                                                        {log.callSummary?.totalDuration > 0
+                                                            ? `${Math.floor(log.callSummary.totalDuration / 60)}:${(log.callSummary.totalDuration % 60).toString().padStart(2, '0')}`
+                                                            : '0:00'}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500">
+                                                        {log.callSummary?.totalCalls || 0} total calls
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${log.status === 'CHECKED_IN'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                    {log.status === 'CHECKED_IN' ? 'Active' : 'Completed'}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedAttendance(log);
+                                                        setShowAttendanceModal(true);
+                                                    }}
+                                                    className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
+                                                >
+                                                    View Calls
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {detailedLogs.length === 0 && (
+                                <div className="text-center py-12 text-gray-500">
+                                    <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                    <p>No attendance logs found for the selected filters</p>
                                 </div>
                             )}
                         </div>
@@ -687,6 +866,147 @@ export default function CallAnalytics() {
                                     <p className="text-center text-gray-500 py-4">No history found.</p>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Attendance Call Details Modal */}
+            {showAttendanceModal && selectedAttendance && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                    <Phone className="h-5 w-5 text-green-500" />
+                                    Call Details - {selectedAttendance.agent?.name}
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Session: {format(new Date(selectedAttendance.checkInTime), 'MMM d, yyyy h:mm a')}
+                                    {selectedAttendance.checkOutTime &&
+                                        ` - ${format(new Date(selectedAttendance.checkOutTime), 'h:mm a')}`}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowAttendanceModal(false)}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <XCircle className="h-5 w-5 text-gray-400" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-4 border border-green-200">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <PhoneIncoming className="h-4 w-4 text-green-600" />
+                                        <span className="text-green-600 text-sm font-medium">Incoming</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-green-700">
+                                        {selectedAttendance.callSummary?.incomingCount || 0}
+                                    </p>
+                                    <p className="text-xs text-green-600">
+                                        {selectedAttendance.callSummary?.totalIncomingDuration > 0
+                                            ? `${Math.floor(selectedAttendance.callSummary.totalIncomingDuration / 60)}:${(selectedAttendance.callSummary.totalIncomingDuration % 60).toString().padStart(2, '0')} total`
+                                            : '0:00 total'}
+                                    </p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-4 border border-blue-200">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <PhoneOutgoing className="h-4 w-4 text-blue-600" />
+                                        <span className="text-blue-600 text-sm font-medium">Outgoing</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-blue-700">
+                                        {selectedAttendance.callSummary?.outgoingCount || 0}
+                                    </p>
+                                    <p className="text-xs text-blue-600">
+                                        {selectedAttendance.callSummary?.totalOutgoingDuration > 0
+                                            ? `${Math.floor(selectedAttendance.callSummary.totalOutgoingDuration / 60)}:${(selectedAttendance.callSummary.totalOutgoingDuration % 60).toString().padStart(2, '0')} total`
+                                            : '0:00 total'}
+                                    </p>
+                                </div>
+                                <div className="bg-gradient-to-br from-red-50 to-rose-100 rounded-xl p-4 border border-red-200">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <PhoneMissed className="h-4 w-4 text-red-600" />
+                                        <span className="text-red-600 text-sm font-medium">Missed</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-red-700">
+                                        {selectedAttendance.callSummary?.missedCount || 0}
+                                    </p>
+                                </div>
+                                <div className="bg-gradient-to-br from-purple-50 to-violet-100 rounded-xl p-4 border border-purple-200">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Clock className="h-4 w-4 text-purple-600" />
+                                        <span className="text-purple-600 text-sm font-medium">Total Time</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-purple-700">
+                                        {selectedAttendance.callSummary?.totalDuration > 0
+                                            ? `${Math.floor(selectedAttendance.callSummary.totalDuration / 60)}:${(selectedAttendance.callSummary.totalDuration % 60).toString().padStart(2, '0')}`
+                                            : '0:00'}
+                                    </p>
+                                    <p className="text-xs text-purple-600">
+                                        {selectedAttendance.callSummary?.totalCalls || 0} total calls
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Call List */}
+                            <h4 className="font-semibold text-gray-800 mb-4">Call Log</h4>
+                            <div className="space-y-3">
+                                {selectedAttendance.callLogs?.map((call, index) => (
+                                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${call.type === 'INCOMING' ? 'bg-green-100' :
+                                                    call.type === 'OUTGOING' ? 'bg-blue-100' :
+                                                        'bg-red-100'
+                                                }`}>
+                                                {call.type === 'INCOMING' && <PhoneIncoming className="h-5 w-5 text-green-600" />}
+                                                {call.type === 'OUTGOING' && <PhoneOutgoing className="h-5 w-5 text-blue-600" />}
+                                                {call.type === 'MISSED' && <PhoneMissed className="h-5 w-5 text-red-600" />}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900">{call.name || 'Unknown'}</p>
+                                                <p className="text-sm text-gray-500">{call.number}</p>
+                                                {call.simDisplayName && (
+                                                    <p className="text-xs text-gray-400">via {call.simDisplayName}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-medium text-gray-900">
+                                                {call.duration > 0
+                                                    ? `${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}`
+                                                    : call.type === 'MISSED' ? 'Missed' : '0:00'}
+                                            </p>
+                                            <p className="text-sm text-gray-500">
+                                                {call.date ? format(new Date(call.date), 'h:mm a') : '-'}
+                                            </p>
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${call.type === 'INCOMING' ? 'bg-green-100 text-green-700' :
+                                                    call.type === 'OUTGOING' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-red-100 text-red-700'
+                                                }`}>
+                                                {call.type}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!selectedAttendance.callLogs || selectedAttendance.callLogs.length === 0) && (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <Phone className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                        <p>No calls recorded for this session</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+                            <button
+                                onClick={() => setShowAttendanceModal(false)}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>

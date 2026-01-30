@@ -56,6 +56,17 @@ const callSchema = new mongoose.Schema({
     followUpNotes: {
         type: String
     },
+    // Call direction (incoming, outgoing, missed)
+    callDirection: {
+        type: String,
+        enum: ['INCOMING', 'OUTGOING', 'MISSED', 'REJECTED'],
+        default: 'OUTGOING'
+    },
+    // SIM card display name
+    simDisplayName: {
+        type: String,
+        trim: true
+    },
     // Call timestamps
     callStartTime: {
         type: Date,

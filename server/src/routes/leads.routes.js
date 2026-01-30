@@ -171,7 +171,10 @@ router.get('/', auth, async (req, res) => {
             .sort({ uploadDate: -1 })
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
-            .populate('assignedTo', 'name email');
+            .populate('assignedTo', 'name email')
+            .populate('assignedAgents.agentId', 'name email')
+            .populate('assignedAgents.assignedBy', 'name email')
+            .populate('stageHistory.changedBy', 'name email');
 
         const total = await Lead.countDocuments(query);
 
@@ -330,11 +333,25 @@ router.put('/assign', auth, adminOnly, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
-        // Update leads
-        await Lead.updateMany(
-            { _id: { $in: leadIds }, companyId: req.companyId },
-            { $set: { assignedTo: workerId } }
+        // Update leads - adding to assignedAgents array for history tracking
+        const updatePromises = leadIds.map(leadId =>
+            Lead.findOneAndUpdate(
+                { _id: leadId, companyId: req.companyId },
+                {
+                    $set: { assignedTo: workerId },
+                    $push: {
+                        assignedAgents: {
+                            agentId: workerId,
+                            assignedAt: new Date(),
+                            assignedBy: req.user._id
+                        }
+                    }
+                },
+                { new: true }
+            )
         );
+
+        await Promise.all(updatePromises);
 
         res.json({ success: true, message: 'Leads assigned successfully' });
     } catch (error) {
@@ -372,15 +389,35 @@ router.put('/:id', auth, async (req, res) => {
             query.assignedTo = user._id;
         }
 
-        const lead = await Lead.findOneAndUpdate(
-            query,
-            { name, phone, email, stage, status, notes, priority, value, leadDate, callType },
-            { new: true }
-        );
-
-        if (!lead) {
+        // First, fetch the current lead to check if stage is changing
+        const currentLead = await Lead.findOne(query);
+        if (!currentLead) {
             return res.status(404).json({ success: false, message: 'Lead not found or access denied' });
         }
+
+        // Prepare update object
+        const updateData = { name, phone, email, stage, status, notes, priority, value, leadDate, callType };
+
+        // If stage is changing, add to stageHistory
+        if (stage && stage !== currentLead.stage) {
+            updateData.$push = {
+                stageHistory: {
+                    stage: stage,
+                    changedAt: new Date(),
+                    changedBy: user._id,
+                    notes: `Stage changed from ${currentLead.stage} to ${stage}`
+                }
+            };
+        }
+
+        const lead = await Lead.findOneAndUpdate(
+            query,
+            updateData,
+            { new: true }
+        ).populate('assignedTo', 'name email')
+            .populate('assignedAgents.agentId', 'name email')
+            .populate('assignedAgents.assignedBy', 'name email')
+            .populate('stageHistory.changedBy', 'name email');
 
         res.json({ success: true, data: lead });
     } catch (error) {
