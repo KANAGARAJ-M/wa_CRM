@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
 
 const AgentStatus = () => {
     const { token } = useAuth();
@@ -16,21 +17,15 @@ const AgentStatus = () => {
     const fetchAttendance = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/attendance/all?date=${selectedDate}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setAttendance(data);
-            }
+            const response = await api.get(`/attendance/all?date=${selectedDate}`);
+            setAttendance(response.data);
         } catch (error) {
             console.error('Error fetching attendance:', error);
         } finally {
             setLoading(false);
         }
     };
+
 
     const toggleRow = (id) => {
         if (expandedRow === id) {
@@ -112,8 +107,8 @@ const AgentStatus = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${record.status === 'CHECKED_IN'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-gray-100 text-gray-700'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-gray-100 text-gray-700'
                                                     }`}>
                                                     {record.status === 'CHECKED_IN' ? 'Active' : 'Completed'}
                                                 </span>
@@ -148,7 +143,7 @@ const AgentStatus = () => {
                                                                     <tr key={idx}>
                                                                         <td className="px-4 py-2">
                                                                             <span className={`text-xs font-bold ${log.type === 'INCOMING' ? 'text-blue-600' :
-                                                                                    log.type === 'OUTGOING' ? 'text-green-600' : 'text-red-600'
+                                                                                log.type === 'OUTGOING' ? 'text-green-600' : 'text-red-600'
                                                                                 }`}>
                                                                                 {log.type}
                                                                             </span>
