@@ -341,6 +341,17 @@ export default function Layout({ children }) {
                         )}
                     </div>
 
+                    {(user?.role === 'superadmin' || user?.companies?.length > 1) && (
+                        <button
+                            onClick={() => navigate('/select-company')}
+                            className={`mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:bg-gray-700/50 hover:text-white transition-all duration-200 ${!sidebarOpen ? 'justify-center' : ''}`}
+                            title="Switch Company"
+                        >
+                            <Building2 className="h-5 w-5 flex-shrink-0" />
+                            {sidebarOpen && <span className="text-sm font-medium">Switch Company</span>}
+                        </button>
+                    )}
+
                     <button
                         onClick={handleLogout}
                         className={`mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 ${!sidebarOpen ? 'justify-center' : ''}`}
@@ -349,12 +360,12 @@ export default function Layout({ children }) {
                         {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
                     </button>
                 </div>
-            </aside>
+            </aside >
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            < div className="flex-1 flex flex-col min-w-0 overflow-hidden" >
                 {/* Mobile Header */}
-                <header className="md:hidden h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm">
+                < header className="md:hidden h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm" >
                     <button
                         onClick={() => setMobileMenuOpen(true)}
                         className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -370,13 +381,13 @@ export default function Layout({ children }) {
                     <div className="h-8 w-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                         {user?.name?.[0]?.toUpperCase() || 'U'}
                     </div>
-                </header>
+                </header >
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-hidden">
+                < main className="flex-1 overflow-hidden" >
                     {children}
-                </main>
-            </div>
+                </main >
+            </div >
         </div >
     );
 }

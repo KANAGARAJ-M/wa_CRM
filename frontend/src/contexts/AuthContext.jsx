@@ -64,10 +64,10 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
 
-        // Auto-select if only one company
-        if (userData.companies && userData.companies.length === 1) {
-            selectCompany(userData.companies[0]);
-        }
+        // Auto-select logic removed to enforce manual company selection
+        // if (userData.companies && userData.companies.length === 1) {
+        //    selectCompany(userData.companies[0]);
+        // }
 
         return userData;
     };
