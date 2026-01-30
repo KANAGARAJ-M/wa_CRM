@@ -1182,6 +1182,7 @@ export default function Leads() {
                                             </div>
                                             <div className="overflow-y-auto flex-1">
                                                 {workers
+                                                    .filter(w => !w.customRole)
                                                     .filter(w =>
                                                         w.name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
                                                         w.email.toLowerCase().includes(agentSearchQuery.toLowerCase())
@@ -1206,10 +1207,12 @@ export default function Leads() {
                                                             )}
                                                         </div>
                                                     ))}
-                                                {workers.filter(w =>
-                                                    w.name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
-                                                    w.email.toLowerCase().includes(agentSearchQuery.toLowerCase())
-                                                ).length === 0 && (
+                                                {workers
+                                                    .filter(w => !w.customRole)
+                                                    .filter(w =>
+                                                        w.name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+                                                        w.email.toLowerCase().includes(agentSearchQuery.toLowerCase())
+                                                    ).length === 0 && (
                                                         <div className="p-4 text-center text-gray-500 text-sm">
                                                             No agents found
                                                         </div>
