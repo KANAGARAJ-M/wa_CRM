@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    // baseURL: 'https://srv1304549.hstgr.cloud/api', // Production
-    baseURL: 'http://localhost:3001/api', // Local Development
+    baseURL: 'https://srv1304549.hstgr.cloud/api', // Production
+    // baseURL: 'http://localhost:3001/api', // Local Development
 });
 
 api.interceptors.request.use((config) => {
