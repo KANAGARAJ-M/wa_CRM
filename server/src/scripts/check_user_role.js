@@ -8,7 +8,7 @@ const checkUserRole = async () => {
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connected to MongoDB');
 
-        const user = await User.findOne({ email: 'admin1@gmail.com' });
+        const user = await User.findOne({ email: 'admin@whatsappcrm.com' });
         if (user) {
             console.log('User found:', {
                 email: user.email,
@@ -17,7 +17,7 @@ const checkUserRole = async () => {
                 companies: user.companies
             });
         } else {
-            console.log('User admin1@gmail.com not found');
+            console.log('User admin@whatsappcrm.com not found');
         }
 
     } catch (error) {

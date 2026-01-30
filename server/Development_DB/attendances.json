@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "697c2dcb20704ca4c52b2549",
+    "agent": "697c28a220704ca4c52b24e0",
+    "checkInTime": "2026-01-30T04:04:27.470Z",
+    "status": "CHECKED_IN",
+    "callLogs": [],
+    "createdAt": "2026-01-30T04:04:27.477Z",
+    "updatedAt": "2026-01-30T04:04:27.477Z",
+    "__v": 0
+  },
+  {
+    "_id": "697c4672b23aa89c4fe48300",
+    "agent": "697c45fab23aa89c4fe48257",
+    "checkInTime": "2026-01-30T05:49:38.107Z",
+    "status": "CHECKED_IN",
+    "callLogs": [],
+    "createdAt": "2026-01-30T05:49:38.109Z",
+    "updatedAt": "2026-01-30T05:49:38.109Z",
+    "__v": 0
+  }
+]

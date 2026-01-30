@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "6964d56c49d30090ecec7302",
+    "whatsappConfigs": [
+      {
+        "name": "Account 1",
+        "apiKey": "",
+        "accessToken": "EAA9E3EkYde4BQXmuAJ3NVGRwTr42ZAaJsNCihdWjDGf5OzXOZCnvKhfoCwXhZBoeV65CloetsZCReS9Ir1ehTBmzkNVXIVaj8s0VO0i13I7d2ZB7V38M3S9ZC9kvFB0gozTkzmtW808aFrOu6RS7PCsxh6hvv04gRNOgr37CZCLFbfWx6CKPJB9Bo7f1kOwmusmyAZDZD",
+        "phoneNumberId": "963393793513996",
+        "businessAccountId": "846549178156050",
+        "webhookVerifyToken": "meta_integration_1121",
+        "isEnabled": true,
+        "_id": "6964fc726345b5d65c7f9150"
+      },
+      {
+        "name": "Acc 2",
+        "apiKey": "",
+        "accessToken": "EAA9E3EkYde4BQXmuAJ3NVGRwTr42ZAaJsNCihdWjDGf5OzXOZCnvKhfoCwXhZBoeV65CloetsZCReS9Ir1ehTBmzkNVXIVaj8s0VO0i13I7d2ZB7V38M3S9ZC9kvFB0gozTkzmtW808aFrOu6RS7PCsxh6hvv04gRNOgr37CZCLFbfWx6CKPJB9Bo7f1kOwmusmyAZDZD",
+        "phoneNumberId": "963393793513995",
+        "businessAccountId": "846549178156051",
+        "webhookVerifyToken": "meta_integration_1121",
+        "isEnabled": true,
+        "_id": "69651345e8eeb36a66bc8e90"
+      }
+    ],
+    "createdAt": "2026-01-12T11:05:16.396Z",
+    "updatedAt": "2026-01-12T15:29:09.646Z",
+    "__v": 3
+  }
+]

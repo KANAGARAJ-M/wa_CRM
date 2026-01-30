@@ -1,0 +1,133 @@
+[
+  {
+    "_id": "6964d56c49d30090ecec72fd",
+    "email": "admin@whatsappcrm.com",
+    "password": "$2a$10$m.TvpvkpK8/zypc4VEwn2O5ImUmDbfNuvRvYpEgtqPTAtZeqgpvjm",
+    "name": "Admin",
+    "role": "superadmin",
+    "isActive": true,
+    "createdAt": "2026-01-12T11:05:16.183Z",
+    "updatedAt": "2026-01-12T16:12:53.095Z",
+    "__v": 1,
+    "companies": [
+      "696519b3253771cd8d3bd5df",
+      "69651d84ce98b547e7dc38e7"
+    ]
+  },
+  {
+    "_id": "6974e30f162b91305b939e78",
+    "email": "dheena@gmail.com",
+    "password": "$2a$10$FZE5YDcHVCi3hhJZi.C0OuBS66ne1ZGsS891mDN.0eO36e91GXt1e",
+    "name": "dheena",
+    "role": "worker",
+    "isActive": true,
+    "companies": [
+      "696519b3253771cd8d3bd5df"
+    ],
+    "createdAt": "2026-01-24T15:19:43.091Z",
+    "updatedAt": "2026-01-24T15:19:43.091Z",
+    "__v": 0
+  },
+  {
+    "_id": "697a1392fed220e2a1ec4946",
+    "email": "kanagarajm638@gmail.com",
+    "password": "$2a$10$JMUnMoCBrs/AXIBIceCdZOC0uzLrjlIfocHSZaYVaUo5vjyRVRXA.",
+    "name": "Kanagaraj",
+    "role": "worker",
+    "isActive": true,
+    "companies": [
+      "696519b3253771cd8d3bd5df"
+    ],
+    "createdAt": "2026-01-28T13:48:02.481Z",
+    "updatedAt": "2026-01-28T13:48:02.481Z",
+    "__v": 0
+  },
+  {
+    "_id": "697b65698d1cde00b8253aaf",
+    "email": "admin1@gmail.com",
+    "password": "$2a$10$eSxjZPsKuuYC70hDGQtBd.ohnGXfPYu.xuVqVF6nJvBkVcg3Mu0va",
+    "name": "admin1",
+    "role": "admin",
+    "isActive": true,
+    "companies": [
+      "69651d84ce98b547e7dc38e7",
+      "696519b3253771cd8d3bd5df"
+    ],
+    "customRole": "697b60c6c977f8098401b521",
+    "createdAt": "2026-01-29T13:49:29.930Z",
+    "updatedAt": "2026-01-30T07:20:15.054Z",
+    "__v": 1
+  },
+  {
+    "_id": "697b6ea3c9881ee6c5bf8ae9",
+    "email": "admin2@gmail.com",
+    "password": "$2a$10$gAo7baNWinX4qvE5N9yeleLpcg59I6ieK8dvuJo95DBy6aJv7fYyK",
+    "name": "admin2",
+    "role": "worker",
+    "isActive": true,
+    "companies": [
+      "696519b3253771cd8d3bd5df"
+    ],
+    "customRole": "697b60c6c977f8098401b521",
+    "createdAt": "2026-01-29T14:28:51.789Z",
+    "updatedAt": "2026-01-29T14:28:51.789Z",
+    "__v": 0
+  },
+  {
+    "_id": "697c28a220704ca4c52b24e0",
+    "email": "dheena1@gmail.com",
+    "password": "$2a$10$6zVZ.0i4diFcjDYtoR/qNOwup2SL0OMcHtYLKV.fZ9daXjLJep3uy",
+    "name": "dheena1",
+    "role": "worker",
+    "isActive": true,
+    "companies": [
+      "696519b3253771cd8d3bd5df"
+    ],
+    "createdAt": "2026-01-30T03:42:26.810Z",
+    "updatedAt": "2026-01-30T03:42:26.810Z",
+    "__v": 0
+  },
+  {
+    "_id": "697c448eb23aa89c4fe48187",
+    "email": "abcd@gmail.com",
+    "password": "$2a$10$rNlARIdAj.rlVmp3UUxwIuSF97.BtRPKOMwuFoPONcCeTabRMMV3m",
+    "name": "AAAAA",
+    "role": "worker",
+    "isActive": true,
+    "companies": [
+      "696519b3253771cd8d3bd5df"
+    ],
+    "customRole": "697c446bb23aa89c4fe4817e",
+    "createdAt": "2026-01-30T05:41:34.880Z",
+    "updatedAt": "2026-01-30T05:41:34.880Z",
+    "__v": 0
+  },
+  {
+    "_id": "697c45fab23aa89c4fe48257",
+    "email": "www@123.com",
+    "password": "$2a$10$yuoHQviFSEL8K7yOyMsIO.kv2iIbz1uBC6eKH.1sSUnhlyFZOnrCC",
+    "name": "ggggg",
+    "role": "worker",
+    "isActive": true,
+    "companies": [
+      "696519b3253771cd8d3bd5df"
+    ],
+    "createdAt": "2026-01-30T05:47:38.479Z",
+    "updatedAt": "2026-01-30T05:47:38.479Z",
+    "__v": 0
+  },
+  {
+    "_id": "697c497c80332f2666d41f35",
+    "email": "ab1@mail.com",
+    "password": "$2a$10$2Zi5GckALjT5Aqy6BwdAMe4cSuJrtMAnJDf176skM2BVyyrgvs72m",
+    "name": "ABCDEF",
+    "role": "worker",
+    "isActive": true,
+    "companies": [
+      "696519b3253771cd8d3bd5df"
+    ],
+    "createdAt": "2026-01-30T06:02:36.930Z",
+    "updatedAt": "2026-01-30T06:02:36.930Z",
+    "__v": 0
+  }
+]

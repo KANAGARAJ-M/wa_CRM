@@ -1,0 +1,66 @@
+[
+  {
+    "_id": "696519b3253771cd8d3bd5df",
+    "name": "Default Company",
+    "users": [
+      "6964d56c49d30090ecec72fd",
+      "6974e30f162b91305b939e78",
+      "697a1392fed220e2a1ec4946",
+      "697b6ea3c9881ee6c5bf8ae9",
+      "697c28a220704ca4c52b24e0",
+      "697c448eb23aa89c4fe48187",
+      "697c45fab23aa89c4fe48257",
+      "697c497c80332f2666d41f35",
+      "697b65698d1cde00b8253aaf"
+    ],
+    "owner": "6964d56c49d30090ecec72fd",
+    "whatsappConfigs": [
+      {
+        "name": "Account 1",
+        "apiKey": "",
+        "accessToken": "EAA9E3EkYde4BQXmuAJ3NVGRwTr42ZAaJsNCihdWjDGf5OzXOZCnvKhfoCwXhZBoeV65CloetsZCReS9Ir1ehTBmzkNVXIVaj8s0VO0i13I7d2ZB7V38M3S9ZC9kvFB0gozTkzmtW808aFrOu6RS7PCsxh6hvv04gRNOgr37CZCLFbfWx6CKPJB9Bo7f1kOwmusmyAZDZD",
+        "phoneNumberId": "963393793513996",
+        "businessAccountId": "846549178156050",
+        "webhookVerifyToken": "meta_integration_1121",
+        "isEnabled": true,
+        "_id": "6964fc726345b5d65c7f9150"
+      },
+      {
+        "name": "Acc 2",
+        "apiKey": "",
+        "accessToken": "EAA9E3EkYde4BQXmuAJ3NVGRwTr42ZAaJsNCihdWjDGf5OzXOZCnvKhfoCwXhZBoeV65CloetsZCReS9Ir1ehTBmzkNVXIVaj8s0VO0i13I7d2ZB7V38M3S9ZC9kvFB0gozTkzmtW808aFrOu6RS7PCsxh6hvv04gRNOgr37CZCLFbfWx6CKPJB9Bo7f1kOwmusmyAZDZD",
+        "phoneNumberId": "963393793513995",
+        "businessAccountId": "846549178156051",
+        "webhookVerifyToken": "meta_integration_1121",
+        "isEnabled": true,
+        "_id": "69651345e8eeb36a66bc8e90"
+      }
+    ],
+    "createdAt": "2026-01-12T15:56:35.883Z",
+    "updatedAt": "2026-01-30T07:20:15.103Z",
+    "__v": 1,
+    "address": "",
+    "phone": "",
+    "products": [
+      "prod 1",
+      "prod 2"
+    ],
+    "website": ""
+  },
+  {
+    "_id": "69651d84ce98b547e7dc38e7",
+    "name": "wa_CRM",
+    "address": "a",
+    "phone": "+919500434845",
+    "website": "https://status.render.com/",
+    "users": [
+      "6964d56c49d30090ecec72fd",
+      "697b65698d1cde00b8253aaf"
+    ],
+    "owner": "6964d56c49d30090ecec72fd",
+    "whatsappConfigs": [],
+    "createdAt": "2026-01-12T16:12:52.866Z",
+    "updatedAt": "2026-01-29T14:33:36.765Z",
+    "__v": 0
+  }
+]

@@ -5,7 +5,7 @@ import api from '../api/axios';
 import { Building, Plus, Loader2, LogOut, ArrowRight, LayoutGrid } from 'lucide-react';
 
 export default function CompanySelection() {
-    const { selectCompany, logout } = useAuth();
+    const { selectCompany, logout, user } = useAuth();
     const navigate = useNavigate();
     const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,8 +23,8 @@ export default function CompanySelection() {
             const companyList = res.data.data;
             setCompanies(companyList);
 
-            // Auto-select if user has only one company
-            if (companyList.length === 1) {
+            // Auto-select if user has only one company AND is not a superadmin
+            if (companyList.length === 1 && user?.role !== 'superadmin') {
                 selectCompany(companyList[0]);
                 navigate('/');
                 return;

@@ -1,0 +1,12 @@
+[
+  {
+    "_id": "697c5721aab6078af4d32472",
+    "agent": "697c44a3ac695a4006a53b9b",
+    "checkInTime": "2026-01-30T07:00:49.863Z",
+    "status": "CHECKED_IN",
+    "callLogs": [],
+    "createdAt": "2026-01-30T07:00:49.864Z",
+    "updatedAt": "2026-01-30T07:00:49.864Z",
+    "__v": 0
+  }
+]

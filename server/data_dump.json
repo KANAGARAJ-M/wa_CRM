@@ -1,0 +1,280 @@
+{
+  "users": [
+    {
+      "_id": "697aee85ff975ed7c4ffd3e4",
+      "email": "admin@whatsappcrm.com",
+      "name": "Admin",
+      "role": "superadmin",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-29T05:22:13.938Z",
+      "updatedAt": "2026-01-29T12:50:34.268Z",
+      "__v": 0
+    },
+    {
+      "_id": "697b46ceac695a4006a538f2",
+      "email": "agent1@gmail.com",
+      "name": "agent1",
+      "role": "worker",
+      "isActive": true,
+      "companies": [],
+      "createdAt": "2026-01-29T11:38:54.771Z",
+      "updatedAt": "2026-01-29T12:50:34.268Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c44a3ac695a4006a53b9b",
+      "email": "aneesha@gmail.com",
+      "name": "ANEESHA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:41:55.424Z",
+      "updatedAt": "2026-01-30T05:41:55.424Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c44dbac695a4006a53ba1",
+      "email": "ramlath@gmail.com",
+      "name": "RAMLATH NISHA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:42:51.822Z",
+      "updatedAt": "2026-01-30T05:42:51.822Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c44feac695a4006a53ba7",
+      "email": "sini@gmail.com",
+      "name": "SINI M K",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:43:26.080Z",
+      "updatedAt": "2026-01-30T05:43:26.080Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c4517ac695a4006a53bad",
+      "email": "kavitha@gmail.com",
+      "name": "KAVITHA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:43:51.210Z",
+      "updatedAt": "2026-01-30T05:43:51.210Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c452dac695a4006a53bb3",
+      "email": "fousiya@gmail.com",
+      "name": "FOUSIYA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:44:13.996Z",
+      "updatedAt": "2026-01-30T05:44:13.996Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c4547ac695a4006a53bb9",
+      "email": "girija@gmail.com",
+      "name": "GIRIJA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:44:39.754Z",
+      "updatedAt": "2026-01-30T05:44:39.754Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c4573ac695a4006a53bbf",
+      "email": "sukanya@gmail.com",
+      "name": "SUKANYA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:45:23.562Z",
+      "updatedAt": "2026-01-30T05:45:23.562Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c45baac695a4006a53bcb",
+      "email": "shajitha@gmail.com",
+      "name": "SHAJITHA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:46:34.175Z",
+      "updatedAt": "2026-01-30T05:46:34.175Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c45e8ac695a4006a53bd1",
+      "email": "nimisha@gmail.com",
+      "name": "NIMISHA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:47:20.978Z",
+      "updatedAt": "2026-01-30T05:47:20.978Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c4610ac695a4006a53bd7",
+      "email": "priya@gmail.com",
+      "name": "PRIYA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:48:00.860Z",
+      "updatedAt": "2026-01-30T05:48:00.860Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c4650ac695a4006a53bdd",
+      "email": "balkees@gmail.com",
+      "name": "BALKEES",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:49:04.937Z",
+      "updatedAt": "2026-01-30T05:49:04.937Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c469fac695a4006a53be3",
+      "email": "busthana@gmail.com",
+      "name": "BUSTHANA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:50:23.342Z",
+      "updatedAt": "2026-01-30T05:50:23.342Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c46c9ac695a4006a53be9",
+      "email": "manjusha@gmail.com",
+      "name": "MANJUSHA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:51:05.252Z",
+      "updatedAt": "2026-01-30T05:51:05.252Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c46feac695a4006a53bef",
+      "email": "bharathi@gamil.com",
+      "name": "BHARATHI S",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:51:58.526Z",
+      "updatedAt": "2026-01-30T05:51:58.526Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c4722ac695a4006a53bf5",
+      "email": "jishana@gmail.com",
+      "name": "JISHANA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:52:34.463Z",
+      "updatedAt": "2026-01-30T05:52:34.463Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c4742ac695a4006a53bfb",
+      "email": "shahidha@gmail.com",
+      "name": "SHAHIDHA",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:53:06.243Z",
+      "updatedAt": "2026-01-30T05:53:06.243Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c476cac695a4006a53c01",
+      "email": "sarojini@gmail.com",
+      "name": "SAROJINI P",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T05:53:48.620Z",
+      "updatedAt": "2026-01-30T05:53:48.620Z",
+      "__v": 0
+    },
+    {
+      "_id": "697c490fac695a4006a53c26",
+      "email": "jyothi@gmail.com",
+      "name": "Jyothi",
+      "role": "worker",
+      "isActive": true,
+      "companies": [
+        "697b53a0ac695a4006a53a44"
+      ],
+      "createdAt": "2026-01-30T06:00:47.309Z",
+      "updatedAt": "2026-01-30T06:00:47.309Z",
+      "__v": 0
+    }
+  ],
+  "companies": [
+    {
+      "products": [],
+      "_id": "697b53a0ac695a4006a53a44",
+      "name": "SIVA ENTERPRISES",
+      "address": "PALAKKAD",
+      "phone": "8907998647",
+      "website": "",
+      "users": [
+        "697aee85ff975ed7c4ffd3e4"
+      ],
+      "owner": "697aee85ff975ed7c4ffd3e4",
+      "whatsappConfigs": [],
+      "createdAt": "2026-01-29T12:33:36.045Z",
+      "updatedAt": "2026-01-29T12:33:36.045Z",
+      "__v": 0
+    }
+  ]
+}

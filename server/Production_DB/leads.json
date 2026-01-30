@@ -1,0 +1,1057 @@
+[
+  {
+    "_id": "697c4bfcac695a4006a53d34",
+    "name": "Lead 1",
+    "phone": "9744276019",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.465Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c4573ac695a4006a53bbf",
+        "_id": "697c5183aab6078af4d31d6d",
+        "timestamp": "2026-01-30T06:36:51.440Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:36:51.439Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.470Z",
+    "updatedAt": "2026-01-30T06:36:51.439Z",
+    "assignedTo": "697c4573ac695a4006a53bbf"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d35",
+    "name": "Lead 2",
+    "phone": "9946047196",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c4573ac695a4006a53bbf",
+        "_id": "697c5315aab6078af4d31fab",
+        "timestamp": "2026-01-30T06:43:33.914Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:43:33.913Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.470Z",
+    "updatedAt": "2026-01-30T06:43:33.913Z",
+    "assignedTo": "697c4573ac695a4006a53bbf"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d36",
+    "name": "Lead 3",
+    "phone": "9895201396",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "follow-up",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - follow-up",
+        "createdBy": "697c45baac695a4006a53bcb",
+        "_id": "697c50fdaab6078af4d31c47",
+        "timestamp": "2026-01-30T06:34:37.801Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:34:37.800Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:34:37.800Z",
+    "assignedTo": "697c45baac695a4006a53bcb"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d37",
+    "name": "Lead 4",
+    "phone": "9995878264",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "converted",
+    "stageOrder": 0,
+    "status": "converted",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - converted",
+        "createdBy": "697c45baac695a4006a53bcb",
+        "_id": "697c5479aab6078af4d3208d",
+        "timestamp": "2026-01-30T06:49:29.360Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:49:29.359Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:49:29.359Z",
+    "assignedTo": "697c45baac695a4006a53bcb"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d38",
+    "name": "Lead 5",
+    "phone": "9447682618",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c45baac695a4006a53bcb",
+        "_id": "697c577faab6078af4d324d6",
+        "timestamp": "2026-01-30T07:02:23.153Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:02:23.152Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T07:02:23.152Z",
+    "assignedTo": "697c45baac695a4006a53bcb"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d39",
+    "name": "Lead 6",
+    "phone": "7025068970",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:13:16.466Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:20:42.259Z",
+    "assignedTo": "697c4547ac695a4006a53bb9"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d3a",
+    "name": "Lead 7",
+    "phone": "9526087552",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:13:16.466Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:20:42.259Z",
+    "assignedTo": "697c4547ac695a4006a53bb9"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d3b",
+    "name": "Lead 8",
+    "phone": "9526087552",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:13:16.466Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:20:42.259Z",
+    "assignedTo": "697c4547ac695a4006a53bb9"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d3c",
+    "name": "Lead 9",
+    "phone": "9446266772",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "lost",
+    "stageOrder": 0,
+    "status": "not-interested",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-interested",
+        "createdBy": "697c452dac695a4006a53bb3",
+        "_id": "697c51ebaab6078af4d31dd7",
+        "timestamp": "2026-01-30T06:38:35.733Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:38:35.732Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:38:35.732Z",
+    "assignedTo": "697c452dac695a4006a53bb3"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d3d",
+    "name": "Lead 10",
+    "phone": "9020888333",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "lost",
+    "stageOrder": 0,
+    "status": "not-interested",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-interested",
+        "createdBy": "697c452dac695a4006a53bb3",
+        "_id": "697c522caab6078af4d31e1e",
+        "timestamp": "2026-01-30T06:39:40.439Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:39:40.438Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:39:40.438Z",
+    "assignedTo": "697c452dac695a4006a53bb3"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d3e",
+    "name": "Lead 11",
+    "phone": "9495744862",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "lost",
+    "stageOrder": 0,
+    "status": "not-interested",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-interested",
+        "createdBy": "697c452dac695a4006a53bb3",
+        "_id": "697c5264aab6078af4d31e57",
+        "timestamp": "2026-01-30T06:40:36.685Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:40:36.685Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:40:36.685Z",
+    "assignedTo": "697c452dac695a4006a53bb3"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d3f",
+    "name": "Lead 12",
+    "phone": "9645653721",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "follow-up",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - follow-up",
+        "createdBy": "697c4517ac695a4006a53bad",
+        "_id": "697c5111aab6078af4d31c51",
+        "timestamp": "2026-01-30T06:34:57.329Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:34:57.328Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:34:57.328Z",
+    "assignedTo": "697c4517ac695a4006a53bad"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d40",
+    "name": "Lead 13",
+    "phone": "8606488492",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:13:16.466Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:17:47.567Z",
+    "assignedTo": "697c4517ac695a4006a53bad"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d41",
+    "name": "Lead 14",
+    "phone": "9447196542",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c4517ac695a4006a53bad",
+        "_id": "697c52bfaab6078af4d31f21",
+        "timestamp": "2026-01-30T06:42:07.363Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:42:07.362Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:42:07.362Z",
+    "assignedTo": "697c4517ac695a4006a53bad"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d42",
+    "name": "Lead 15",
+    "phone": "9388650680",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.466Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c44feac695a4006a53ba7",
+        "_id": "697c51e2aab6078af4d31dd1",
+        "timestamp": "2026-01-30T06:38:26.632Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:38:26.631Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:38:26.631Z",
+    "assignedTo": "697c44feac695a4006a53ba7"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d43",
+    "name": "Lead 16",
+    "phone": "9846311704",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.467Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c44feac695a4006a53ba7",
+        "_id": "697c578daab6078af4d324dc",
+        "timestamp": "2026-01-30T07:02:37.829Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:02:37.828Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T07:02:37.829Z",
+    "assignedTo": "697c44feac695a4006a53ba7"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d44",
+    "name": "Lead 17",
+    "phone": "8921359116",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.467Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c44feac695a4006a53ba7",
+        "_id": "697c588caab6078af4d3269e",
+        "timestamp": "2026-01-30T07:06:52.845Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:06:52.844Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T07:06:52.844Z",
+    "assignedTo": "697c44feac695a4006a53ba7"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d45",
+    "name": "Lead 18",
+    "phone": "7907467338",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.467Z",
+    "assignedAgents": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:13:16.467Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:16:44.751Z",
+    "assignedTo": "697c44dbac695a4006a53ba1"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d46",
+    "name": "Lead 19",
+    "phone": "9447326037",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.467Z",
+    "assignedAgents": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:13:16.467Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:16:44.751Z",
+    "assignedTo": "697c44dbac695a4006a53ba1"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d47",
+    "name": "Lead 20",
+    "phone": "7594996226",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.467Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c44dbac695a4006a53ba1",
+        "_id": "697c5b00aab6078af4d32a28",
+        "timestamp": "2026-01-30T07:17:20.025Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:17:20.024Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T07:17:20.024Z",
+    "assignedTo": "697c44dbac695a4006a53ba1"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d48",
+    "name": "Lead 21",
+    "phone": "9902656824",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "interested",
+    "stageOrder": 0,
+    "status": "interested",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.467Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - other",
+        "createdBy": "697c44a3ac695a4006a53b9b",
+        "_id": "697c4e77d6b5ac6d5a0477a0",
+        "timestamp": "2026-01-30T06:23:51.075Z"
+      },
+      {
+        "content": "Call logged: completed - interested",
+        "createdBy": "697c44a3ac695a4006a53b9b",
+        "_id": "697c5055aab6078af4d31bd3",
+        "timestamp": "2026-01-30T06:31:49.711Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:31:49.707Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:31:49.708Z",
+    "assignedTo": "697c44a3ac695a4006a53b9b"
+  },
+  {
+    "_id": "697c4bfcac695a4006a53d49",
+    "name": "Lead 22",
+    "phone": "8606266180",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "uploadDate": "2026-01-30T06:13:16.467Z",
+    "assignedAgents": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-reachable - out of network ",
+        "createdBy": "697c44a3ac695a4006a53b9b",
+        "_id": "697c5281aab6078af4d31e93",
+        "timestamp": "2026-01-30T06:41:05.018Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:41:05.018Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:13:16.471Z",
+    "updatedAt": "2026-01-30T06:41:05.018Z",
+    "assignedTo": "697c44a3ac695a4006a53b9b"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e25",
+    "name": "end sb",
+    "phone": "9656535511",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.679Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c46c9ac695a4006a53be9",
+        "assignedAt": "2026-01-30T06:41:55.563Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c52b3aab6078af4d31ee3"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c46c9ac695a4006a53be9",
+        "_id": "697c53ecaab6078af4d31ff3",
+        "timestamp": "2026-01-30T06:47:08.450Z"
+      },
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c46c9ac695a4006a53be9",
+        "_id": "697c57a2aab6078af4d324f6",
+        "timestamp": "2026-01-30T07:02:58.518Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:02:58.518Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T07:02:58.518Z",
+    "assignedTo": "697c46c9ac695a4006a53be9"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e26",
+    "name": "end sb",
+    "phone": "8921594460",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c46c9ac695a4006a53be9",
+        "assignedAt": "2026-01-30T06:41:55.563Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c52b3aab6078af4d31ee1"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c46c9ac695a4006a53be9",
+        "_id": "697c57edaab6078af4d32616",
+        "timestamp": "2026-01-30T07:04:13.065Z"
+      },
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c46c9ac695a4006a53be9",
+        "_id": "697c5801aab6078af4d32632",
+        "timestamp": "2026-01-30T07:04:33.217Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:04:33.216Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T07:04:33.217Z",
+    "assignedTo": "697c46c9ac695a4006a53be9"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e27",
+    "name": "end sb",
+    "phone": "9048884651",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c46c9ac695a4006a53be9",
+        "assignedAt": "2026-01-30T06:41:55.563Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c52b3aab6078af4d31edf"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c46c9ac695a4006a53be9",
+        "_id": "697c5852aab6078af4d32683",
+        "timestamp": "2026-01-30T07:05:54.493Z"
+      },
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c46c9ac695a4006a53be9",
+        "_id": "697c5896aab6078af4d326ab",
+        "timestamp": "2026-01-30T07:07:02.579Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:07:02.578Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T07:07:02.578Z",
+    "assignedTo": "697c46c9ac695a4006a53be9"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e28",
+    "name": "end sb",
+    "phone": "8590555059",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c4650ac695a4006a53bdd",
+        "assignedAt": "2026-01-30T06:41:24.478Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c5294aab6078af4d31eb9"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - callback",
+        "createdBy": "697c4650ac695a4006a53bdd",
+        "_id": "697c5401aab6078af4d31ffb",
+        "timestamp": "2026-01-30T06:47:29.435Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:47:29.434Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T06:47:29.435Z",
+    "assignedTo": "697c4650ac695a4006a53bdd"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e29",
+    "name": "end sb",
+    "phone": "971555621148",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c4650ac695a4006a53bdd",
+        "assignedAt": "2026-01-30T06:41:24.477Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c5294aab6078af4d31eb7"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c4650ac695a4006a53bdd",
+        "_id": "697c5889aab6078af4d3268b",
+        "timestamp": "2026-01-30T07:06:49.285Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:06:49.285Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T07:06:49.285Z",
+    "assignedTo": "697c4650ac695a4006a53bdd"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e2a",
+    "name": "end sb",
+    "phone": "9605471822",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "lost",
+    "stageOrder": 0,
+    "status": "not-interested",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c4650ac695a4006a53bdd",
+        "assignedAt": "2026-01-30T06:41:24.477Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c5294aab6078af4d31eb5"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-interested",
+        "createdBy": "697c4650ac695a4006a53bdd",
+        "_id": "697c57f0aab6078af4d3261e",
+        "timestamp": "2026-01-30T07:04:16.504Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T07:04:16.504Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T07:04:16.504Z",
+    "assignedTo": "697c4650ac695a4006a53bdd"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e2b",
+    "name": "end sb",
+    "phone": "9048386726",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c4610ac695a4006a53bd7",
+        "assignedAt": "2026-01-30T06:41:04.808Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c5280aab6078af4d31e8a"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:39:51.680Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T06:41:04.808Z",
+    "assignedTo": "697c4610ac695a4006a53bd7"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e2c",
+    "name": "end sb",
+    "phone": "8891233020",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c4610ac695a4006a53bd7",
+        "assignedAt": "2026-01-30T06:41:04.808Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c5280aab6078af4d31e88"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:39:51.680Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T06:41:04.808Z",
+    "assignedTo": "697c4610ac695a4006a53bd7"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e2d",
+    "name": "end sb",
+    "phone": "8129062443",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c4610ac695a4006a53bd7",
+        "assignedAt": "2026-01-30T06:41:04.807Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c5280aab6078af4d31e86"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [],
+    "lastInteraction": "2026-01-30T06:39:51.680Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T06:41:04.808Z",
+    "assignedTo": "697c4610ac695a4006a53bd7"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e2e",
+    "name": "end sb",
+    "phone": "9809939992",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.680Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c45e8ac695a4006a53bd1",
+        "assignedAt": "2026-01-30T06:40:43.460Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c526baab6078af4d31e67"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c45e8ac695a4006a53bd1",
+        "_id": "697c5499aab6078af4d320a0",
+        "timestamp": "2026-01-30T06:50:01.003Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:50:00.999Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T06:50:01.001Z",
+    "assignedTo": "697c45e8ac695a4006a53bd1"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e2f",
+    "name": "end sb",
+    "phone": "9562895728",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "new",
+    "stageOrder": 0,
+    "status": "new",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.681Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c45e8ac695a4006a53bd1",
+        "assignedAt": "2026-01-30T06:40:43.460Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c526baab6078af4d31e65"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - not-reachable",
+        "createdBy": "697c45e8ac695a4006a53bd1",
+        "_id": "697c5589aab6078af4d3220e",
+        "timestamp": "2026-01-30T06:54:01.344Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:54:01.343Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T06:54:01.343Z",
+    "assignedTo": "697c45e8ac695a4006a53bd1"
+  },
+  {
+    "_id": "697c5237aab6078af4d31e30",
+    "name": "end sb",
+    "phone": "7293722501",
+    "companyId": "697b53a0ac695a4006a53a44",
+    "email": "",
+    "stage": "interested",
+    "stageOrder": 0,
+    "status": "interested",
+    "source": "excel_upload",
+    "notes": "",
+    "value": 0,
+    "priority": "medium",
+    "callType": "fresh",
+    "uploadDate": "2026-01-30T06:39:51.681Z",
+    "assignedAgents": [
+      {
+        "agentId": "697c45e8ac695a4006a53bd1",
+        "assignedAt": "2026-01-30T06:40:43.459Z",
+        "assignedBy": "697aee85ff975ed7c4ffd3e4",
+        "_id": "697c526baab6078af4d31e63"
+      }
+    ],
+    "stageHistory": [],
+    "commentHistory": [
+      {
+        "content": "Call logged: completed - interested",
+        "createdBy": "697c45e8ac695a4006a53bd1",
+        "_id": "697c56e3aab6078af4d32410",
+        "timestamp": "2026-01-30T06:59:47.599Z"
+      }
+    ],
+    "lastInteraction": "2026-01-30T06:59:47.598Z",
+    "__v": 0,
+    "createdAt": "2026-01-30T06:39:51.683Z",
+    "updatedAt": "2026-01-30T06:59:47.599Z",
+    "assignedTo": "697c45e8ac695a4006a53bd1"
+  }
+]

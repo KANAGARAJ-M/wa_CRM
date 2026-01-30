@@ -1,0 +1,39 @@
+[
+  {
+    "_id": "697b60c6c977f8098401b521",
+    "name": "admin",
+    "description": "Full Administrator Access",
+    "permissions": [
+      "manage_workers",
+      "assign_leads",
+      "view_all_leads",
+      "view_own_leads",
+      "manage_roles",
+      "view_analytics",
+      "manage_settings",
+      "export_data",
+      "delete_leads"
+    ],
+    "company": "696519b3253771cd8d3bd5df",
+    "isSystem": false,
+    "createdAt": "2026-01-29T13:29:42.923Z",
+    "updatedAt": "2026-01-30T07:22:34.301Z",
+    "__v": 3
+  },
+  {
+    "_id": "697c446bb23aa89c4fe4817e",
+    "name": "sales manager",
+    "description": "None",
+    "permissions": [
+      "manage_workers",
+      "assign_leads",
+      "view_own_leads",
+      "view_all_leads"
+    ],
+    "company": "696519b3253771cd8d3bd5df",
+    "isSystem": false,
+    "createdAt": "2026-01-30T05:40:59.621Z",
+    "updatedAt": "2026-01-30T05:40:59.621Z",
+    "__v": 0
+  }
+]

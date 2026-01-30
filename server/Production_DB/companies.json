@@ -1,0 +1,17 @@
+[
+  {
+    "_id": "697b53a0ac695a4006a53a44",
+    "name": "SIVA ENTERPRISES",
+    "address": "PALAKKAD",
+    "phone": "8907998647",
+    "website": "",
+    "users": [
+      "697aee85ff975ed7c4ffd3e4"
+    ],
+    "owner": "697aee85ff975ed7c4ffd3e4",
+    "whatsappConfigs": [],
+    "createdAt": "2026-01-29T12:33:36.045Z",
+    "updatedAt": "2026-01-29T12:33:36.045Z",
+    "__v": 0
+  }
+]
