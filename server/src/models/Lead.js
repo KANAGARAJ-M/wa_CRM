@@ -97,7 +97,7 @@ const leadSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    assignedDateTime: {
+    leadDate: {
         type: Date
     },
     callType: {

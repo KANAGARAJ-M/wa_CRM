@@ -232,12 +232,12 @@ export default function Leads() {
                 // Helper to find column index based on keywords
                 const getColumnIndex = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
-                const nameIndex = getColumnIndex(['name', 'first', 'full', 'client', 'customer', 'lead', 'prospect']);
+                const nameIndex = getColumnIndex(['name', 'first', 'full', 'client', 'customer', 'prospect']);
                 const phoneIndex = getColumnIndex(['phone', 'mobile', 'cell', 'tel', 'contact', 'whatsapp', 'call', 'num', 'no.']);
                 const emailIndex = getColumnIndex(['email', 'e-mail', 'mail']);
                 const notesIndex = getColumnIndex(['note', 'comment', 'remark', 'desc', 'message', 'info', 'detail']);
                 const callTypeIndex = getColumnIndex(['call type', 'type', 'call_type']);
-                const assignedDateIndex = getColumnIndex(['assigned date', 'assign date', 'date assigned', 'assigned_at']);
+                const assignedDateIndex = getColumnIndex(['lead date']);
 
                 if (nameIndex === -1 && phoneIndex === -1) {
                     setImportError('Excel must have at least "Name" or "Phone" column');
@@ -262,13 +262,13 @@ export default function Leads() {
                         }
                     }
 
-                    let assignedDateTime = null;
+                    let leadDate = null;
 
                     if (assignedDateIndex !== -1 && row[assignedDateIndex]) {
                         const val = row[assignedDateIndex];
                         if (typeof val === 'number') {
                             // Excel serial date to JS Date
-                            assignedDateTime = new Date(Math.round((val - 25569) * 86400 * 1000));
+                            leadDate = new Date(Math.round((val - 25569) * 86400 * 1000));
                         } else {
                             // Try parsing custom format: DD.MM.YYYY HH.MM PM (e.g. 12.01.2025 01.30 PM)
                             const customDateMatch = String(val).trim().match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{1,2})[\.:](\d{2})\s*(AM|PM|am|pm)$/i);
@@ -278,12 +278,12 @@ export default function Leads() {
                                 let hour = parseInt(hours);
                                 if (meridian.toUpperCase() === 'PM' && hour < 12) hour += 12;
                                 if (meridian.toUpperCase() === 'AM' && hour === 12) hour = 0;
-                                assignedDateTime = new Date(year, parseInt(month) - 1, day, hour, parseInt(minutes));
+                                leadDate = new Date(year, parseInt(month) - 1, day, hour, parseInt(minutes));
                             } else {
                                 // Fallback to standard JS parsing
                                 const d = new Date(val);
                                 if (!isNaN(d.getTime())) {
-                                    assignedDateTime = d;
+                                    leadDate = d;
                                 }
                             }
                         }
@@ -302,7 +302,7 @@ export default function Leads() {
                         stage: 'new',
                         status: 'new',
                         callType,
-                        assignedDateTime
+                        leadDate
                     });
                 }
 
@@ -836,7 +836,7 @@ export default function Leads() {
                                                                 Type
                                                             </th>
                                                             <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                                                Assigned Date
+                                                                Lead Date
                                                             </th>
                                                             <th scope="col" className="relative px-6 py-4">
                                                                 <span className="sr-only">Actions</span>
@@ -936,7 +936,7 @@ export default function Leads() {
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                    {lead.assignedDateTime ? formatLeadTime(lead.assignedDateTime) : '-'}
+                                                                    {lead.leadDate ? formatLeadTime(lead.leadDate) : '-'}
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0">
@@ -1276,7 +1276,7 @@ export default function Leads() {
                                                         <th className="px-4 py-2 text-left font-medium text-gray-700">Phone</th>
                                                         <th className="px-4 py-2 text-left font-medium text-gray-700">Email</th>
                                                         <th className="px-4 py-2 text-left font-medium text-gray-700">Type</th>
-                                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Assigned</th>
+                                                        <th className="px-4 py-2 text-left font-medium text-gray-700">Lead Date</th>
                                                         <th className="px-4 py-2 text-left font-medium text-gray-700">Notes</th>
                                                     </tr>
                                                 </thead>
@@ -1287,7 +1287,7 @@ export default function Leads() {
                                                             <td className="px-4 py-2 text-gray-600">{lead.phone}</td>
                                                             <td className="px-4 py-2 text-gray-600">{lead.email || '-'}</td>
                                                             <td className="px-4 py-2 text-gray-600 capitalize">{lead.callType || 'fresh'}</td>
-                                                            <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{lead.assignedDateTime ? formatLeadTime(lead.assignedDateTime) : '-'}</td>
+                                                            <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{lead.leadDate ? formatLeadTime(lead.leadDate) : '-'}</td>
                                                             <td className="px-4 py-2 text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]" title={lead.notes}>{lead.notes || '-'}</td>
                                                         </tr>
                                                     ))}
