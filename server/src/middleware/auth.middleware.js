@@ -39,8 +39,12 @@ const auth = async (req, res, next) => {
             const headerCompanyId = req.headers['x-company-id'];
 
             if (headerCompanyId) {
-                // Check if user belongs to this company (assuming companies are ObjectIds)
-                if (user.companies && user.companies.some(id => id.toString() === headerCompanyId)) {
+                // If superadmin, allow any company
+                if (user.role === 'superadmin') {
+                    req.companyId = headerCompanyId;
+                }
+                // Check if user belongs to this company
+                else if (user.companies && user.companies.some(id => id.toString() === headerCompanyId)) {
                     req.companyId = headerCompanyId;
                 } else {
                     return res.status(403).json({

@@ -9,11 +9,18 @@ const router = express.Router();
 // @access  Private
 router.get('/mine', auth, async (req, res) => {
     try {
-        // Find companies where user is in the users array
-        // We can also use User.populate('companies') but this is direct
-        const companies = await Company.find({
-            users: req.user._id
-        }).select('name address phone website isEnabled createdAt');
+        let companies;
+
+        if (req.user.role === 'superadmin') {
+            // Superadmins see all companies
+            companies = await Company.find({})
+                .select('name address phone website isEnabled createdAt');
+        } else {
+            // Regular users see only their assigned companies
+            companies = await Company.find({
+                users: req.user._id
+            }).select('name address phone website isEnabled createdAt');
+        }
 
         res.json({ success: true, data: companies });
     } catch (error) {

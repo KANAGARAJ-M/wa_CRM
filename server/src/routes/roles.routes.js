@@ -68,7 +68,11 @@ router.get('/:id/users', auth, checkRolePermission, async (req, res) => {
 // Create a new role
 router.post('/', auth, checkRolePermission, async (req, res) => {
     try {
-        const companyId = req.headers['x-company-id'] || req.user.companies[0];
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ message: 'Company context required' });
+        }
 
         const { name, description, permissions } = req.body;
 
