@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import {
     Plus, Trash2, Save, Loader2, Building, LayoutGrid,
-    MessageCircle, Check, X, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff, Link
+    MessageCircle, Check, X, Eye, EyeOff, AlertCircle, RefreshCw, Wifi, WifiOff, Link, Lock, Unlock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,6 +22,10 @@ export default function Settings() {
     const [subscriptionStatus, setSubscriptionStatus] = useState([]);
     const [checkingStatus, setCheckingStatus] = useState(false);
     const [subscribing, setSubscribing] = useState(false);
+    const [isLocked, setIsLocked] = useState(true);
+    const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+    const [unlockPassword, setUnlockPassword] = useState('');
+    const [storedPassword, setStoredPassword] = useState('Openthelock');
 
     useEffect(() => {
         fetchSettings();
@@ -39,6 +43,9 @@ export default function Settings() {
                 website: data.website || ''
             });
             setProducts(data.products || []);
+            if (data.settingsPassword) {
+                setStoredPassword(data.settingsPassword);
+            }
         } catch (error) {
             console.error('Error fetching settings:', error);
             setError('Failed to load settings');
@@ -86,6 +93,7 @@ export default function Settings() {
                 ...companyProfile
             });
             setSuccess('Settings saved successfully!');
+            setIsLocked(true);
             setTimeout(() => setSuccess(''), 3000);
         } catch (error) {
             console.error('Error saving settings:', error);
@@ -132,6 +140,25 @@ export default function Settings() {
         } finally {
             setCheckingStatus(false);
         }
+    };
+
+    const handleUnlock = () => {
+        if (unlockPassword === storedPassword) {
+            setIsLocked(false);
+            setShowPasswordPrompt(false);
+            setUnlockPassword('');
+            setSuccess('Settings unlocked for editing');
+            setTimeout(() => setSuccess(''), 3000);
+        } else {
+            setError('Incorrect password');
+            setTimeout(() => setError(''), 3000);
+        }
+    };
+
+    const handleLock = () => {
+        setIsLocked(true);
+        setSuccess('Settings locked');
+        setTimeout(() => setSuccess(''), 3000);
     };
 
     const subscribeToMessages = async () => {
@@ -397,15 +424,85 @@ export default function Settings() {
                         <div className="flex items-center gap-3">
                             <MessageCircle className="h-5 w-5 text-green-600" />
                             <h2 className="text-lg font-semibold text-gray-800">WhatsApp Business Accounts</h2>
+                            {isLocked ? (
+                                <button
+                                    onClick={() => setShowPasswordPrompt(true)}
+                                    className="p-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors flex items-center gap-1.5 text-xs font-bold border border-amber-200"
+                                >
+                                    <Lock className="h-3.5 w-3.5" />
+                                    LOCKED
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleLock}
+                                    className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-xs font-bold border border-green-200"
+                                >
+                                    <Unlock className="h-3.5 w-3.5" />
+                                    UNLOCKED
+                                </button>
+                            )}
                         </div>
-                        <button
-                            onClick={handleAddConfig}
-                            className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Account
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleAddConfig}
+                                disabled={isLocked}
+                                className={`px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-2 ${isLocked
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-green-500 text-white hover:bg-green-600'
+                                    }`}
+                            >
+                                <Plus className="h-4 w-4" />
+                                Add Account
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Password Prompt Modal */}
+                    {showPasswordPrompt && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+                                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50">
+                                    <div className="flex items-center gap-2 text-amber-700">
+                                        <Lock className="h-5 w-5" />
+                                        <h3 className="font-bold uppercase tracking-wider text-sm">Security Verification</h3>
+                                    </div>
+                                    <button onClick={() => setShowPasswordPrompt(false)} className="text-gray-400 hover:text-gray-600">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <p className="text-sm text-gray-600 text-center">
+                                        Sensitive fields are locked. Please enter the master password to unlock editing.
+                                    </p>
+                                    <div>
+                                        <input
+                                            type="password"
+                                            value={unlockPassword}
+                                            onChange={(e) => setUnlockPassword(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
+                                            autoFocus
+                                            placeholder="Enter Password"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center text-lg tracking-widest"
+                                        />
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setShowPasswordPrompt(false)}
+                                            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleUnlock}
+                                            className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold shadow-lg shadow-amber-600/20"
+                                        >
+                                            Unlock
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="p-6 space-y-6">
                         {whatsappConfigs.length === 0 ? (
@@ -423,18 +520,20 @@ export default function Settings() {
                                     <div className="flex justify-between items-center">
                                         <h3 className="font-semibold text-gray-700">Account {index + 1}</h3>
                                         <div className="flex items-center gap-2">
-                                            <label className="flex items-center gap-2 cursor-pointer">
+                                            <label className={`flex items-center gap-2 ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                                                 <input
                                                     type="checkbox"
+                                                    disabled={isLocked}
                                                     checked={config.isEnabled}
                                                     onChange={(e) => handleConfigChange(index, 'isEnabled', e.target.checked)}
-                                                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500 disabled:bg-gray-200"
                                                 />
                                                 <span className="text-sm text-gray-600">Enabled</span>
                                             </label>
                                             <button
                                                 onClick={() => handleRemoveConfig(index)}
-                                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                disabled={isLocked}
+                                                className={`p-2 rounded-lg transition-colors ${isLocked ? 'text-gray-300 cursor-not-allowed' : 'text-red-500 hover:bg-red-50'}`}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
@@ -456,55 +555,63 @@ export default function Settings() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                                 Phone Number ID
+                                                {isLocked && <Lock className="h-3 w-3 text-amber-500" />}
                                             </label>
                                             <input
                                                 type="text"
+                                                readOnly={isLocked}
                                                 value={config.phoneNumberId}
                                                 onChange={(e) => handleConfigChange(index, 'phoneNumberId', e.target.value)}
                                                 placeholder="From Meta Developer Portal"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${isLocked ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-white border-gray-300'}`}
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                                 Business Account ID
+                                                {isLocked && <Lock className="h-3 w-3 text-amber-500" />}
                                             </label>
                                             <input
                                                 type="text"
+                                                readOnly={isLocked}
                                                 value={config.businessAccountId}
                                                 onChange={(e) => handleConfigChange(index, 'businessAccountId', e.target.value)}
                                                 placeholder="WABA ID from Meta"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${isLocked ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-white border-gray-300'}`}
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                                 Webhook Verify Token
+                                                {isLocked && <Lock className="h-3 w-3 text-amber-500" />}
                                             </label>
                                             <input
                                                 type="text"
+                                                readOnly={isLocked}
                                                 value={config.webhookVerifyToken}
                                                 onChange={(e) => handleConfigChange(index, 'webhookVerifyToken', e.target.value)}
                                                 placeholder="Your custom verify token"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${isLocked ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-white border-gray-300'}`}
                                             />
                                         </div>
 
                                         <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                                 Access Token
+                                                {isLocked && <Lock className="h-3 w-3 text-amber-500" />}
                                             </label>
                                             <div className="relative">
                                                 <input
                                                     type={showTokens[index] ? 'text' : 'password'}
+                                                    readOnly={isLocked}
                                                     value={config.accessToken}
                                                     onChange={(e) => handleConfigChange(index, 'accessToken', e.target.value)}
                                                     placeholder="Permanent token from Meta"
-                                                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                    className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${isLocked ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-white border-gray-300'}`}
                                                 />
                                                 <button
                                                     type="button"

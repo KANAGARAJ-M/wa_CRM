@@ -320,8 +320,8 @@ router.get('/:id', auth, async (req, res) => {
 
 // @route   PUT /api/leads/assign
 // @desc    Bulk assign leads to a worker
-// @access  Private/Admin
-router.put('/assign', auth, adminOnly, async (req, res) => {
+// @access  Private/Admin/Manager
+router.put('/assign', auth, async (req, res) => {
     try {
         const { leadIds, workerId } = req.body;
 
@@ -331,6 +331,16 @@ router.put('/assign', auth, adminOnly, async (req, res) => {
 
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canAssignLeads = isAdmin || permissions.includes('assign_leads');
+
+        if (!canAssignLeads) {
+            return res.status(403).json({ success: false, message: 'Access denied. You do not have permission to assign leads.' });
         }
 
         // Update leads - adding to assignedAgents array for history tracking

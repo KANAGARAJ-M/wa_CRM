@@ -341,7 +341,7 @@ export default function Layout({ children }) {
                         )}
                     </div>
 
-                    {(user?.role === 'superadmin' || user?.companies?.length > 1) && (
+                    {(user?.role === 'superadmin' || user?.companies?.length > 1 || user?.customRole?.permissions?.includes('create_company')) && (
                         <button
                             onClick={() => navigate('/select-company')}
                             className={`mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:bg-gray-700/50 hover:text-white transition-all duration-200 ${!sidebarOpen ? 'justify-center' : ''}`}

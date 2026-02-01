@@ -79,7 +79,11 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = ApiService(authService.token!);
-      await apiService.sendMessage(widget.lead.phone, text);
+      await apiService.sendMessage(
+        widget.lead.phone, 
+        text, 
+        phoneNumberId: widget.lead.phoneNumberId
+      );
       
       // Reload to get actual status
       await _loadMessages();

@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'dialer_screen.dart'; // For CallOutcomeSheet
+import 'chat_screen.dart';
 
 class CallScreen extends StatefulWidget {
   final Lead lead;
@@ -211,6 +212,18 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
         ),
         title: const Text('Call Mode',
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF22C55E)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ChatScreen(lead: widget.lead)),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [

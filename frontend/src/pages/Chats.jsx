@@ -3,10 +3,10 @@ import api from '../api/axios';
 import {
     Search, Send, Paperclip, MoreVertical,
     Check, CheckCheck, Mic, Smile, ArrowLeft, Loader2,
-    RefreshCw, MessageSquare, Clock
+    RefreshCw, MessageSquare, Clock, ChevronDown
 } from 'lucide-react';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Chats() {
     const [conversations, setConversations] = useState([]);
@@ -17,13 +17,55 @@ export default function Chats() {
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef(null);
     const [showSidebar, setShowSidebar] = useState(true);
+    const [whatsappConfigs, setWhatsappConfigs] = useState([]);
+    const [selectedAccountId, setSelectedAccountId] = useState('all');
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         fetchData();
+        fetchSettings();
         const interval = setInterval(fetchData, 3000); // 3 seconds for near real-time updates
         return () => clearInterval(interval);
     }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const response = await api.get('/settings');
+            setWhatsappConfigs(response.data.data?.whatsappConfigs || []);
+        } catch (error) {
+            console.error('Error fetching settings:', error);
+        }
+    };
+
+    // Handle navigation from Leads page
+    useEffect(() => {
+        if (location.state?.lead && conversations.length > 0) {
+            const lead = location.state.lead;
+            const existingChat = conversations.find(c => c.contactPhone === lead.phone);
+
+            if (existingChat) {
+                setSelectedChat(existingChat);
+                setShowSidebar(false);
+            } else {
+                // Create a temporary "ghost" chat for this lead
+                const ghostChat = {
+                    id: lead.phone,
+                    contactName: lead.name,
+                    contactPhone: lead.phone,
+                    messages: [],
+                    unreadCount: 0,
+                    lastMessage: { body: 'Start a conversation...', timestamp: new Date() },
+                    integrationId: lead.phoneNumberId
+                };
+                setSelectedChat(ghostChat);
+                setShowSidebar(false);
+            }
+
+            // Clear state to avoid re-selection on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, conversations]);
 
     useEffect(() => {
         if (selectedChat?.unreadCount > 0) {
@@ -145,7 +187,8 @@ export default function Chats() {
         try {
             const payload = {
                 message: optimisticMsg.body,
-                phone: selectedChat.contactPhone
+                phone: selectedChat.contactPhone,
+                phoneNumberId: selectedChat.integrationId
             };
 
             await api.post('/whatsapp/send', payload);
@@ -170,10 +213,14 @@ export default function Chats() {
         return format(date, 'h:mm a');
     };
 
-    const filteredConversations = conversations.filter(chat =>
-        chat.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        chat.contactPhone.includes(searchQuery)
-    );
+    const filteredConversations = conversations.filter(chat => {
+        const matchesSearch = chat.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            chat.contactPhone.includes(searchQuery);
+
+        const matchesAccount = selectedAccountId === 'all' || chat.integrationId === selectedAccountId;
+
+        return matchesSearch && matchesAccount;
+    });
 
     return (
         <div className="flex h-full bg-gray-100">
@@ -188,8 +235,30 @@ export default function Chats() {
                         </h2>
                     </div>
 
-                    {/* Search */}
-                    <div className="p-3 border-b border-gray-100 bg-white">
+                    {/* Search & Account Filter */}
+                    <div className="p-3 border-b border-gray-100 bg-white space-y-2">
+                        {/* Account Selector */}
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <MessageSquare className="h-4 w-4 text-gray-400" />
+                            </div>
+                            <select
+                                value={selectedAccountId}
+                                onChange={(e) => setSelectedAccountId(e.target.value)}
+                                className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 block hover:bg-white transition-all cursor-pointer appearance-none font-medium"
+                            >
+                                <option value="all">All Accounts</option>
+                                {whatsappConfigs.filter(c => c.isEnabled).map(config => (
+                                    <option key={config.phoneNumberId} value={config.phoneNumberId}>
+                                        {config.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                            </div>
+                        </div>
+
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <input

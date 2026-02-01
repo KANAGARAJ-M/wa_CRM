@@ -86,11 +86,19 @@ class ApiService {
     throw Exception('Failed to load messages');
   }
 
-  Future<void> sendMessage(String phone, String message) async {
+  Future<void> sendMessage(String phone, String message, {String? phoneNumberId}) async {
+    final Map<String, dynamic> body = {
+      'phone': phone,
+      'message': message,
+    };
+    if (phoneNumberId != null) {
+      body['phoneNumberId'] = phoneNumberId;
+    }
+
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}/whatsapp/send'),
       headers: _headers,
-      body: jsonEncode({'phone': phone, 'message': message}),
+      body: jsonEncode(body),
     );
 
     if (response.statusCode != 200) {

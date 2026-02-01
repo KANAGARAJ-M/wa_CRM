@@ -39,8 +39,9 @@ const auth = async (req, res, next) => {
             const headerCompanyId = req.headers['x-company-id'];
 
             if (headerCompanyId) {
-                // If superadmin, allow any company
-                if (user.role === 'superadmin') {
+                // If superadmin OR has create_company permission, allow any company
+                const hasCreateCompanyPerm = user.customRole?.permissions?.includes('create_company');
+                if (user.role === 'superadmin' || hasCreateCompanyPerm) {
                     req.companyId = headerCompanyId;
                 }
                 // Check if user belongs to this company

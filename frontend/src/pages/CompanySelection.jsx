@@ -23,8 +23,9 @@ export default function CompanySelection() {
             const companyList = res.data.data;
             setCompanies(companyList);
 
-            // Auto-select if user has only one company AND is not a superadmin
-            if (companyList.length === 1 && user?.role !== 'superadmin') {
+            // Auto-select if user has only one company AND is not a superadmin AND does not have create_company permission
+            const hasCreatePerm = user?.customRole?.permissions?.includes('create_company');
+            if (companyList.length === 1 && user?.role !== 'superadmin' && !hasCreatePerm) {
                 selectCompany(companyList[0]);
                 navigate('/');
                 return;
@@ -95,13 +96,15 @@ export default function CompanySelection() {
                         <h1 className="text-2xl font-bold text-gray-900">Select Workspace</h1>
                         <p className="text-gray-500 mt-1">Choose a company to manage or create a new one.</p>
                     </div>
-                    <button
-                        onClick={() => setShowCreate(true)}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 shadow-sm font-medium"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Create Company
-                    </button>
+                    {(user?.role === 'superadmin' || user?.customRole?.permissions?.includes('create_company')) && (
+                        <button
+                            onClick={() => setShowCreate(true)}
+                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 shadow-sm font-medium"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Create Company
+                        </button>
+                    )}
                 </div>
 
                 {showCreate && (

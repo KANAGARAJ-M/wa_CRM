@@ -40,7 +40,11 @@ const companySchema = new mongoose.Schema({
     products: [{
         type: String,
         trim: true
-    }]
+    }],
+    settingsPassword: {
+        type: String,
+        default: 'Openthelock'
+    }
 }, {
     timestamps: true
 });

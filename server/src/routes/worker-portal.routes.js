@@ -66,6 +66,11 @@ router.get('/messages/:phone', auth, async (req, res) => {
             };
         }
 
+        // Add phoneNumberId filter if lead has it
+        if (lead.phoneNumberId) {
+            query.phoneNumberId = lead.phoneNumberId;
+        }
+
         const messages = await WhatsAppMessage.find(query).sort({ timestamp: 1 });
 
         res.json({ success: true, data: messages });

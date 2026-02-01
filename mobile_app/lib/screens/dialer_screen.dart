@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../models/models.dart';
 import 'call_log_screen.dart';
 import 'call_screen.dart';
+import 'chat_screen.dart';
 
 class DialerScreen extends StatefulWidget {
   const DialerScreen({super.key});
@@ -871,30 +872,46 @@ class _DialerScreenState extends State<DialerScreen>
                   ),
                 ),
 
-                // Call Button
-                GestureDetector(
-                  onTap: () => _makeCall(lead: lead),
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.green, Colors.green.shade700],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.green.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                // Action Buttons
+                Row(
+                  children: [
+                    // Chat Button
+                    IconButton(
+                      icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF22C55E)),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)),
+                        );
+                      },
                     ),
-                    child:
-                        const Icon(Icons.call, color: Colors.white, size: 24),
-                  ),
+                    const SizedBox(width: 8),
+                    // Call Button
+                    GestureDetector(
+                      onTap: () => _makeCall(lead: lead),
+                      child: Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.green, Colors.green.shade700],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child:
+                            const Icon(Icons.call, color: Colors.white, size: 24),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -21,7 +21,8 @@ const roleSchema = new mongoose.Schema({
             'view_analytics',
             'manage_settings',
             'export_data',
-            'delete_leads'
+            'delete_leads',
+            'create_company'
         ]
     }],
     company: {

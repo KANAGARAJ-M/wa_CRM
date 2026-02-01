@@ -12,7 +12,7 @@ const router = express.Router();
 // @access  Private (Admin or Assigned Worker)
 router.post('/send', auth, async (req, res) => {
     try {
-        const { message, phone, leadId } = req.body;
+        let { message, phone, leadId, phoneNumberId } = req.body;
 
         if (!message || !phone) {
             return res.status(400).json({ success: false, message: 'Message and phone are required' });
@@ -37,7 +37,6 @@ router.post('/send', auth, async (req, res) => {
         }
 
         // Get Company Settings to find WhatsApp Config
-        // req.companyId is set by auth middleware
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
@@ -47,8 +46,18 @@ router.post('/send', auth, async (req, res) => {
             return res.status(404).json({ success: false, message: 'No WhatsApp configuration found for this company' });
         }
 
-        // Use the first enabled config for now (or improve to select based on context)
-        const config = company.whatsappConfigs.find(c => c.isEnabled) || company.whatsappConfigs[0];
+        // If phoneNumberId not provided, try to get from Lead
+        if (!phoneNumberId) {
+            const lead = await Lead.findOne({ phone: phone, companyId: req.companyId });
+            if (lead && lead.phoneNumberId) {
+                phoneNumberId = lead.phoneNumberId;
+            }
+        }
+
+        // Use the specified phoneNumberId, or fallback to first enabled
+        const config = phoneNumberId
+            ? company.whatsappConfigs.find(c => c.phoneNumberId === phoneNumberId)
+            : (company.whatsappConfigs.find(c => c.isEnabled) || company.whatsappConfigs[0]);
 
         if (!config || !config.phoneNumberId || !config.accessToken) {
             return res.status(400).json({ success: false, message: 'Invalid WhatsApp configuration' });

@@ -11,8 +11,10 @@ router.get('/mine', auth, async (req, res) => {
     try {
         let companies;
 
-        if (req.user.role === 'superadmin') {
-            // Superadmins see all companies
+        const hasCreateCompanyPerm = req.user.customRole?.permissions?.includes('create_company');
+
+        if (req.user.role === 'superadmin' || hasCreateCompanyPerm) {
+            // Superadmins or users with create_company permission see all companies
             companies = await Company.find({})
                 .select('name address phone website isEnabled createdAt');
         } else {
@@ -34,6 +36,10 @@ router.get('/mine', auth, async (req, res) => {
 // @access  Private
 router.post('/', auth, async (req, res) => {
     try {
+        const hasCreatePerm = req.user.role === 'superadmin' || req.user.customRole?.permissions?.includes('create_company');
+        if (!hasCreatePerm) {
+            return res.status(403).json({ success: false, message: 'Access denied. You do not have permission to create companies.' });
+        }
         const { name, address, phone, website } = req.body;
 
         if (!name) {

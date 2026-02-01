@@ -48,6 +48,9 @@ export default function Leads() {
             accountId: 'all',
             searchQuery: '',
             dateRange: { start: '', end: '' },
+            leadType: 'all',
+            receivedType: 'all',
+            agentId: 'all',
             selectedLeads: [],
             expandedAccounts: {}
         }
@@ -99,6 +102,9 @@ export default function Leads() {
                     accountId: firstAccount ? firstAccount.phoneNumberId : 'all',
                     searchQuery: '',
                     dateRange: { start: '', end: '' },
+                    leadType: 'all',
+                    receivedType: 'all',
+                    agentId: 'all',
                     selectedLeads: [],
                     expandedAccounts: {}
                 };
@@ -148,6 +154,11 @@ export default function Leads() {
         e.preventDefault();
         setSaving(true);
         setError('');
+        if (!formData.phoneNumberId) {
+            setError('Please select a WhatsApp account');
+            setSaving(false);
+            return;
+        }
 
         try {
             if (editingLead) {
@@ -336,7 +347,11 @@ export default function Leads() {
         setImportError('');
 
         try {
-            const response = await api.post('/leads/bulk', { leads: previewData });
+            const leadsWithAccount = previewData.map(lead => ({
+                ...lead,
+                phoneNumberId: activeTab.accountId
+            }));
+            const response = await api.post('/leads/bulk', { leads: leadsWithAccount });
             setImportSuccess(`Successfully imported ${response.data.count} leads!`);
             setPreviewData([]);
             fetchLeads();
@@ -562,6 +577,9 @@ export default function Leads() {
             accountId: 'all',
             searchQuery: '',
             dateRange: { start: '', end: '' },
+            leadType: 'all',
+            receivedType: 'all',
+            agentId: 'all',
             selectedLeads: [],
             expandedAccounts: activeTab.expandedAccounts // Inherit expansion state or reset? Let's inherit for convenience
         };
@@ -669,7 +687,26 @@ export default function Leads() {
             return false;
         }
 
-        // 2. Search Filter
+        // 2. Lead Type Filter
+        if (activeTab.leadType !== 'all' && lead.callType !== activeTab.leadType) {
+            return false;
+        }
+
+        // 3. Received Type Filter
+        if (activeTab.receivedType !== 'all' && lead.source !== activeTab.receivedType) {
+            return false;
+        }
+
+        // 4. Agent Filter
+        if (activeTab.agentId !== 'all') {
+            if (activeTab.agentId === 'unassigned') {
+                if (lead.assignedTo) return false;
+            } else if (lead.assignedTo?._id !== activeTab.agentId) {
+                return false;
+            }
+        }
+
+        // 4. Search Filter
         const query = activeTab.searchQuery.toLowerCase();
         return (
             lead.name.toLowerCase().includes(query) ||
@@ -740,14 +777,14 @@ export default function Leads() {
                 <div className="flex flex-col w-full">
                     {/* Header */}
                     {/* Header */}
-                    <div className="px-6 py-4 border-b border-gray-200 bg-white">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-6">
-                                <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                    <div className="px-4 py-4 border-b border-gray-200 bg-white">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+                                <h2 className="text-2xl lg:text-3xl font-bold text-gray-800 flex items-center gap-3">
                                     <div className="p-2 bg-green-100 rounded-xl">
                                         <Users className="h-6 w-6 text-green-600" />
                                     </div>
-                                    Leads
+                                    <span className="truncate">Leads</span>
                                 </h2>
 
                                 {/* Account Selector Pill */}
@@ -765,7 +802,7 @@ export default function Leads() {
                                                 title: config ? config.name : (newAccountId === 'all' ? 'All Leads' : 'Unassigned')
                                             });
                                         }}
-                                        className="pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-base rounded-full focus:ring-2 focus:ring-green-500/20 focus:border-green-500 block w-[220px] hover:bg-white hover:shadow-sm transition-all cursor-pointer appearance-none font-medium"
+                                        className="pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm lg:text-base rounded-full focus:ring-2 focus:ring-green-500/20 focus:border-green-500 block w-full sm:w-[220px] hover:bg-white hover:shadow-sm transition-all cursor-pointer appearance-none font-medium"
                                     >
                                         <option value="all">All Accounts</option>
                                         {whatsappConfigs.filter(c => c.isEnabled).map(config => (
@@ -780,7 +817,7 @@ export default function Leads() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 lg:gap-3 ml-auto lg:ml-0">
                                 <button
                                     onClick={handleExportLeads}
                                     className="p-2.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
@@ -789,18 +826,36 @@ export default function Leads() {
                                     <Download className="h-5 w-5" />
                                 </button>
                                 <button
-                                    onClick={() => setShowImportModal(true)}
-                                    className="p-2.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
-                                    title="Import Excel"
+                                    onClick={() => {
+                                        if (activeTab.accountId === 'all') {
+                                            alert('Please select a specific WhatsApp account first to assign these leads to that account.');
+                                            return;
+                                        }
+                                        setShowImportModal(true);
+                                    }}
+                                    className={`p-2.5 rounded-xl transition-all ${activeTab.accountId === 'all'
+                                        ? 'text-gray-300 cursor-not-allowed'
+                                        : 'text-gray-500 hover:text-green-600 hover:bg-green-50'}`}
+                                    title={activeTab.accountId === 'all' ? 'Select an account to enable import' : 'Import Excel'}
                                 >
                                     <Upload className="h-5 w-5" />
                                 </button>
                                 <button
-                                    onClick={() => setShowAddModal(true)}
-                                    className="px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-600/20 text-base font-semibold flex items-center gap-2 active:scale-95"
+                                    onClick={() => {
+                                        if (activeTab.accountId === 'all') {
+                                            alert('Please select a specific WhatsApp account first to assign this lead onto that account.');
+                                            return;
+                                        }
+                                        setFormData(prev => ({ ...prev, phoneNumberId: activeTab.accountId }));
+                                        setShowAddModal(true);
+                                    }}
+                                    className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl transition-all shadow-lg text-sm lg:text-base font-semibold flex items-center gap-2 active:scale-95 ${activeTab.accountId === 'all'
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                        : 'bg-green-600 text-white hover:bg-green-700 shadow-green-600/20'}`}
+                                    title={activeTab.accountId === 'all' ? 'Select an account to enable add' : 'Add New Lead'}
                                 >
-                                    <Plus className="h-5 w-5" />
-                                    Add New Lead
+                                    <Plus className="h-4 w-4 lg:h-5 lg:w-5" />
+                                    <span className="whitespace-nowrap">Add New Lead</span>
                                 </button>
                             </div>
                         </div>
@@ -834,6 +889,55 @@ export default function Leads() {
                                         <X className="h-3 w-3" />
                                     </button>
                                 )}
+                            </div>
+
+                            {/* Lead Type Filter */}
+                            <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200 w-full md:w-auto">
+                                <span className="text-xs text-gray-500 pl-1">Type:</span>
+                                <select
+                                    value={activeTab.leadType}
+                                    onChange={(e) => updateActiveTab({ leadType: e.target.value })}
+                                    className="bg-transparent border-none text-sm focus:ring-0 py-1 text-gray-600 min-w-[100px]"
+                                >
+                                    <option value="all">All Types</option>
+                                    <option value="fresh">Fresh</option>
+                                    <option value="call back">Call Back</option>
+                                    <option value="paid">Paid</option>
+                                </select>
+                            </div>
+
+                            {/* Received Type Filter */}
+                            <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200 w-full md:w-auto">
+                                <span className="text-xs text-gray-500 pl-1">Received:</span>
+                                <select
+                                    value={activeTab.receivedType}
+                                    onChange={(e) => updateActiveTab({ receivedType: e.target.value })}
+                                    className="bg-transparent border-none text-sm focus:ring-0 py-1 text-gray-600 min-w-[110px]"
+                                >
+                                    <option value="all">All Sources</option>
+                                    <option value="manual">Manual Entry</option>
+                                    <option value="excel_upload">Excel Upload</option>
+                                    <option value="facebook">Facebook</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                </select>
+                            </div>
+
+                            {/* Agent Filter */}
+                            <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200 w-full md:w-auto">
+                                <span className="text-xs text-gray-500 pl-1">Agent:</span>
+                                <select
+                                    value={activeTab.agentId}
+                                    onChange={(e) => updateActiveTab({ agentId: e.target.value })}
+                                    className="bg-transparent border-none text-sm focus:ring-0 py-1 text-gray-600 min-w-[120px]"
+                                >
+                                    <option value="all">All Agents</option>
+                                    <option value="unassigned">Unassigned</option>
+                                    {workers.filter(w => w.role === 'worker' && !w.customRole).map(worker => (
+                                        <option key={worker._id} value={worker._id}>
+                                            {worker.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="relative flex-1 w-full">
@@ -897,15 +1001,33 @@ export default function Leads() {
                                 </p>
                                 <div className="flex items-center gap-4">
                                     <button
-                                        onClick={() => setShowAddModal(true)}
-                                        className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-600/20 font-medium flex items-center gap-2"
+                                        onClick={() => {
+                                            if (activeTab.accountId === 'all') {
+                                                alert('Please select a specific WhatsApp account first to assign this lead onto that account.');
+                                                return;
+                                            }
+                                            setFormData(prev => ({ ...prev, phoneNumberId: activeTab.accountId }));
+                                            setShowAddModal(true);
+                                        }}
+                                        className={`px-6 py-3 rounded-xl transition-all shadow-lg font-medium flex items-center gap-2 ${activeTab.accountId === 'all'
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                            : 'bg-green-600 text-white hover:bg-green-700 shadow-green-600/20'}`}
                                     >
                                         <Plus className="h-5 w-5" />
                                         Add Lead
                                     </button>
                                     <button
-                                        onClick={() => setShowImportModal(true)}
-                                        className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium flex items-center gap-2"
+                                        onClick={() => {
+                                            if (activeTab.accountId === 'all') {
+                                                alert('Please select a specific WhatsApp account first to assign these leads to that account.');
+                                                return;
+                                            }
+                                            setShowImportModal(true);
+                                        }}
+                                        className={`px-6 py-3 border rounded-xl transition-all font-medium flex items-center gap-2 ${activeTab.accountId === 'all'
+                                            ? 'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                                        title={activeTab.accountId === 'all' ? 'Select an account to enable import' : 'Import Excel'}
                                     >
                                         <Upload className="h-5 w-5" />
                                         Import
@@ -941,7 +1063,7 @@ export default function Leads() {
 
                                         {/* Leads List under Account */}
                                         {(activeTab.accountId !== 'all' || activeTab.expandedAccounts[group.accountId]) && (
-                                            <div className="bg-white overflow-hidden border-t border-gray-100">
+                                            <div className="bg-white overflow-x-auto border-t border-gray-100 no-scrollbar">
                                                 <table className="min-w-full divide-y divide-gray-100">
                                                     <thead className="bg-gray-50/80 backdrop-blur-sm">
                                                         <tr>
@@ -1182,7 +1304,7 @@ export default function Leads() {
                                             </div>
                                             <div className="overflow-y-auto flex-1">
                                                 {workers
-                                                    .filter(w => !w.customRole)
+                                                    .filter(w => w.role === 'worker' && !w.customRole)
                                                     .filter(w =>
                                                         w.name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
                                                         w.email.toLowerCase().includes(agentSearchQuery.toLowerCase())
@@ -1253,9 +1375,19 @@ export default function Leads() {
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-fadeIn">
                             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                    {editingLead ? 'Edit Lead' : 'Add New Lead'}
-                                </h3>
+                                <div className="flex flex-col">
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        {editingLead ? 'Edit Lead' : 'Add New Lead'}
+                                    </h3>
+                                    {!editingLead && activeTab.accountId !== 'all' && (
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Adding to:</span>
+                                            <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-full border border-green-100 uppercase tracking-wider">
+                                                {whatsappConfigs.find(c => c.phoneNumberId === activeTab.accountId)?.name || activeTab.accountId}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                                 <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                                     <X className="h-5 w-5" />
                                 </button>
@@ -1307,17 +1439,17 @@ export default function Leads() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Account</label>
                                     <select
+                                        disabled
                                         value={formData.phoneNumberId}
-                                        onChange={(e) => setFormData({ ...formData, phoneNumberId: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed appearance-none"
                                     >
-                                        <option value="">General / Unassigned</option>
-                                        {whatsappConfigs.filter(c => c.isEnabled).map(config => (
+                                        {whatsappConfigs.map(config => (
                                             <option key={config.phoneNumberId} value={config.phoneNumberId}>
                                                 {config.name} ({config.phoneNumberId})
                                             </option>
                                         ))}
                                     </select>
+                                    <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">Account cannot be changed after selection</p>
                                 </div>
 
                                 <div>
@@ -1366,10 +1498,20 @@ export default function Leads() {
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-fadeIn max-h-[90vh] flex flex-col">
                             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                    <FileSpreadsheet className="h-5 w-5 text-green-500" />
-                                    Import Leads from Excel
-                                </h3>
+                                <div className="flex flex-col">
+                                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                        <FileSpreadsheet className="h-5 w-5 text-green-500" />
+                                        Import Leads from Excel
+                                    </h3>
+                                    {activeTab.accountId !== 'all' && (
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <span className="text-xs text-gray-500">Importing to:</span>
+                                            <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-full border border-green-100 uppercase tracking-wider">
+                                                {whatsappConfigs.find(c => c.phoneNumberId === activeTab.accountId)?.name || activeTab.accountId}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                                 <button onClick={closeImportModal} className="text-gray-400 hover:text-gray-600">
                                     <X className="h-5 w-5" />
                                 </button>
