@@ -1,4 +1,4 @@
 class ApiConfig {
-  // static const String baseUrl = 'https://srv1304549.hstgr.cloud/api';
-  static const String baseUrl = 'http://192.168.1.38:3001/api'; // For local development
+  static const String baseUrl = 'https://srv1304549.hstgr.cloud/api';
+  // static const String baseUrl = 'http://192.168.1.38:3001/api'; // For local development
 }
