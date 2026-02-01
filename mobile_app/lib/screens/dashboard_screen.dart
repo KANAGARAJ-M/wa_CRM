@@ -31,7 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _attendanceStatus = 'CHECKED_OUT';
 
   bool _isAttendanceLoading = false;
-  
+
   // Filter States
   String _leadsFilter = 'all'; // 'all' (Assigned) or 'pending'
   String _searchQuery = '';
@@ -72,10 +72,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _requestPermissions(permissions);
     }
   }
-  
+
   Future<void> _requestPermissions(List<Permission> permissions) async {
     Map<Permission, PermissionStatus> statuses = await permissions.request();
-    
+
     bool permanentlyDenied = false;
     statuses.forEach((key, value) {
       if (value.isPermanentlyDenied) {
@@ -204,7 +204,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() => _attendanceStatus = 'CHECKED_OUT');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Checked out successfully. Call logs synced.')),
+            const SnackBar(
+                content: Text('Checked out successfully. Call logs synced.')),
           );
         }
       }
@@ -237,7 +238,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Error loading data', style: TextStyle(color: Colors.red[300])),
+            Text('Error loading data',
+                style: TextStyle(color: Colors.red[300])),
             const SizedBox(height: 10),
             ElevatedButton(onPressed: _loadData, child: const Text('Retry'))
           ],
@@ -279,9 +281,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           showUnselectedLabels: true,
           elevation: 0,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.people_alt_rounded), label: 'Leads'),
-            BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Activity'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard_rounded), label: 'Home'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.people_alt_rounded), label: 'Leads'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.history_rounded), label: 'Activity'),
           ],
         ),
       ),
@@ -363,37 +368,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             // Stats Section
             if (_stats != null) _buildNewStatsLayout(),
-            
+
             const SizedBox(height: 24),
 
             // Today's Follow-ups Preview
-             if (_followUps.isNotEmpty) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Follow-ups Due',
-                      style: TextStyle(
-                        color: kTextColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+            if (_followUps.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Follow-ups Due',
+                    style: TextStyle(
+                      color: kTextColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                    TextButton(
-                      onPressed: () => setState(() => _currentIndex = 2),
-                      child: const Text('View All'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _followUps.take(3).length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) => _buildCallLogItem(_followUps[index]),
-                ),
-             ],
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _currentIndex = 2),
+                    child: const Text('View All'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _followUps.take(3).length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) =>
+                    _buildCallLogItem(_followUps[index]),
+              ),
+            ],
           ],
         ),
       ),
@@ -403,6 +409,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNewStatsLayout() {
     return Column(
       children: [
+        // NEW: Progress by Call Type Card
+        _buildProgressByCallTypeCard(),
+        const SizedBox(height: 16),
+
+        // NEW: Today's Calls Statistics Card
+        _buildTodayCallsStatsCard(),
+        const SizedBox(height: 16),
+
         // Row 1: Assigned vs Dialed (Progress) AND Orders
         Row(
           children: [
@@ -458,8 +472,272 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // NEW: Progress by Call Type Card
+  Widget _buildProgressByCallTypeCard() {
+    final progress = _stats!.progressByCallType;
+    if (progress.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.trending_up_rounded,
+                    color: Color(0xFF10B981), size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'PROGRESS',
+                style: TextStyle(
+                  color: kTextColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Header Row
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            decoration: BoxDecoration(
+              color: kBgColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'DIALED VS\nASSIGNED',
+                    style: TextStyle(
+                      color: kSecondaryColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ...progress.map((p) => Expanded(
+                      child: Text(
+                        p.callType.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: kSecondaryColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Data Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '${_stats!.dialedLeads}/${_stats!.totalLeads}',
+                    style: const TextStyle(
+                      color: kTextColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                ...progress.map((p) => Expanded(
+                      child: Text(
+                        '${p.dialed}/${p.assigned}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: kTextColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // NEW: Today's Calls Statistics Card
+  Widget _buildTodayCallsStatsCard() {
+    final todayStats = _stats!.todayCallStats;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3B82F6).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.phone_callback_rounded,
+                    color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'TOTAL CALLS TODAY',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Total Calls
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${todayStats.totalCalls}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Total Calls',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              // Duration Info
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      todayStats.totalDurationFormatted,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${todayStats.perCallDuration.toStringAsFixed(1)}s per call',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Answered Calls Row
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.call, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'ANSWERED CALLS',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${todayStats.answeredCalls}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAssignedVsDialedCard() {
-    double progress = _stats!.totalLeads > 0 ? _stats!.dialedLeads / _stats!.totalLeads : 0;
+    double progress =
+        _stats!.totalLeads > 0 ? _stats!.dialedLeads / _stats!.totalLeads : 0;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -484,12 +762,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: Colors.blue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.assignment_turned_in_rounded, color: Colors.blue, size: 20),
+                child: const Icon(Icons.assignment_turned_in_rounded,
+                    color: Colors.blue, size: 20),
               ),
               const SizedBox(width: 12),
               const Text(
                 'Progress',
-                style: TextStyle(color: kSecondaryColor, fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    color: kSecondaryColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -519,8 +801,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-  
-  Widget _buildLargeStatCard(String title, String value, IconData icon, Color color) {
+
+  Widget _buildLargeStatCard(
+      String title, String value, IconData icon, Color color) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -624,7 +907,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isCheckedIn ? 'Tracking duration...' : 'Check in to start calls',
+                  isCheckedIn
+                      ? 'Tracking duration...'
+                      : 'Check in to start calls',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.8),
                     fontSize: 14,
@@ -638,7 +923,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: isCheckedIn ? Colors.green : Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
             child: _isAttendanceLoading
@@ -655,65 +941,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildModernStatCard(
-      String title, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+      String title, String value, IconData icon, Color color,
+      {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: kCardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: kTextColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: kSecondaryColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: kTextColor,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: kSecondaryColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   // --- LEADS TAB ---
-  
+
   List<Lead> get _filteredLeads {
     return _leads.where((lead) {
       if (_leadsFilter == 'pending') {
@@ -728,30 +1015,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // However, we don't have 'dialed' flag directly on Lead, but we might infer from status or lastInteraction.
         // If lastInteraction is null, it's definitely pending/new.
         if (lead.lastInteraction != null) {
-             return false; // It has been interacted with, so not "strictly" pending in "To Do" sense?
-             // But what about follow-ups? They are also pending tasks.
-             // If user wants "Assigned" list (All) vs "Pending" list.
-             // Let's stick to: Pending = No interaction yet (Status 'new' or null).
+          return false; // It has been interacted with, so not "strictly" pending in "To Do" sense?
+          // But what about follow-ups? They are also pending tasks.
+          // If user wants "Assigned" list (All) vs "Pending" list.
+          // Let's stick to: Pending = No interaction yet (Status 'new' or null).
         }
       }
 
-      final matchesSearch = lead.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          lead.phone.contains(_searchQuery);
-      
+      final matchesSearch =
+          lead.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              lead.phone.contains(_searchQuery);
+
       bool matchesDate = true;
       if (_selectedDateRange != null) {
-        // Use updatedAt or fallback to a default if null for filtering? 
+        // Use updatedAt or fallback to a default if null for filtering?
         // If updatedAt is null, we assume it matches or doesn't match based on requirement.
         // Here we'll treat null as "no date" and strictly filter if date is present.
         if (lead.updatedAt != null) {
           final start = _selectedDateRange!.start;
-          final end = _selectedDateRange!.end.add(const Duration(days: 1)); // End of day
-          matchesDate = lead.updatedAt!.isAfter(start) && lead.updatedAt!.isBefore(end);
+          final end = _selectedDateRange!.end
+              .add(const Duration(days: 1)); // End of day
+          matchesDate =
+              lead.updatedAt!.isAfter(start) && lead.updatedAt!.isBefore(end);
         } else {
-             matchesDate = false; 
+          matchesDate = false;
         }
       }
-      
+
       return matchesSearch && matchesDate;
     }).toList();
   }
@@ -792,7 +1082,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                   const Text(
+                  const Text(
                     'Leads',
                     style: TextStyle(
                       color: kTextColor,
@@ -802,13 +1092,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const Spacer(),
-                   if (_selectedDateRange != null)
+                  if (_selectedDateRange != null)
                     Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: InputChip(
                         label: Text(
                           '${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}',
-                          style: const TextStyle(fontSize: 12, color: Colors.white),
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.white),
                         ),
                         backgroundColor: kPrimaryColor,
                         onDeleted: () {
@@ -816,7 +1107,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             _selectedDateRange = null;
                           });
                         },
-                        deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white),
+                        deleteIcon: const Icon(Icons.close,
+                            size: 14, color: Colors.white),
                       ),
                     ),
                   InkWell(
@@ -836,11 +1128,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ],
                       ),
-                      child: Icon(
-                        Icons.calendar_today_rounded, 
-                        color: _selectedDateRange != null ? kPrimaryColor : kTextColor, 
-                        size: 20
-                      ),
+                      child: Icon(Icons.calendar_today_rounded,
+                          color: _selectedDateRange != null
+                              ? kPrimaryColor
+                              : kTextColor,
+                          size: 20),
                     ),
                   )
                 ],
@@ -887,10 +1179,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: kPrimaryColor, width: 1.5),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  suffixIcon: _searchQuery.isNotEmpty 
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, color: kSecondaryColor),
                           onPressed: () {
@@ -898,7 +1192,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             setState(() => _searchQuery = '');
                           },
                         )
-                      : null, 
+                      : null,
                 ),
               ),
             ],
@@ -909,12 +1203,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
             child: _filteredLeads.isEmpty
-                ? _buildEmptyState(_leads.isEmpty ? 'No leads assigned' : 'No matching leads found')
+                ? _buildEmptyState(_leads.isEmpty
+                    ? 'No leads assigned'
+                    : 'No matching leads found')
                 : ListView.separated(
                     padding: const EdgeInsets.all(20),
                     itemCount: _filteredLeads.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) => _buildLeadItem(_filteredLeads[index]),
+                    itemBuilder: (context, index) =>
+                        _buildLeadItem(_filteredLeads[index]),
                   ),
           ),
         ),
@@ -942,7 +1239,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             backgroundColor: kPrimaryColor.withOpacity(0.1),
             child: Text(
               lead.name.characters.first.toUpperCase(),
-              style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: kPrimaryColor, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 16),
@@ -953,7 +1251,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   lead.name,
                   style: const TextStyle(
-                      color: kTextColor, fontWeight: FontWeight.w600, fontSize: 16),
+                      color: kTextColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -961,39 +1261,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: const TextStyle(color: kSecondaryColor, fontSize: 13),
                 ),
                 if (lead.status != null) ...[
-                   const SizedBox(height: 4),
-                   Container(
-                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                     decoration: BoxDecoration(
+                  const SizedBox(height: 4),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
                         color: Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4)
-                     ),
-                     child: Text(
-                        lead.status!.toUpperCase(),
-                        style: const TextStyle(color: kTextColor, fontSize: 10),
-                     ),
-                   )
+                        borderRadius: BorderRadius.circular(4)),
+                    child: Text(
+                      lead.status!.toUpperCase(),
+                      style: const TextStyle(color: kTextColor, fontSize: 10),
+                    ),
+                  )
                 ]
               ],
             ),
           ),
           Row(
             children: [
-               IconButton(
-                icon: const Icon(Icons.chat_bubble_outline, color: kPrimaryColor), 
+              IconButton(
+                icon:
+                    const Icon(Icons.chat_bubble_outline, color: kPrimaryColor),
                 onPressed: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => ChatScreen(lead: lead)));
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.phone, color: Color(0xFF10B981)), 
+                icon: const Icon(Icons.phone, color: Color(0xFF10B981)),
                 onPressed: () {
-                    _makeCall(lead.phone);
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => CallLogScreen(lead: lead)));
+                  _makeCall(lead.phone);
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => CallLogScreen(lead: lead)));
                 },
               ),
             ],
@@ -1006,7 +1309,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // --- ACTIVITY TAB ---
   Widget _buildActivityTab() {
     // Filter calls to get orders
-    final orders = _calls.where((c) => c.orderStatus != null || c.outcome.toLowerCase() == 'converted').toList();
+    final orders = _calls
+        .where((c) =>
+            c.orderStatus != null || c.outcome.toLowerCase() == 'converted')
+        .toList();
 
     return DefaultTabController(
       length: 3,
@@ -1016,7 +1322,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+              borderRadius:
+                  const BorderRadius.vertical(bottom: Radius.circular(30)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.03),
@@ -1045,7 +1352,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: kBgColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.tune_rounded, color: kTextColor, size: 20),
+                      child: const Icon(Icons.tune_rounded,
+                          color: kTextColor, size: 20),
                     ),
                   ],
                 ),
@@ -1069,9 +1377,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     labelColor: kPrimaryColor,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14),
                     unselectedLabelColor: kSecondaryColor,
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+                    unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.normal, fontSize: 14),
                     tabs: const [
                       Tab(text: 'Calls'),
                       Tab(text: 'Follow-ups'),
@@ -1087,9 +1397,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: TabBarView(
               children: [
-                 _buildListOrEmpty(_calls, 'No recent calls'),
-                 _buildListOrEmpty(_followUps, 'No pending follow-ups'),
-                 _buildListOrEmpty(orders, 'No orders found'),
+                _buildListOrEmpty(_calls, 'No recent calls'),
+                _buildListOrEmpty(_followUps, 'No pending follow-ups'),
+                _buildListOrEmpty(orders, 'No orders found'),
               ],
             ),
           ),
@@ -1097,18 +1407,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-  
+
   Widget _buildListOrEmpty(List<CallLog> items, String emptyMsg) {
-     if (items.isEmpty) return _buildEmptyState(emptyMsg);
-     return RefreshIndicator(
-        onRefresh: _handleRefresh,
-        child: ListView.separated(
-           padding: const EdgeInsets.symmetric(horizontal: 20),
-           itemCount: items.length,
-           separatorBuilder: (_, __) => const SizedBox(height: 12),
-           itemBuilder: (context, index) => _buildCallLogItem(items[index]),
-        ),
-     );
+    if (items.isEmpty) return _buildEmptyState(emptyMsg);
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) => _buildCallLogItem(items[index]),
+      ),
+    );
   }
 
   Widget _buildCallLogItem(CallLog log) {
@@ -1134,7 +1444,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: outcomeColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(_getOutcomeIcon(log.outcome), color: outcomeColor, size: 20),
+            child: Icon(_getOutcomeIcon(log.outcome),
+                color: outcomeColor, size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -1144,45 +1455,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   log.leadName ?? 'Unknown',
                   style: const TextStyle(
-                      color: kTextColor, fontWeight: FontWeight.w600, fontSize: 16),
+                      color: kTextColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16),
                 ),
                 const SizedBox(height: 4),
-                 Text(
+                Text(
                   DateFormat('MMM d, h:mm a').format(log.createdAt),
                   style: const TextStyle(color: kSecondaryColor, fontSize: 12),
                 ),
                 if (log.notes != null && log.notes!.isNotEmpty) ...[
-                   const SizedBox(height: 6),
-                   Text(
-                      log.notes!,
-                      style: const TextStyle(color: kSecondaryColor, fontSize: 13, fontStyle: FontStyle.italic),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                   )
+                  const SizedBox(height: 6),
+                  Text(
+                    log.notes!,
+                    style: const TextStyle(
+                        color: kSecondaryColor,
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  )
                 ]
               ],
             ),
           ),
           Column(
-             crossAxisAlignment: CrossAxisAlignment.end,
-             children: [
-                Text(
-                   '${log.duration}s',
-                   style: const TextStyle(color: kSecondaryColor, fontWeight: FontWeight.bold),
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${log.duration}s',
+                style: const TextStyle(
+                    color: kSecondaryColor, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                    border: Border.all(color: outcomeColor.withOpacity(0.5)),
+                    borderRadius: BorderRadius.circular(4)),
+                child: Text(
+                  log.outcome.toUpperCase(),
+                  style: TextStyle(
+                      color: outcomeColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 5),
-                Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                   decoration: BoxDecoration(
-                      border: Border.all(color: outcomeColor.withOpacity(0.5)),
-                      borderRadius: BorderRadius.circular(4)
-                   ),
-                   child: Text(
-                      log.outcome.toUpperCase(),
-                      style: TextStyle(color: outcomeColor, fontSize: 10, fontWeight: FontWeight.bold),
-                   ),
-                )
-             ],
+              )
+            ],
           )
         ],
       ),

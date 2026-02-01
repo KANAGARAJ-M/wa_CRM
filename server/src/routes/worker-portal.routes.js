@@ -305,6 +305,71 @@ router.get('/stats', auth, async (req, res) => {
             outcome: 'converted'
         });
 
+        // ====== NEW: Call Type Progress ======
+        // Get leads grouped by call type with assigned and dialed counts
+        const callTypeProgress = await Lead.aggregate([
+            { $match: { assignedTo: req.user._id } },
+            {
+                $group: {
+                    _id: { $ifNull: ['$callType', 'Fresh'] },
+                    assigned: { $sum: 1 },
+                    leadIds: { $push: '$_id' }
+                }
+            }
+        ]);
+
+        // For each call type, count how many have been dialed
+        const progressByCallType = [];
+        for (const ct of callTypeProgress) {
+            const dialedCount = await Call.distinct('leadId', {
+                workerId: req.user._id,
+                leadId: { $in: ct.leadIds }
+            });
+            progressByCallType.push({
+                callType: ct._id || 'Fresh',
+                assigned: ct.assigned,
+                dialed: dialedCount.length
+            });
+        }
+
+        // ====== NEW: Today's Calls Statistics ======
+        const todayCallsAgg = await Call.aggregate([
+            {
+                $match: {
+                    workerId: req.user._id,
+                    createdAt: { $gte: today }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalCalls: { $sum: 1 },
+                    totalDuration: { $sum: '$duration' },
+                    answeredCalls: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $gt: ['$duration', 0] }, { $eq: ['$status', 'completed'] }] },
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            }
+        ]);
+
+        const todayStats = todayCallsAgg.length > 0 ? todayCallsAgg[0] : { totalCalls: 0, totalDuration: 0, answeredCalls: 0 };
+        const todayTotalDuration = todayStats.totalDuration || 0;
+        const todayAnsweredCalls = todayStats.answeredCalls || 0;
+        const todayPerCallDuration = todayCalls > 0 ? (todayTotalDuration / todayCalls).toFixed(2) : 0;
+
+        // Format duration in hours and minutes
+        const todayDurationHours = Math.floor(todayTotalDuration / 3600);
+        const todayDurationMinutes = Math.floor((todayTotalDuration % 3600) / 60);
+        const todayDurationFormatted = todayDurationHours > 0
+            ? `${todayDurationHours}h ${todayDurationMinutes}m`
+            : `${todayDurationMinutes}m`;
+
         res.json({
             success: true,
             data: {
@@ -316,7 +381,16 @@ router.get('/stats', auth, async (req, res) => {
                 orders,
                 followUps,
                 conversions,
-                conversionRate: totalCalls > 0 ? ((conversions / totalCalls) * 100).toFixed(1) : 0
+                conversionRate: totalCalls > 0 ? ((conversions / totalCalls) * 100).toFixed(1) : 0,
+                // New fields
+                progressByCallType,
+                todayCallStats: {
+                    totalCalls: todayCalls,
+                    totalDuration: todayTotalDuration,
+                    totalDurationFormatted: todayDurationFormatted,
+                    perCallDuration: parseFloat(todayPerCallDuration),
+                    answeredCalls: todayAnsweredCalls
+                }
             }
         });
     } catch (error) {

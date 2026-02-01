@@ -45,13 +45,20 @@ class Lead {
       status: json['status'],
       notes: json['notes'],
       phoneNumberId: json['phoneNumberId'],
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
-      lastInteraction: json['lastInteraction'] != null ? DateTime.parse(json['lastInteraction']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      lastInteraction: json['lastInteraction'] != null
+          ? DateTime.parse(json['lastInteraction'])
+          : null,
       source: json['source'] ?? 'manual',
       location: json['location'],
       businessName: json['businessName'],
-      locationFilledBy: json['locationFilledBy'] is Map ? json['locationFilledBy']['name'] : null,
-      businessFilledBy: json['businessFilledBy'] is Map ? json['businessFilledBy']['name'] : null,
+      locationFilledBy: json['locationFilledBy'] is Map
+          ? json['locationFilledBy']['name']
+          : null,
+      businessFilledBy: json['businessFilledBy'] is Map
+          ? json['businessFilledBy']['name']
+          : null,
       callType: json['callType'],
     );
   }
@@ -79,7 +86,9 @@ class Message {
       id: json['_id'] ?? '',
       body: json['body'] ?? '',
       isIncoming: json['isIncoming'] ?? (json['direction'] == 'incoming'),
-      timestamp: json['timestamp'] != null ? DateTime.parse(json['timestamp']) : DateTime.now(),
+      timestamp: json['timestamp'] != null
+          ? DateTime.parse(json['timestamp'])
+          : DateTime.now(),
       status: json['status'],
       type: json['type'],
     );
@@ -129,13 +138,16 @@ class CallLog {
     return CallLog(
       id: json['_id'] ?? '',
       leadId: json['leadId'] is Map ? json['leadId']['_id'] : json['leadId'],
-      leadName: json['leadId'] is Map ? json['leadId']['name'] : json['leadName'],
+      leadName:
+          json['leadId'] is Map ? json['leadId']['name'] : json['leadName'],
       phoneNumber: json['phoneNumber'] ?? '',
       status: json['status'] ?? 'completed',
       outcome: json['outcome'] ?? 'other',
       duration: json['duration'] ?? 0,
       notes: json['notes'],
-      followUpDate: json['followUpDate'] != null ? DateTime.parse(json['followUpDate']) : null,
+      followUpDate: json['followUpDate'] != null
+          ? DateTime.parse(json['followUpDate'])
+          : null,
       followUpNotes: json['followUpNotes'],
       priority: json['priority'],
       product: json['product'],
@@ -143,7 +155,9 @@ class CallLog {
       businessDetails: json['businessDetails'],
       orderStatus: json['orderStatus'],
       workerName: json['workerId'] is Map ? json['workerId']['name'] : null,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
     );
   }
 }
@@ -158,6 +172,8 @@ class WorkerStats {
   final int followUps;
   final int conversions;
   final double conversionRate;
+  final List<CallTypeProgress> progressByCallType;
+  final TodayCallStats todayCallStats;
 
   WorkerStats({
     required this.totalCalls,
@@ -169,9 +185,15 @@ class WorkerStats {
     required this.followUps,
     required this.conversions,
     required this.conversionRate,
+    required this.progressByCallType,
+    required this.todayCallStats,
   });
 
   factory WorkerStats.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> progressJson = json['progressByCallType'] ?? [];
+    final List<CallTypeProgress> progressList =
+        progressJson.map((p) => CallTypeProgress.fromJson(p)).toList();
+
     return WorkerStats(
       totalCalls: json['totalCalls'] ?? 0,
       todayCalls: json['todayCalls'] ?? 0,
@@ -181,7 +203,57 @@ class WorkerStats {
       orders: json['orders'] ?? 0,
       followUps: json['followUps'] ?? 0,
       conversions: json['conversions'] ?? 0,
-      conversionRate: double.tryParse(json['conversionRate']?.toString() ?? '0') ?? 0,
+      conversionRate:
+          double.tryParse(json['conversionRate']?.toString() ?? '0') ?? 0,
+      progressByCallType: progressList,
+      todayCallStats: TodayCallStats.fromJson(json['todayCallStats'] ?? {}),
+    );
+  }
+}
+
+class CallTypeProgress {
+  final String callType;
+  final int assigned;
+  final int dialed;
+
+  CallTypeProgress({
+    required this.callType,
+    required this.assigned,
+    required this.dialed,
+  });
+
+  factory CallTypeProgress.fromJson(Map<String, dynamic> json) {
+    return CallTypeProgress(
+      callType: json['callType'] ?? 'Fresh',
+      assigned: json['assigned'] ?? 0,
+      dialed: json['dialed'] ?? 0,
+    );
+  }
+}
+
+class TodayCallStats {
+  final int totalCalls;
+  final int totalDuration;
+  final String totalDurationFormatted;
+  final double perCallDuration;
+  final int answeredCalls;
+
+  TodayCallStats({
+    required this.totalCalls,
+    required this.totalDuration,
+    required this.totalDurationFormatted,
+    required this.perCallDuration,
+    required this.answeredCalls,
+  });
+
+  factory TodayCallStats.fromJson(Map<String, dynamic> json) {
+    return TodayCallStats(
+      totalCalls: json['totalCalls'] ?? 0,
+      totalDuration: json['totalDuration'] ?? 0,
+      totalDurationFormatted: json['totalDurationFormatted'] ?? '0m',
+      perCallDuration:
+          double.tryParse(json['perCallDuration']?.toString() ?? '0') ?? 0,
+      answeredCalls: json['answeredCalls'] ?? 0,
     );
   }
 }
