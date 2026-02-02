@@ -1,0 +1,104 @@
+Meta Catalog API
+Sync products with WhatsApp Commerce Manager
+
+
+oky but the producst need to publish on the whtsapp acoount 
+
+
+create product through 
+
+curl -i -G \
+  'https://graph.facebook.com/v24.0/1497474621350981?fields=id,name,product_count' \
+  -d 'access_token=EAA9E3EkYde4BQkkOMlZATkJsgWx9jJl8ZBwP237taruo3Dod8veo8gqs1ZAMerc6ayVd7Og0ltLYhMC3QXkT9aHZCPnhN7s1EoNHOJdOmE1TqNNNpmzf2LZCdUNY7yct7sc3MqC7R8sR7Fwl2TJC4MIpVp4GmtRRaRdS72p2JffoDwb5jnyPeZBhZA6uSZC4LUZCPRQZDZD'
+
+
+ After the request successfully runs, you see the following response:
+
+{
+  "name": "Product Catalog Name",
+  "product_count": "<product_count>",
+  "id": "<catalog_id>"
+}
+
+
+2. Below is an example API request for creating products. Try making this call in GraphAPI Explorer.
+
+
+curl -i -X POST \
+  'https://graph.facebook.com/v24.0/1497474621350981/items_batch' \
+  -d 'item_type=PRODUCT_ITEM' \
+  -d 'requests=[
+  {
+    "method": "CREATE",
+    "data": {
+      "id": "test_product_retailer_id_1",
+      "title": "Product 1 Title",
+      "description": "HTML <b>Description</b> of the Product 1",
+      "price": "100.4 USD",
+      "image_link": "image_url_for_product_1",
+      "link": "website_url_for_product_1",
+      "availability": "in stock",
+      "condition": "new",
+      "brand": "brand_name"
+    }
+  },
+  {
+    "method": "CREATE",
+    "data": {
+      "id": "test_product_retailer_id_2",
+      "title": "Product 2 Title",
+      "description": "HTML <b>Description</b> of the Product 2",
+      "price": "120.4 USD",
+      "image_link": "image_url_for_product_2",
+      "link": "website_url_for_product_2",
+      "availability": "in stock",
+      "condition": "new",
+      "brand": "brand_name_for_product_2"
+    }
+  }
+]' \
+  -d 'access_token=EAA9E3EkYde4BQkkOMlZATkJsgWx9jJl8ZBwP237taruo3Dod8veo8gqs1ZAMerc6ayVd7Og0ltLYhMC3QXkT9aHZCPnhN7s1EoNHOJdOmE1TqNNNpmzf2LZCdUNY7yct7sc3MqC7R8sR7Fwl2TJC4MIpVp4GmtRRaRdS72p2JffoDwb5jnyPeZBhZA6uSZC4LUZCPRQZDZD'
+
+After the request successfully runs, you should see the following response:
+
+{
+  "handles": [
+    "{HANDLE_ID}"
+  ]
+}
+
+Below is an example API request for fetching products in your catalog. Try making this call in GraphAPI Explorer.
+
+
+curl -i -G \
+ 'https://graph.facebook.com/v24.0/1497474621350981/products' \
+ -d 'filter={"name":{"i_contains":"title"}}' \
+ -d 'fields=retailer_id,id,name,category,errors' \
+ -d 'access_token=EAA9E3EkYde4BQkkOMlZATkJsgWx9jJl8ZBwP237taruo3Dod8veo8gqs1ZAMerc6ayVd7Og0ltLYhMC3QXkT9aHZCPnhN7s1EoNHOJdOmE1TqNNNpmzf2LZCdUNY7yct7sc3MqC7R8sR7Fwl2TJC4MIpVp4GmtRRaRdS72p2JffoDwb5jnyPeZBhZA6uSZC4LUZCPRQZDZD'
+
+
+After the request successfully runs, you will see list of products in following format.
+
+{
+  "data": [
+    {
+      "retailer_id": "test_product_retailer_id_2",
+      "id": "<PRODUCT_ID>",
+      "name": "Product 2 Title"
+    },
+    {
+      "retailer_id": "test_product_retailer_id_1",
+      "id": "<PRODUCT_ID>",
+      "name": "Product 1 Title"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "<prev_page_cursor>",
+      "after": "<next_page_cursor>"
+    },
+    "next": "https://graph.intern.facebook.com/v22.0/{CATALOG_ID}/products?access_token={ACCESS_TOKEN}&fields=retailer_id,id,name,category,errors&filter={\"name\":{\"i_contains\":\"title\"}}&after={next_page_cursor}",
+    "previous": "https://graph.intern.facebook.com/v22.0/{CATALOG_ID}/products?access_token={ACCESS_TOKEN}&fields=retailer_id,id,name,category,errors&filter={\"name\":{\"i_contains\":\"title\"}}&after={prev_page_cursor}"
+  }
+}
+

@@ -21,6 +21,7 @@ export default function Settings() {
     // WhatsApp Settings
     const [whatsappConfigs, setWhatsappConfigs] = useState([]);
     const [showTokens, setShowTokens] = useState({});
+    const [showAdvanced, setShowAdvanced] = useState({});
 
     // Integrations Settings
     const [metaCatalogConfig, setMetaCatalogConfig] = useState({
@@ -93,7 +94,9 @@ export default function Settings() {
                 phoneNumberId: '',
                 businessAccountId: '',
                 webhookVerifyToken: 'meta_integration_1121',
-                isEnabled: false
+                isEnabled: false,
+                catalogId: '',
+                catalogAccessToken: ''
             }
         ]);
     };
@@ -137,6 +140,13 @@ export default function Settings() {
 
     const toggleShowToken = (index) => {
         setShowTokens(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
+    };
+
+    const toggleAdvanced = (index) => {
+        setShowAdvanced(prev => ({
             ...prev,
             [index]: !prev[index]
         }));
@@ -508,6 +518,52 @@ export default function Settings() {
                                                         </button>
                                                     </div>
                                                 </div>
+
+                                                {/* Advanced Settings Checkbox */}
+                                                <div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleAdvanced(index)}
+                                                        className="text-xs text-green-600 font-medium hover:underline flex items-center gap-1"
+                                                    >
+                                                        {showAdvanced[index] ? 'Hide Advanced Options' : 'Show Advanced Options (Custom Catalog, etc.)'}
+                                                    </button>
+                                                </div>
+
+                                                {/* Advanced Settings Panel */}
+                                                {showAdvanced[index] && (
+                                                    <div className="bg-gray-100 p-3 rounded-lg border border-gray-200 mt-2 animate-fadeIn">
+                                                        <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Detailed Configuration (Optional)</h4>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-600 mb-1">Specific Catalog ID</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={config.catalogId || ''}
+                                                                    onChange={(e) => handleConfigChange(index, 'catalogId', e.target.value)}
+                                                                    placeholder="Override Default Catalog ID"
+                                                                    disabled={isLocked}
+                                                                    className="w-full px-3 py-2 border rounded-lg focus:ring-green-500 text-sm"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-600 mb-1">Catalog Access Token</label>
+                                                                <input
+                                                                    type="password"
+                                                                    value={config.catalogAccessToken || ''}
+                                                                    onChange={(e) => handleConfigChange(index, 'catalogAccessToken', e.target.value)}
+                                                                    placeholder="Override Token (if different)"
+                                                                    disabled={isLocked}
+                                                                    className="w-full px-3 py-2 border rounded-lg focus:ring-green-500 text-sm"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-500 mt-2">
+                                                            If set, products will also be synced to this specific catalog when you push updates.
+                                                            Useful if this phone number belongs to a different Business Manager.
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))
                                     )}
@@ -524,8 +580,8 @@ export default function Settings() {
                                     <div className="flex items-center gap-3">
                                         <ShoppingBag className="h-5 w-5 text-blue-600" />
                                         <div>
-                                            <h2 className="text-lg font-semibold text-gray-800">Meta Catalog API</h2>
-                                            <p className="text-xs text-gray-500">Sync products with WhatsApp Commerce Manager</p>
+                                            <h2 className="text-lg font-semibold text-gray-800">Default Meta Catalog</h2>
+                                            <p className="text-xs text-gray-500">Sync products with WhatsApp Commerce Manager (Default)</p>
                                         </div>
                                     </div>
                                     <div className="relative">
@@ -768,6 +824,7 @@ export default function Settings() {
                                         <li>Click <strong>Add Assets</strong> and assign the Catalog with <strong>Manage Catalog</strong> permission.</li>
                                         <li>Click <strong>Generate New Token</strong>, select the App, and ensure <code>catalog_management</code> scope is checked.</li>
                                         <li>Paste this token above. This allows the CRM to read your product list.</li>
+                                        <li><strong>Important:</strong> To use these products in WhatsApp, go to <strong>WhatsApp Manager</strong> &gt; <strong>Catalog</strong> and connect this catalog to your WhatsApp Business Account.</li>
                                     </ol>
                                 </div>
                                 <div className="border-t border-blue-200 pt-3">

@@ -22,6 +22,7 @@ export default function Products() {
     });
     const [submitting, setSubmitting] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [pushing, setPushing] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -52,6 +53,21 @@ export default function Products() {
             setError('Failed to sync products: ' + (error.response?.data?.message || 'Unknown error'));
         } finally {
             setSyncing(false);
+        }
+    };
+
+    const handlePush = async () => {
+        setPushing(true);
+        setError('');
+        try {
+            const res = await api.post('/products/push-to-meta');
+            await fetchProducts(); // Refresh to get updated retailer IDs if any
+            alert(res.data.message);
+        } catch (error) {
+            console.error('Error pushing to Meta:', error);
+            setError('Failed to push products: ' + (error.response?.data?.message || 'Unknown error'));
+        } finally {
+            setPushing(false);
         }
     };
 
@@ -134,11 +150,19 @@ export default function Products() {
                 <div className="flex gap-2">
                     <button
                         onClick={handleSync}
-                        disabled={syncing}
+                        disabled={syncing || pushing}
                         className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 text-sm font-medium"
                     >
                         {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                         Sync from Meta
+                    </button>
+                    <button
+                        onClick={handlePush}
+                        disabled={syncing || pushing}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 text-sm font-medium"
+                    >
+                        {pushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 transform rotate-180" />}
+                        Push to Meta
                     </button>
                     <button
                         onClick={() => handleOpenModal()}

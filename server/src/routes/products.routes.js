@@ -142,6 +142,156 @@ router.post('/sync', auth, async (req, res) => {
     }
 });
 
+// @route   POST /api/products/push-to-meta
+// @desc    Push local products to Meta Catalog (Create/Update)
+// @access  Private
+router.post('/push-to-meta', auth, async (req, res) => {
+    try {
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const company = await Company.findById(req.companyId);
+        if (!company) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
+        }
+
+        const { catalogId, accessToken } = company.metaCatalogConfig || {};
+        const whatsappConfigs = company.whatsappConfigs || [];
+
+        // Collect all unique catalogs (Global + Per-Account)
+        const catalogsToSync = [];
+
+        // Add Global Catalog if exists
+        if (catalogId && accessToken) {
+            catalogsToSync.push({
+                name: 'Default Global Catalog',
+                id: catalogId,
+                token: accessToken
+            });
+        }
+
+        // Add Per-Account Catalogs if they differ
+        for (const config of whatsappConfigs) {
+            if (config.catalogId && config.catalogAccessToken) {
+                // Check if already in list to avoid duplicates
+                const exists = catalogsToSync.find(c => c.id === config.catalogId);
+                if (!exists) {
+                    catalogsToSync.push({
+                        name: `Account ${config.name} Catalog`,
+                        id: config.catalogId,
+                        token: config.catalogAccessToken
+                    });
+                }
+            }
+        }
+
+        if (catalogsToSync.length === 0) {
+            return res.status(400).json({ success: false, message: 'No Meta Catalog configurations found (neither Global nor Per-Account).' });
+        }
+
+        // Fetch all active products
+        const products = await Product.find({ company: req.companyId, active: true });
+
+        if (products.length === 0) {
+            return res.json({ success: true, message: 'No products to sync.' });
+        }
+
+        const results = [];
+        const productsToUpdateRetailerId = [];
+
+        // Prepare request payload (same for all catalogs)
+        const requests = [];
+
+        for (const product of products) {
+            let method = 'UPDATE';
+            let retailerId = product.retailerId;
+
+            if (!retailerId) {
+                method = 'CREATE';
+                retailerId = product._id.toString(); // Use Mongo ID as Retailer ID if missing
+                // Only push to update list if not already there
+                const alreadyQueued = productsToUpdateRetailerId.find(p => p._id.toString() === product._id.toString());
+                if (!alreadyQueued) {
+                    productsToUpdateRetailerId.push({ _id: product._id, retailerId });
+                }
+            }
+
+            requests.push({
+                method: method,
+                data: {
+                    id: retailerId,
+                    title: product.name,
+                    description: product.description || product.name,
+                    price: `${product.price} ${product.currency || 'USD'}`,
+                    image_link: product.imageUrl || 'https://via.placeholder.com/150',
+                    link: company.website || `https://example.com/product/${product._id}`,
+                    availability: 'in stock',
+                    condition: 'new',
+                    brand: company.name || 'Generic'
+                }
+            });
+        }
+
+        // Push to each catalog
+        for (const catalog of catalogsToSync) {
+            try {
+                // Using v24.0 as requested
+                const metaUrl = `https://graph.facebook.com/v24.0/${catalog.id}/items_batch`;
+
+                const payload = {
+                    item_type: 'PRODUCT_ITEM',
+                    requests: requests
+                };
+
+                const response = await fetch(metaUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        access_token: catalog.token,
+                        ...payload
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    results.push({ catalog: catalog.name, success: false, error: data.error.message });
+                } else {
+                    results.push({ catalog: catalog.name, success: true, count: requests.length });
+                }
+            } catch (err) {
+                results.push({ catalog: catalog.name, success: false, error: err.message });
+            }
+        }
+
+        // If at least one sync was successful (or we attempted), update local Retailer IDs
+        if (productsToUpdateRetailerId.length > 0) {
+            for (const item of productsToUpdateRetailerId) {
+                await Product.findByIdAndUpdate(item._id, { retailerId: item.retailerId });
+            }
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        const totalCount = results.length;
+
+        // More detailed message
+        let message = `Sync complete. ${successCount}/${totalCount} catalogs updated successfully.`;
+        if (successCount === 0 && totalCount > 0) {
+            message = `Failed to sync to any catalogs. See details.`;
+        }
+
+        res.json({
+            success: successCount > 0,
+            message: message,
+            details: results
+        });
+    } catch (error) {
+        console.error('Push to Meta error:', error);
+        res.status(500).json({ success: false, message: 'Failed to push to Meta: ' + error.message });
+    }
+});
+
 // @route   DELETE /api/products/:id
 // @desc    Delete a product (soft delete)
 // @access  Private

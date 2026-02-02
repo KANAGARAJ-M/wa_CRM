@@ -7,7 +7,10 @@ const whatsappConfigSchema = new mongoose.Schema({
     phoneNumberId: { type: String, default: '' },
     businessAccountId: { type: String, default: '' },
     webhookVerifyToken: { type: String, default: '' },
-    isEnabled: { type: Boolean, default: false }
+    isEnabled: { type: Boolean, default: false },
+    // Per-account Catalog Override
+    catalogId: { type: String, default: '' },
+    catalogAccessToken: { type: String, default: '' }
 }, { _id: true }); // Keep _id for identifying configs
 
 const companySchema = new mongoose.Schema({
