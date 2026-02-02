@@ -543,4 +543,66 @@ router.get('/subscription-status', auth, adminOnly, async (req, res) => {
     }
 });
 
+// @route   POST /api/whatsapp/link-catalog
+// @desc    Link a Catalog to the WhatsApp Business Account (Connect Inventory)
+// @access  Private
+router.post('/link-catalog', auth, async (req, res) => {
+    try {
+        const { phoneNumberId, catalogId } = req.body;
+
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const company = await Company.findById(req.companyId);
+        if (!company) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
+        }
+
+        const config = company.whatsappConfigs.find(c => c.phoneNumberId === phoneNumberId);
+        if (!config) {
+            return res.status(404).json({ success: false, message: 'WhatsApp configuration not found for this Phone Number ID' });
+        }
+
+        if (!config.businessAccountId || !config.accessToken) {
+            return res.status(400).json({ success: false, message: 'Business Account ID or Access Token missing in configuration' });
+        }
+
+        // Determine which catalog to use (Payload > Config Override > Global)
+        const targetCatalogId = catalogId || config.catalogId || company.metaCatalogConfig?.catalogId;
+
+        if (!targetCatalogId) {
+            return res.status(400).json({ success: false, message: 'No Catalog ID specified or found in configuration' });
+        }
+
+        const GRAPH_API_URL = 'https://graph.facebook.com/v19.0';
+        const url = `${GRAPH_API_URL}/${config.businessAccountId}/product_catalogs`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${config.accessToken}`
+            },
+            body: JSON.stringify({
+                product_catalog_id: targetCatalogId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            console.error('Link Catalog Error:', data.error);
+            // Handle "already connected" gracefully if possible, but raw error is usually okay
+            throw new Error(data.error.message);
+        }
+
+        res.json({ success: true, message: 'Catalog successfully linked to WhatsApp Business Account' });
+
+    } catch (error) {
+        console.error('Link catalog error:', error);
+        res.status(500).json({ success: false, message: 'Failed to link catalog: ' + error.message });
+    }
+});
+
 module.exports = router;

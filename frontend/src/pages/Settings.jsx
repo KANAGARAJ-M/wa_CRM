@@ -152,6 +152,27 @@ export default function Settings() {
         }));
     };
 
+    const handleLinkCatalog = async (index) => {
+        const config = whatsappConfigs[index];
+        if (!config.phoneNumberId) {
+            alert('Phone Number ID is required first.');
+            return;
+        }
+
+        if (!confirm(`This will connect the Catalog to the WhatsApp Business Account for ${config.name}. Continue?`)) return;
+
+        try {
+            const res = await api.post('/whatsapp/link-catalog', {
+                phoneNumberId: config.phoneNumberId,
+                catalogId: config.catalogId // Optional, backend handles fallback
+            });
+            alert(res.data.message);
+        } catch (error) {
+            console.error('Link catalog error:', error);
+            alert('Failed to link catalog: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
     const checkSubscriptionStatus = async () => {
         setCheckingStatus(true);
         setError('');
@@ -557,6 +578,16 @@ export default function Settings() {
                                                                     className="w-full px-3 py-2 border rounded-lg focus:ring-green-500 text-sm"
                                                                 />
                                                             </div>
+                                                        </div>
+                                                        <div className="mt-3 flex justify-end">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleLinkCatalog(index)}
+                                                                className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-100 flex items-center gap-1"
+                                                            >
+                                                                <Link className="h-3 w-3" />
+                                                                Link Catalog to WhatsApp Account
+                                                            </button>
                                                         </div>
                                                         <p className="text-[10px] text-gray-500 mt-2">
                                                             If set, products will also be synced to this specific catalog when you push updates.
