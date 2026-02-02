@@ -120,17 +120,23 @@ router.post('/sync', auth, async (req, res) => {
             const priceValue = parseFloat((item.price || '0').replace(/[^0-9.]/g, ''));
             validRetailerIds.push(item.retailer_id);
 
+            const updateData = {
+                name: item.name,
+                description: item.description,
+                price: priceValue || 0,
+                currency: item.currency || 'INR', // Default to INR based on user region
+                active: true,
+                retailerId: item.retailer_id
+            };
+
+            // Only update image if Meta returns a valid URL
+            if (item.image_url) {
+                updateData.imageUrl = item.image_url;
+            }
+
             await Product.findOneAndUpdate(
                 { company: req.companyId, retailerId: item.retailer_id },
-                {
-                    name: item.name,
-                    description: item.description,
-                    price: priceValue || 0,
-                    currency: item.currency || 'USD',
-                    imageUrl: item.image_url,
-                    active: true,
-                    retailerId: item.retailer_id
-                },
+                updateData,
                 { upsert: true, new: true }
             );
             syncedCount++;
@@ -236,19 +242,28 @@ router.post('/push-to-meta', auth, async (req, res) => {
                 }
             }
 
+            const payloadData = {
+                id: retailerId,
+                title: product.name,
+                description: product.description || product.name,
+                availability: 'in stock',
+                condition: 'new',
+                price: `${product.price} ${product.currency || 'INR'}`, // Ensure currency matches catalog
+                link: company.website || `https://example.com/product/${product._id}`,
+                image_link: product.imageUrl, // Must be a PUBLIC URL
+                brand: company.name || 'Generic',
+                origin_country_code: 'IN' // Helps with validation for IN accounts
+            };
+
+            // Validate Image URL (Must be public for Meta to download)
+            if (!product.imageUrl || product.imageUrl.includes('localhost') || product.imageUrl.includes('127.0.0.1')) {
+                console.warn(`[Push] Skipping image for ${product.name} - Invalid/Local URL: ${product.imageUrl}`);
+                payloadData.image_link = 'https://via.placeholder.com/500x500.png?text=Product+Image';
+            }
+
             requests.push({
                 method: method,
-                data: {
-                    id: retailerId,
-                    title: product.name,
-                    description: product.description || product.name,
-                    price: `${product.price} ${product.currency || 'USD'}`,
-                    image_link: product.imageUrl || 'https://via.placeholder.com/150',
-                    link: company.website || `https://example.com/product/${product._id}`,
-                    availability: 'in stock',
-                    condition: 'new',
-                    brand: company.name || 'Generic'
-                }
+                data: payloadData
             });
         }
 
