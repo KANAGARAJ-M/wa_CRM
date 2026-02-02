@@ -592,7 +592,7 @@ router.post('/link-catalog', auth, async (req, res) => {
                 'Authorization': `Bearer ${config.accessToken}`
             },
             body: JSON.stringify({
-                product_catalog_id: targetCatalogId
+                catalog_id: targetCatalogId
             })
         });
 
