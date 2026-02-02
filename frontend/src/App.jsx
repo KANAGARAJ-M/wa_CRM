@@ -13,6 +13,7 @@ import CompanySelection from './pages/CompanySelection';
 import Dashboard from './pages/Dashboard';
 import AgentStatus from './pages/AgentStatus';
 import Roles from './pages/Roles';
+import Products from './pages/Products';
 import Layout from './components/Layout';
 
 const AdminRoute = ({ children }) => {
@@ -195,6 +196,15 @@ function App() {
             element={
               <AdminRoute>
                 <Roles />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/products"
+            element={
+              <AdminRoute>
+                <Products />
               </AdminRoute>
             }
           />

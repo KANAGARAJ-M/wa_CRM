@@ -44,6 +44,23 @@ const companySchema = new mongoose.Schema({
     settingsPassword: {
         type: String,
         default: 'Openthelock'
+    },
+    metaCatalogConfig: {
+        catalogId: { type: String, default: '' },
+        accessToken: { type: String, default: '' }
+    },
+    autoReplyConfig: {
+        enabled: { type: Boolean, default: false },
+        message: { type: String, default: '' }
+    },
+    paymentConfig: {
+        provider: { type: String, default: 'manual' }, // stripe, manual, etc.
+        enabled: { type: Boolean, default: false },
+        details: { type: Object, default: {} } // For storing keys or instructions
+    },
+    clientFormConfig: {
+        enabled: { type: Boolean, default: false },
+        formLink: { type: String, default: '' }
     }
 }, {
     timestamps: true

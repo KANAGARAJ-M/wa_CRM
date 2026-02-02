@@ -55,7 +55,10 @@ router.put('/', auth, async (req, res) => {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
-        const { whatsappConfigs, name, address, phone, website, products } = req.body;
+        const {
+            whatsappConfigs, name, address, phone, website, products,
+            metaCatalogConfig, autoReplyConfig, paymentConfig, clientFormConfig
+        } = req.body;
 
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
@@ -72,6 +75,11 @@ router.put('/', auth, async (req, res) => {
         if (phone !== undefined) company.phone = phone;
         if (website !== undefined) company.website = website;
         if (products !== undefined) company.products = products;
+
+        if (metaCatalogConfig !== undefined) company.metaCatalogConfig = metaCatalogConfig;
+        if (autoReplyConfig !== undefined) company.autoReplyConfig = autoReplyConfig;
+        if (paymentConfig !== undefined) company.paymentConfig = paymentConfig;
+        if (clientFormConfig !== undefined) company.clientFormConfig = clientFormConfig;
 
         await company.save();
 

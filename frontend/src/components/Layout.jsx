@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     MessageSquare, Settings, LogOut, Menu, X, ChevronLeft,
-    Users, MessageCircle, ChevronDown, ChevronRight, Building2, Phone, BarChart3, Shield, Clock
+    Users, MessageCircle, ChevronDown, ChevronRight, Building2, Phone, BarChart3, Shield, Clock, ShoppingBag
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -294,6 +294,23 @@ export default function Layout({ children }) {
                                             >
                                                 <Shield className="h-4 w-4" />
                                                 <span className="text-sm font-medium">Roles & Permissions</span>
+                                            </NavLink>
+                                        )}
+
+                                        {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('manage_settings')) && (
+                                            <NavLink
+                                                to="/products"
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className={({ isActive }) =>
+                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                ${isActive
+                                                        ? 'bg-blue-500/20 text-blue-400'
+                                                        : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
+                                                    }`
+                                                }
+                                            >
+                                                <ShoppingBag className="h-4 w-4" />
+                                                <span className="text-sm font-medium">Products</span>
                                             </NavLink>
                                         )}
                                     </div>
