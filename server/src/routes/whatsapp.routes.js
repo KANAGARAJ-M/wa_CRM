@@ -605,7 +605,24 @@ router.post('/link-catalog', auth, async (req, res) => {
             throw new Error(data.error.message);
         }
 
-        res.json({ success: true, message: 'Catalog successfully linked to WhatsApp Business Account' });
+        // Verify the link by fetching connected catalogs
+        console.log('🔍 Verifying connected catalogs...');
+        const verifyUrl = `${GRAPH_API_URL}/${config.businessAccountId}/product_catalogs`;
+        const verifyResponse = await fetch(verifyUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${config.accessToken}`
+            }
+        });
+        const verifyData = await verifyResponse.json();
+        console.log('📋 Connected Catalogs:', JSON.stringify(verifyData));
+
+        res.json({
+            success: true,
+            message: 'Catalog link request processed. Check console for verification details.',
+            connectedCatalogs: verifyData.data || [],
+            metaResponse: data
+        });
 
     } catch (error) {
         console.error('🔥 Link catalog EXCEPTION:', error);

@@ -166,7 +166,15 @@ export default function Settings() {
                 phoneNumberId: config.phoneNumberId,
                 catalogId: config.catalogId // Optional, backend handles fallback
             });
-            alert(res.data.message);
+
+            let msg = res.data.message;
+            if (res.data.connectedCatalogs && res.data.connectedCatalogs.length > 0) {
+                const ids = res.data.connectedCatalogs.map(c => c.id).join(', ');
+                msg += `\n\n✅ Verified Connected Catalogs: ${ids}`;
+            } else {
+                msg += `\n\n⚠️ Warning: No connected catalogs found after linking.`;
+            }
+            alert(msg);
         } catch (error) {
             console.error('Link catalog error:', error);
             alert('Failed to link catalog: ' + (error.response?.data?.message || error.message));
