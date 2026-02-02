@@ -114,9 +114,11 @@ router.post('/sync', auth, async (req, res) => {
 
         const metaProducts = data.data || [];
         let syncedCount = 0;
+        const validRetailerIds = [];
 
         for (const item of metaProducts) {
             const priceValue = parseFloat((item.price || '0').replace(/[^0-9.]/g, ''));
+            validRetailerIds.push(item.retailer_id);
 
             await Product.findOneAndUpdate(
                 { company: req.companyId, retailerId: item.retailer_id },
@@ -134,7 +136,24 @@ router.post('/sync', auth, async (req, res) => {
             syncedCount++;
         }
 
-        res.json({ success: true, message: `Successfully synced ${syncedCount} products from Meta Catalog.`, count: syncedCount });
+        // Deactivate local products that are NOT in Meta anymore
+        // Only consider products that HAVE a retailerId (meaning they were synced before)
+        const deactivated = await Product.updateMany(
+            {
+                company: req.companyId,
+                active: true,
+                retailerId: { $exists: true, $ne: '' },
+                retailerId: { $nin: validRetailerIds }
+            },
+            { active: false }
+        );
+
+        res.json({
+            success: true,
+            message: `Sync complete: ${syncedCount} from Meta, ${deactivated.modifiedCount} deactivated locally.`,
+            count: syncedCount,
+            deactivated: deactivated.modifiedCount
+        });
 
     } catch (error) {
         console.error('Sync products error:', error);
