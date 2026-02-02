@@ -340,6 +340,51 @@ router.delete('/:id', auth, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Product not found' });
         }
 
+        // If product is synced (has retailerId), delete from Meta first
+        if (product.retailerId) {
+            try {
+                const company = await Company.findById(req.companyId);
+                const { catalogId, accessToken } = company.metaCatalogConfig || {};
+                const whatsappConfigs = company.whatsappConfigs || [];
+
+                // Collect catalogs
+                const catalogsToSync = [];
+                if (catalogId && accessToken) {
+                    catalogsToSync.push({ id: catalogId, token: accessToken });
+                }
+                for (const config of whatsappConfigs) {
+                    if (config.catalogId && config.catalogAccessToken) {
+                        const exists = catalogsToSync.find(c => c.id === config.catalogId);
+                        if (!exists) catalogsToSync.push({ id: config.catalogId, token: config.catalogAccessToken });
+                    }
+                }
+
+                // Delete from each catalog
+                for (const catalog of catalogsToSync) {
+                    try {
+                        await fetch(`https://graph.facebook.com/v24.0/${catalog.id}/items_batch`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                access_token: catalog.token,
+                                item_type: 'PRODUCT_ITEM',
+                                requests: [{
+                                    method: 'DELETE',
+                                    data: { id: product.retailerId }
+                                }]
+                            })
+                        });
+                        console.log(`Deleted product ${product.retailerId} from catalog ${catalog.id}`);
+                    } catch (metaErr) {
+                        console.error('Failed to delete from Meta:', metaErr);
+                    }
+                }
+            } catch (err) {
+                console.error('Error preparing Meta deletion:', err);
+                // Continue with local deletion even if Meta fails
+            }
+        }
+
         product.active = false;
         await product.save();
         res.json({ success: true, message: 'Product removed' });
