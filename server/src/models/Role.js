@@ -22,7 +22,9 @@ const roleSchema = new mongoose.Schema({
             'manage_settings',
             'export_data',
             'delete_leads',
-            'create_company'
+            'create_company',
+            'import_leads',
+            'export_leads'
         ]
     }],
     company: {

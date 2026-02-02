@@ -6,9 +6,19 @@ const router = express.Router();
 
 // @route   POST /api/leads/bulk
 // @desc    Bulk create leads
-// @access  Private/Admin
-router.post('/bulk', auth, adminOnly, async (req, res) => {
+// @access  Private - requires import_leads permission
+router.post('/bulk', auth, async (req, res) => {
     try {
+        // Permission Check
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+        const canImportLeads = isAdmin || permissions.includes('import_leads');
+
+        if (!canImportLeads) {
+            return res.status(403).json({ success: false, message: 'Access denied. Import leads permission required.' });
+        }
+
         const { leads } = req.body;
 
         if (!leads || !Array.isArray(leads) || leads.length === 0) {
@@ -42,6 +52,7 @@ router.post('/bulk', auth, adminOnly, async (req, res) => {
         });
     }
 });
+
 
 // @route   POST /api/leads
 // @desc    Create a single lead

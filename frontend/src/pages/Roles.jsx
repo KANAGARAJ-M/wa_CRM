@@ -15,7 +15,9 @@ const PERMISSIONS = [
     { id: 'manage_settings', label: 'Manage Settings', description: 'Configure company and WhatsApp settings' },
     { id: 'export_data', label: 'Export Data', description: 'Export leads and reports to Excel' },
     { id: 'delete_leads', label: 'Delete Leads', description: 'Permanently delete leads' },
-    { id: 'create_company', label: 'Create Company', description: 'Create and switch between multiple companies like a Superadmin' }
+    { id: 'create_company', label: 'Create Company', description: 'Create and switch between multiple companies like a Superadmin' },
+    { id: 'import_leads', label: 'Import Leads', description: 'Import leads from Excel files' },
+    { id: 'export_leads', label: 'Export Leads', description: 'Export leads data to Excel files' }
 ];
 
 export default function Roles() {

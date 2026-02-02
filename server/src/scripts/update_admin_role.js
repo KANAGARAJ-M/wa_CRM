@@ -12,7 +12,10 @@ const ALL_PERMISSIONS = [
     'view_analytics',
     'manage_settings',
     'export_data',
-    'delete_leads'
+    'delete_leads',
+    'create_company',
+    'import_leads',
+    'export_leads'
 ];
 
 const updateAdminRole = async () => {
