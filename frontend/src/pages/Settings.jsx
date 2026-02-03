@@ -221,21 +221,21 @@ export default function Settings() {
         setTimeout(() => setSuccess(''), 3000);
     };
 
-    const subscribeToMessages = async () => {
+    const subscribeToMessages = async (businessAccountId = null) => {
         setSubscribing(true);
         setError('');
         try {
-            const response = await api.post('/whatsapp/subscribe');
+            const response = await api.post('/whatsapp/subscribe', { businessAccountId });
             const results = response.data.results || [];
             const allSuccess = results.every(r => r.success);
 
             if (allSuccess) {
-                setSuccess('Successfully subscribed all accounts to receive messages!');
+                setSuccess(businessAccountId ? 'Successfully subscribed account!' : 'Successfully subscribed all accounts to receive messages!');
                 // Refresh status after subscribing
                 await checkSubscriptionStatus();
             } else {
                 const failed = results.filter(r => !r.success);
-                setError(`Some accounts failed to subscribe: ${failed.map(f => f.name + (f.error?.message ? ` - ${f.error.message}` : '')).join(', ')}`);
+                setError(`Failed to subscribe: ${failed.map(f => f.name + (f.error?.message ? ` - ${f.error.message}` : '')).join(', ')}`);
             }
             setTimeout(() => setSuccess(''), 3000);
         } catch (error) {
@@ -423,10 +423,10 @@ export default function Settings() {
                                             className="px-3 py-1.5 bg-blue-50 text-blue-600 text-sm rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2 disabled:opacity-70 border border-blue-200"
                                         >
                                             {checkingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                                            Check Status
+                                            Verify Sub
                                         </button>
                                         <button
-                                            onClick={subscribeToMessages}
+                                            onClick={() => subscribeToMessages()}
                                             disabled={subscribing || whatsappConfigs.length === 0}
                                             className="px-3 py-1.5 bg-green-50 text-green-600 text-sm rounded-lg hover:bg-green-100 transition-colors flex items-center gap-2 disabled:opacity-70 border border-green-200"
                                         >
@@ -444,11 +444,28 @@ export default function Settings() {
                                                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                                                     <div className="flex items-center gap-2">
                                                         {status.isSubscribed ? <Check className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-amber-500" />}
-                                                        <span className="text-sm font-medium text-gray-700">{status.name}</span>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-medium text-gray-700">{status.name}</span>
+                                                            {!status.isSubscribed && (
+                                                                <span className="text-[10px] text-red-500 font-medium">Not receiving messages</span>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${status.isSubscribed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {status.isSubscribed ? 'Active' : 'Error'}
-                                                    </span>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`text-xs px-2 py-0.5 rounded-full ${status.isSubscribed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                            {status.isSubscribed ? 'Active' : 'Error'}
+                                                        </span>
+                                                        {!status.isSubscribed && (
+                                                            <button
+                                                                onClick={() => subscribeToMessages(status.businessAccountId)}
+                                                                disabled={subscribing}
+                                                                className="px-2 py-1 bg-amber-500 text-white text-[10px] uppercase font-bold rounded hover:bg-amber-600 transition-colors flex items-center gap-1"
+                                                            >
+                                                                {subscribing ? <Loader2 className="h-2 w-2 animate-spin" /> : <Wifi className="h-2 w-2" />}
+                                                                Auto Sub
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -546,6 +563,14 @@ export default function Settings() {
                                                             {showTokens[index] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                                         </button>
                                                     </div>
+                                                    <input
+                                                        type="text"
+                                                        value={config.webhookVerifyToken || ''}
+                                                        onChange={(e) => handleConfigChange(index, 'webhookVerifyToken', e.target.value)}
+                                                        placeholder="Webhook Verify Token"
+                                                        disabled={isLocked}
+                                                        className="w-full px-3 py-2 border rounded-lg focus:ring-green-500"
+                                                    />
                                                 </div>
 
                                                 {/* Advanced Settings Checkbox */}

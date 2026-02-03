@@ -432,6 +432,7 @@ router.get('/', async (req, res) => {
 // @access  Private/Admin
 router.post('/subscribe', auth, adminOnly, async (req, res) => {
     try {
+        const { businessAccountId } = req.body;
         const settings = await Settings.findOne();
         if (!settings || !settings.whatsappConfigs || settings.whatsappConfigs.length === 0) {
             return res.status(404).json({ success: false, message: 'No WhatsApp configuration found' });
@@ -440,8 +441,11 @@ router.post('/subscribe', auth, adminOnly, async (req, res) => {
         const results = [];
         const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
 
-        // Iterate through all configs and subscribe them
+        // Iterate through configs and subscribe them
         for (const config of settings.whatsappConfigs) {
+            // If businessAccountId is provided, only subscribe that specific one
+            if (businessAccountId && config.businessAccountId !== businessAccountId) continue;
+
             if (config.businessAccountId && config.accessToken) {
                 try {
                     const url = `${GRAPH_API_URL}/${config.businessAccountId}/subscribed_apps`;
