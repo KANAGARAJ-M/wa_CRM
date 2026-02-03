@@ -288,11 +288,13 @@ router.post('/', async (req, res) => {
                 body.entry[0].changes[0].value.messages[0]
             ) {
                 const phoneNumberId = body.entry[0].changes[0].value.metadata.phone_number_id;
-                const from = body.entry[0].changes[0].value.messages[0].from;
-                const msgBody = body.entry[0].changes[0].value.messages[0].text?.body;
-                const msgType = body.entry[0].changes[0].value.messages[0].type;
-                const messageId = body.entry[0].changes[0].value.messages[0].id;
+                const messageData = body.entry[0].changes[0].value.messages[0];
+                const from = messageData.from;
+                const msgBody = messageData.text?.body;
+                const msgType = messageData.type;
+                const messageId = messageData.id;
                 const fromName = body.entry[0].changes[0].value.contacts[0].profile.name;
+                const referral = messageData.referral;
 
                 // Check if message already exists (to prevent duplicates)
                 const existingMessage = await WhatsAppMessage.findOne({ messageId });
@@ -318,7 +320,7 @@ router.post('/', async (req, res) => {
                         type: msgType,
                         body: msgBody,
                         messageId,
-                        metadata: body.entry[0].changes[0].value.messages[0]
+                        metadata: messageData
                     });
 
                     // Create or update lead from WhatsApp message
@@ -327,19 +329,27 @@ router.post('/', async (req, res) => {
                         let lead = await Lead.findOne({ phone: from, companyId: companyId });
 
                         if (!lead) {
-                            // Create new lead
-                            lead = await Lead.create({
-                                companyId: companyId,
-                                name: fromName || `WhatsApp User ${from}`,
-                                phone: from,
-                                phoneNumberId: phoneNumberId,
-                                source: 'whatsapp',
-                                stage: 'new',
-                                status: 'new',
-                                notes: `Initial message via WhatsApp: ${msgBody || `[${msgType} message]`}`,
-                                uploadDate: new Date()
-                            });
-                            console.log(`✅ Created new lead from WhatsApp: ${fromName} (${from}) for account ${phoneNumberId}`);
+                            // ONLY create new lead if it's from an Ad (has referral)
+                            if (referral) {
+                                const referralSource = referral.source_url || 'Facebook/Instagram Ad';
+                                const referralHeadline = referral.headline || 'Ad Response';
+
+                                // Create new lead
+                                lead = await Lead.create({
+                                    companyId: companyId,
+                                    name: fromName || `WhatsApp User ${from}`,
+                                    phone: from,
+                                    phoneNumberId: phoneNumberId,
+                                    source: 'whatsapp_ad',
+                                    stage: 'new',
+                                    status: 'new',
+                                    notes: `Lead generated from Ad Click.\nHeadline: ${referralHeadline}\nSource: ${referralSource}\n\nInitial message: ${msgBody || `[${msgType} message]`}`,
+                                    uploadDate: new Date()
+                                });
+                                console.log(`✅ Created new lead from WhatsApp Ad: ${fromName} (${from}) for account ${phoneNumberId}`);
+                            } else {
+                                console.log(`ℹ️ Message from ${from} is a regular chat with no referral, skipping Lead creation.`);
+                            }
                         } else {
                             // Associate with this account if not already associated
                             if (!lead.phoneNumberId) {
