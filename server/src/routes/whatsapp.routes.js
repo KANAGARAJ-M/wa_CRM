@@ -487,6 +487,7 @@ router.post('/subscribe', auth, adminOnly, async (req, res) => {
 // @desc    Check if app is subscribed to WhatsApp Business Account
 // @access  Private/Admin
 router.get('/subscription-status', auth, adminOnly, async (req, res) => {
+    console.log('DEBUG: Hit /subscription-status route');
     try {
         const settings = await Settings.findOne();
         if (!settings || !settings.whatsappConfigs || settings.whatsappConfigs.length === 0) {
