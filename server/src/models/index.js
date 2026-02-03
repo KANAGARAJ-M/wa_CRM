@@ -15,5 +15,7 @@ module.exports = {
     Company,
     Call,
     Role,
-    Product
+    Product,
+    Form: require('./Form'),
+    FormSubmission: require('./FormSubmission')
 };

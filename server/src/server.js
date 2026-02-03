@@ -37,6 +37,7 @@ app.use('/api/calls', require('./routes/calls.routes'));
 app.use('/api/roles', require('./routes/roles.routes'));
 app.use('/api/attendance', require('./routes/attendance.routes'));
 app.use('/api/products', require('./routes/products.routes'));
+app.use('/api/forms', require('./routes/forms.routes'));
 
 // Webhook routes (public, no /api prefix for WhatsApp)
 app.use('/whatsapp', whatsappRoutes);

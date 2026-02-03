@@ -1,5 +1,5 @@
 const express = require('express');
-const { WhatsAppMessage, Settings, Lead, Company } = require('../models');
+const { WhatsAppMessage, Settings, Lead, Company, Product } = require('../models');
 const { auth, adminOnly } = require('../middleware');
 
 const router = express.Router();
@@ -326,6 +326,7 @@ router.post('/', async (req, res) => {
         const body = req.body;
 
         // Check if this is an event from WhatsApp Cloud API
+        // Check if this is an event from WhatsApp Cloud API
         if (body.object) {
             if (
                 body.entry &&
@@ -342,6 +343,7 @@ router.post('/', async (req, res) => {
                 const messageId = messageData.id;
                 const fromName = body.entry[0].changes[0].value.contacts[0].profile.name;
                 const referral = messageData.referral;
+                const context = messageData.context;
 
                 // Check if message already exists (to prevent duplicates)
                 const existingMessage = await WhatsAppMessage.findOne({ messageId });
@@ -369,6 +371,63 @@ router.post('/', async (req, res) => {
                         messageId,
                         metadata: messageData
                     });
+
+                    // PRODUCT INQUIRY AUTO-REPLY LOGIC
+                    if (context && context.referred_product && context.referred_product.product_retailer_id) {
+                        const retailerId = context.referred_product.product_retailer_id;
+                        console.log(`🛒 Received product inquiry for retailerId: ${retailerId}`);
+
+                        // Find the product
+                        const product = await Product.findOne({ company: companyId, retailerId: retailerId }).populate('linkedForm');
+
+                        if (product && product.linkedForm) {
+                            console.log(`✨ Product ${product.name} has linked form: ${product.linkedForm.title}. Sending auto-reply...`);
+
+                            const formUrl = `http://localhost:5173/form/${product.linkedForm._id}`; // TODO: Use real domain in production
+                            const replyMessage = `Thanks for your interest in *${product.name}*! \n\nPlease complete your order by filling out this form:\n${formUrl}`;
+
+                            // Determine which config to use for sending reply
+                            const config = company.whatsappConfigs.find(c => c.phoneNumberId === phoneNumberId);
+
+                            if (config && config.accessToken) {
+                                const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
+                                const url = `${GRAPH_API_URL}/${phoneNumberId}/messages`;
+
+                                try {
+                                    await fetch(url, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${config.accessToken}`
+                                        },
+                                        body: JSON.stringify({
+                                            messaging_product: 'whatsapp',
+                                            recipient_type: 'individual',
+                                            to: from,
+                                            type: 'text',
+                                            text: { body: replyMessage }
+                                        })
+                                    });
+
+                                    // Save the auto-reply to DB
+                                    await WhatsAppMessage.create({
+                                        companyId: companyId,
+                                        phoneNumberId,
+                                        from: phoneNumberId,
+                                        to: from,
+                                        direction: 'outgoing',
+                                        type: 'text',
+                                        body: replyMessage,
+                                        messageId: `auto-reply-${Date.now()}`,
+                                        status: 'sent'
+                                    });
+                                    console.log('✅ Auto-reply sent successfully.');
+                                } catch (replyErr) {
+                                    console.error('Failed to send auto-reply:', replyErr);
+                                }
+                            }
+                        }
+                    }
 
                     // Create or update lead from WhatsApp message
                     try {

@@ -32,6 +32,10 @@ const productSchema = new mongoose.Schema({
     active: {
         type: Boolean,
         default: true
+    },
+    linkedForm: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Form'
     }
 }, {
     timestamps: true

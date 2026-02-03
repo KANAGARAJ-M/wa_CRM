@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import AgentStatus from './pages/AgentStatus';
 import Roles from './pages/Roles';
 import Products from './pages/Products';
+import PublicForm from './pages/PublicForm';
 import Layout from './components/Layout';
 
 const AdminRoute = ({ children }) => {
@@ -226,6 +227,10 @@ function App() {
               </WorkerRoute>
             }
           />
+
+          {/* Public Form Route */}
+          <Route path="/form/:id" element={<PublicForm />} />
+
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
