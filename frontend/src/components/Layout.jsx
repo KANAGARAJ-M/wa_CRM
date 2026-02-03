@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
 import {
     MessageSquare, Settings, LogOut, Menu, X, ChevronLeft,
     Users, MessageCircle, ChevronDown, ChevronRight, Building2, Phone, BarChart3, Shield, Clock, ShoppingBag
@@ -11,9 +12,25 @@ export default function Layout({ children }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [communicationExpanded, setCommunicationExpanded] = useState(true);
     const [companyExpanded, setCompanyExpanded] = useState(true);
+    const [unreadCount, setUnreadCount] = useState(0);
     const { user, logout, currentCompany } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 5000); // Check every 5 seconds
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchUnreadCount = async () => {
+        try {
+            const response = await api.get('/whatsapp/unread-count');
+            setUnreadCount(response.data.count || 0);
+        } catch (error) {
+            console.error('Error fetching unread count:', error);
+        }
+    };
 
     const handleLogout = () => {
         logout();
@@ -166,7 +183,10 @@ export default function Layout({ children }) {
                                     }
                                 >
                                     <MessageCircle className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Chats</span>
+                                    <span className="text-sm font-medium flex-1">Chats</span>
+                                    {unreadCount > 0 && (
+                                        <div className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                                    )}
                                 </NavLink>
 
                                 {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('view_all_leads') || user?.customRole?.permissions?.includes('view_own_leads')) && (

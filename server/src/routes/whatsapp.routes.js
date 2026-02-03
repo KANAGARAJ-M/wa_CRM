@@ -205,6 +205,53 @@ router.post('/mark-read', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/whatsapp/unread-count
+// @desc    Get total count of unread incoming messages
+// @access  Private/Admin/Agent
+router.get('/unread-count', auth, async (req, res) => {
+    try {
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const user = req.user;
+        const isAdmin = ['admin', 'superadmin'].includes(user.role);
+        const permissions = user.customRole?.permissions || [];
+
+        // Basic query for unread incoming messages
+        const query = {
+            companyId: req.companyId,
+            direction: 'incoming',
+            status: { $in: ['received', 'pending'] } // 'received' is the main one, 'pending' shouldn't be incoming but safe to check
+        };
+
+        // If user can only view own leads, we need to filter messages
+        // effective permission check: canViewAll vs canViewOwn
+        const canViewAll = isAdmin || permissions.includes('view_all_leads');
+        const canViewOwn = permissions.includes('view_own_leads');
+
+        if (!canViewAll && !canViewOwn) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        if (!canViewAll && canViewOwn) {
+            // Find leads assigned to this user
+            const leads = await Lead.find({ assignedTo: user._id, companyId: req.companyId }).select('phone');
+            const phoneNumbers = leads.map(l => l.phone);
+
+            // Only count messages from these phone numbers
+            query.from = { $in: phoneNumbers };
+        }
+
+        const count = await WhatsAppMessage.countDocuments(query);
+
+        res.json({ success: true, count });
+    } catch (error) {
+        console.error('Get unread count error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 // @route   GET /api/whatsapp/messages
 // @desc    Get all WhatsApp messages, optionally filtered by phoneNumberId
 // @access  Private/Admin/Agent
