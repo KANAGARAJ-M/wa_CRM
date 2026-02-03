@@ -433,16 +433,30 @@ router.get('/', async (req, res) => {
 router.post('/subscribe', auth, adminOnly, async (req, res) => {
     try {
         const { businessAccountId } = req.body;
+
+        let configs = [];
         const settings = await Settings.findOne();
-        if (!settings || !settings.whatsappConfigs || settings.whatsappConfigs.length === 0) {
-            return res.status(404).json({ success: false, message: 'No WhatsApp configuration found' });
+        if (settings && settings.whatsappConfigs && settings.whatsappConfigs.length > 0) {
+            configs = settings.whatsappConfigs;
+        }
+
+        // Use company-specific configs if global ones are missing
+        if (configs.length === 0 && req.companyId) {
+            const company = await Company.findById(req.companyId);
+            if (company && company.whatsappConfigs && company.whatsappConfigs.length > 0) {
+                configs = company.whatsappConfigs;
+            }
+        }
+
+        if (configs.length === 0) {
+            return res.status(404).json({ success: false, message: 'No WhatsApp configuration found in Settings or Company' });
         }
 
         const results = [];
         const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
 
         // Iterate through configs and subscribe them
-        for (const config of settings.whatsappConfigs) {
+        for (const config of configs) {
             // If businessAccountId is provided, only subscribe that specific one
             if (businessAccountId && config.businessAccountId !== businessAccountId) continue;
 
@@ -492,16 +506,29 @@ router.get('/test-route', (req, res) => res.send('WhatsApp Router is ALIVE!'));
 router.get('/subscription-status', auth, adminOnly, async (req, res) => {
     console.log('DEBUG: Hit /subscription-status route');
     try {
+        let configs = [];
         const settings = await Settings.findOne();
-        if (!settings || !settings.whatsappConfigs || settings.whatsappConfigs.length === 0) {
-            return res.status(404).json({ success: false, message: 'No WhatsApp configuration found' });
+        if (settings && settings.whatsappConfigs && settings.whatsappConfigs.length > 0) {
+            configs = settings.whatsappConfigs;
+        }
+
+        // Use company-specific configs if global ones are missing
+        if (configs.length === 0 && req.companyId) {
+            const company = await Company.findById(req.companyId);
+            if (company && company.whatsappConfigs && company.whatsappConfigs.length > 0) {
+                configs = company.whatsappConfigs;
+            }
+        }
+
+        if (configs.length === 0) {
+            return res.status(404).json({ success: false, message: 'No WhatsApp configuration found in Settings or Company' });
         }
 
         const results = [];
         const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
 
         // Check subscription status for each config
-        for (const config of settings.whatsappConfigs) {
+        for (const config of configs) {
             if (config.businessAccountId && config.accessToken) {
                 try {
                     // Check subscribed apps
