@@ -46,7 +46,8 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         message: 'WhatsApp CRM API is running',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        last_update: '2026-02-03 15:00' // Use this to check if push worked
     });
 });
 

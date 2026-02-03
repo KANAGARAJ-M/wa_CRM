@@ -483,6 +483,9 @@ router.post('/subscribe', auth, adminOnly, async (req, res) => {
     }
 });
 
+// Public test route to verify path availability
+router.get('/test-route', (req, res) => res.send('WhatsApp Router is ALIVE!'));
+
 // @route   GET /whatsapp/subscription-status
 // @desc    Check if app is subscribed to WhatsApp Business Account
 // @access  Private/Admin
