@@ -495,7 +495,12 @@ async function processFlowRequest(body) {
         let flowResponse = await FlowResponse.findOne({ flowToken: flow_token });
 
         if (!flowResponse) {
-            const phone = data?.phone || 'unknown';
+            // Try to find phone number from various common fields
+            const phone = data?.phone || data?.saved_phone || data?.phone_number || data?.mobile || 'unknown';
+
+            // Try to extract name
+            const name = data?.name || data?.saved_name || data?.full_name || data?.customer_name || 'Anonymous';
+
             const product = await Product.findOne({ whatsappFlowId: { $exists: true } });
             const companyId = product?.company;
 
@@ -505,6 +510,7 @@ async function processFlowRequest(body) {
                 flowId: data?.flow_id || 'unknown',
                 flowToken: flow_token,
                 from: phone,
+                fromName: name, // Save extracted name
                 responseData: data || {},
                 parsedFields: Object.entries(data || {}).map(([k, v]) => ({
                     fieldName: k,
@@ -516,6 +522,14 @@ async function processFlowRequest(body) {
             });
         } else {
             const mergedData = { ...flowResponse.responseData, ...(data || {}) };
+
+            // Update name/phone if found in new data
+            const newPhone = data?.phone || data?.saved_phone || data?.phone_number || data?.mobile;
+            if (newPhone) flowResponse.from = newPhone;
+
+            const newName = data?.name || data?.saved_name || data?.full_name || data?.customer_name;
+            if (newName) flowResponse.fromName = newName;
+
             flowResponse.responseData = mergedData;
             flowResponse.parsedFields = Object.entries(mergedData)
                 .filter(([k]) => !['flow_token', 'flow_id'].includes(k))
