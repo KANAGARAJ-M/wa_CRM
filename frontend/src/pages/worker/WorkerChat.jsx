@@ -81,7 +81,8 @@ export default function WorkerChat() {
         try {
             await api.post('/whatsapp/send', {
                 message: optimisticMsg.body,
-                phone: lead.phone
+                phone: lead.phone,
+                phoneNumberId: lead.phoneNumberId // Send via the correct account
             });
             // Fetch will update status
         } catch (error) {

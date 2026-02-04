@@ -23,6 +23,47 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/forms/submissions/all
+// @desc    Get ALL form submissions for the company
+// @access  Private
+router.get('/submissions/all', auth, async (req, res) => {
+    try {
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const { page = 1, limit = 50, status } = req.query;
+
+        const query = { companyId: req.companyId };
+        if (status && status !== 'all') {
+            query.status = status;
+        }
+
+        const submissions = await FormSubmission.find(query)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('formId', 'title fields')
+            .populate('submittedBy', 'name phone email');
+
+        const total = await FormSubmission.countDocuments(query);
+
+        res.json({
+            success: true,
+            data: submissions,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching all submissions:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 // @route   GET /api/forms/public/:id
 // @desc    Get form definition (Public access for rendering)
 // @access  Public
@@ -131,7 +172,7 @@ router.delete('/:id', auth, async (req, res) => {
 // @access  Public
 router.post('/:id/submit', async (req, res) => {
     try {
-        const { data, submitterInfo } = req.body; // submitterInfo { phone, email, name ... }
+        const { data, submitterInfo, status = 'completed', currentStep, totalSteps } = req.body;
 
         const form = await Form.findById(req.params.id);
         if (!form) {
@@ -141,8 +182,6 @@ router.post('/:id/submit', async (req, res) => {
         // Optional: Try to link to a lead if phone exists
         let leadId = null;
         if (submitterInfo && (submitterInfo.phone || submitterInfo.email)) {
-            // Logic to find lead could go here, but for now we just store the submission
-            // We can do a look up if needed
             const lead = await Lead.findOne({
                 $or: [
                     { phone: submitterInfo.phone },
@@ -157,11 +196,15 @@ router.post('/:id/submit', async (req, res) => {
             formId: form._id,
             companyId: form.companyId,
             data,
+            status,
+            currentStep: currentStep || (form.fields?.length || 1),
+            totalSteps: totalSteps || (form.fields?.length || 1),
             submittedBy: leadId,
-            submitterIdentifier: submitterInfo?.phone || submitterInfo?.email || 'Anonymous'
+            submitterIdentifier: submitterInfo?.phone || submitterInfo?.email || 'Anonymous',
+            submitterName: submitterInfo?.name || data?.name || data?.Name || null
         });
 
-        res.status(201).json({ success: true, message: 'Form submitted successfully' });
+        res.status(201).json({ success: true, message: 'Form submitted successfully', data: submission });
     } catch (error) {
         console.error('Error submitting form:', error);
         res.status(500).json({ success: false, message: 'Server error' });

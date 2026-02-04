@@ -666,14 +666,12 @@ export default function Communication() {
                                                         </span>
                                                     </div>
 
-                                                    {/* Account Tag - Show only when viewing "All Accounts" */}
-                                                    {selectedAccountFilter === 'all' && (
-                                                        <div className="flex items-center gap-1 mt-0.5">
-                                                            <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">
-                                                                {chat.accountName || whatsappConfigs.find(c => c.phoneNumberId === chat.integrationId)?.name || chat.integrationId || 'Unknown'}
-                                                            </span>
-                                                        </div>
-                                                    )}
+                                                    {/* Account Tag - Always show */}
+                                                    <div className="flex items-center gap-1 mt-0.5">
+                                                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">
+                                                            {chat.accountName || whatsappConfigs.find(c => c.phoneNumberId === chat.integrationId)?.name || chat.integrationId || 'Unknown'}
+                                                        </span>
+                                                    </div>
                                                     <div className="flex justify-between items-center mt-1">
                                                         <p className="text-sm text-gray-500 truncate max-w-[80%]">
                                                             {!chat.lastMessage.isIncoming && (

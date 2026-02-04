@@ -1,5 +1,5 @@
 const express = require('express');
-const { WhatsAppMessage, Settings, Lead, Company, Product } = require('../models');
+const { WhatsAppMessage, Settings, Lead, Company, Product, FlowResponse } = require('../models');
 const { auth, adminOnly } = require('../middleware');
 
 const router = express.Router();
@@ -425,6 +425,86 @@ router.post('/', async (req, res) => {
                         messageId,
                         metadata: messageData
                     });
+
+                    // WHATSAPP FLOW RESPONSE HANDLING (Native Flow from Meta)
+                    // When user completes a flow, Meta sends interactive message with type 'nfm_reply'
+                    if (msgType === 'interactive' && messageData.interactive) {
+                        const interactive = messageData.interactive;
+
+                        // Check for nfm_reply (Native Flow Message Reply)
+                        if (interactive.type === 'nfm_reply' && interactive.nfm_reply) {
+                            const nfmReply = interactive.nfm_reply;
+                            console.log('🌊 Received WhatsApp Flow response:', JSON.stringify(nfmReply));
+
+                            // nfm_reply contains:
+                            // - response_json: string (JSON containing user's answers)
+                            // - body: string (optional display text)
+                            // - name: 'flow' (literal)
+
+                            let responseData = {};
+                            let flowId = null;
+                            let flowToken = null;
+
+                            try {
+                                if (nfmReply.response_json) {
+                                    responseData = JSON.parse(nfmReply.response_json);
+                                    // Meta may include flow_token in the response
+                                    flowToken = responseData.flow_token || null;
+                                    flowId = responseData.flow_id || null;
+                                }
+                            } catch (parseErr) {
+                                console.error('Failed to parse flow response JSON:', parseErr);
+                                responseData = { raw: nfmReply.response_json };
+                            }
+
+                            // Parse fields from response
+                            const parsedFields = Object.entries(responseData)
+                                .filter(([key]) => !['flow_token', 'flow_id'].includes(key))
+                                .map(([fieldName, fieldValue]) => ({
+                                    fieldName,
+                                    fieldValue,
+                                    fieldType: typeof fieldValue
+                                }));
+
+                            // Try to find associated lead
+                            let leadId = null;
+                            const lead = await Lead.findOne({ phone: from, companyId });
+                            if (lead) leadId = lead._id;
+
+                            // Try to find associated product by flow ID
+                            let productId = null;
+                            if (flowId) {
+                                const product = await Product.findOne({
+                                    company: companyId,
+                                    whatsappFlowId: flowId
+                                });
+                                if (product) productId = product._id;
+                            }
+
+                            // Save the flow response
+                            await FlowResponse.create({
+                                companyId,
+                                phoneNumberId,
+                                flowId: flowId || 'unknown',
+                                flowToken,
+                                from,
+                                fromName,
+                                responseData,
+                                parsedFields,
+                                status: 'completed',
+                                product: productId,
+                                lead: leadId,
+                                messageId
+                            });
+
+                            console.log(`✅ Flow response saved for customer: ${from}`);
+                        }
+
+                        // Also handle button_reply and list_reply if needed
+                        if (interactive.type === 'button_reply' || interactive.type === 'list_reply') {
+                            console.log(`📱 Received interactive ${interactive.type}:`, interactive);
+                        }
+                    }
 
                     // PRODUCT INQUIRY AUTO-REPLY LOGIC
                     if (context && context.referred_product && context.referred_product.product_retailer_id) {
@@ -979,6 +1059,50 @@ router.post('/link-catalog', auth, async (req, res) => {
     } catch (error) {
         console.error('🔥 Link catalog EXCEPTION:', error);
         res.status(500).json({ success: false, message: 'Failed to link catalog: ' + error.message });
+    }
+});
+
+// @route   GET /api/whatsapp/flow-responses
+// @desc    Get all WhatsApp Flow responses for the company
+// @access  Private
+router.get('/flow-responses', auth, async (req, res) => {
+    try {
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const { page = 1, limit = 50, status, flowId } = req.query;
+
+        const query = { companyId: req.companyId };
+        if (status && status !== 'all') {
+            query.status = status;
+        }
+        if (flowId) {
+            query.flowId = flowId;
+        }
+
+        const responses = await FlowResponse.find(query)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('product', 'name retailerId whatsappFlowId')
+            .populate('lead', 'name phone email');
+
+        const total = await FlowResponse.countDocuments(query);
+
+        res.json({
+            success: true,
+            data: responses,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching flow responses:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 

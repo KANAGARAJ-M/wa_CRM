@@ -1067,36 +1067,39 @@ export default function Leads() {
                                                 <table className="min-w-full divide-y divide-gray-100">
                                                     <thead className="bg-gray-50/80 backdrop-blur-sm">
                                                         <tr>
-                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider w-10">
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={group.leads.length > 0 && group.leads.every(l => activeTab.selectedLeads.includes(l._id))}
                                                                     onChange={() => handleSelectAll(group.leads)}
-                                                                    className="rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                                                                    className="rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer h-3.5 w-3.5"
                                                                 />
                                                             </th>
-                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                                                                 Name
                                                             </th>
-                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider max-w-[200px]">
+                                                                Content
+                                                            </th>
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                                                                 Contact
                                                             </th>
-                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                                                                 Stage
                                                             </th>
-                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                                                                 Assigned
                                                             </th>
-                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                                                                 Received
                                                             </th>
-                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                                                                 Type
                                                             </th>
-                                                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                                                                 Lead Date
                                                             </th>
-                                                            <th scope="col" className="relative px-6 py-4">
+                                                            <th scope="col" className="relative px-4 py-3">
                                                                 <span className="sr-only">Actions</span>
                                                             </th>
                                                         </tr>
@@ -1104,52 +1107,52 @@ export default function Leads() {
                                                     <tbody className="bg-white divide-y divide-gray-100">
                                                         {group.leads.map(lead => (
                                                             <tr key={lead._id} className={`group hover:bg-blue-50/30 transition-all duration-200 ${activeTab.selectedLeads.includes(lead._id) ? 'bg-blue-50' : ''}`}>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                                <td className="px-4 py-3 whitespace-nowrap">
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={activeTab.selectedLeads.includes(lead._id)}
                                                                         onChange={() => handleSelectLead(lead._id)}
-                                                                        className="rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer h-4 w-4"
+                                                                        className="rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer h-3.5 w-3.5"
                                                                     />
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                                <td className="px-4 py-3 whitespace-nowrap">
                                                                     <div className="flex items-center">
-                                                                        <div className="h-11 w-11 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-sm ring-2 ring-white">
+                                                                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-sm">
                                                                             {lead.name[0].toUpperCase()}
                                                                         </div>
-                                                                        <div className="ml-4">
-                                                                            <div className="text-base font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{lead.name}</div>
-                                                                            {lead.lastMessage && (
-                                                                                <div className="text-sm text-gray-500 max-w-[240px] truncate flex items-center gap-1.5 mt-0.5" title={lead.lastMessage}>
-                                                                                    <MessageSquare className="h-3 w-3 text-gray-400" />
-                                                                                    {lead.lastMessage}
-                                                                                </div>
-                                                                            )}
+                                                                        <div className="ml-3">
+                                                                            <div className="text-xs font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{lead.name}</div>
                                                                         </div>
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <div className="flex flex-col gap-1">
-                                                                        <div className="text-sm font-medium text-gray-700 flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-md w-fit border border-gray-100">
-                                                                            <Phone className="h-3.5 w-3.5 text-gray-400" />
+                                                                {/* Content Column - Shows notes or first message from ad lead */}
+                                                                <td className="px-4 py-3 max-w-[200px]">
+                                                                    <div className="text-[11px] text-gray-600 line-clamp-2" title={lead.notes || lead.lastMessage || '-'}>
+                                                                        {lead.notes || lead.lastMessage || '-'}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                    <div className="flex flex-col gap-0.5">
+                                                                        <div className="text-[11px] font-medium text-gray-700 flex items-center gap-1.5 bg-gray-50 px-1.5 py-0.5 rounded w-fit border border-gray-100">
+                                                                            <Phone className="h-3 w-3 text-gray-400" />
                                                                             {lead.phone}
                                                                         </div>
                                                                         {lead.email && (
-                                                                            <div className="text-sm text-gray-500 flex items-center gap-2 px-2">
-                                                                                <Mail className="h-3.5 w-3.5 text-gray-400" />
+                                                                            <div className="text-[10px] text-gray-500 flex items-center gap-1.5 px-1.5">
+                                                                                <Mail className="h-2.5 w-2.5 text-gray-400" />
                                                                                 {lead.email}
                                                                             </div>
                                                                         )}
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${lead.stage === 'new' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${lead.stage === 'new' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                                                                         lead.stage === 'contacted' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
                                                                             lead.stage === 'interested' ? 'bg-green-50 text-green-700 border-green-100' :
                                                                                 lead.stage === 'converted' ? 'bg-purple-50 text-purple-700 border-purple-100' :
                                                                                     'bg-gray-50 text-gray-700 border-gray-100'
                                                                         }`}>
-                                                                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${lead.stage === 'new' ? 'bg-blue-500' :
+                                                                        <span className={`w-1 h-1 rounded-full mr-1.5 ${lead.stage === 'new' ? 'bg-blue-500' :
                                                                             lead.stage === 'contacted' ? 'bg-yellow-500' :
                                                                                 lead.stage === 'interested' ? 'bg-green-500' :
                                                                                     lead.stage === 'converted' ? 'bg-purple-500' :
@@ -1158,92 +1161,90 @@ export default function Leads() {
                                                                         {lead.stage?.charAt(0).toUpperCase() + lead.stage?.slice(1) || 'New'}
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                <td className="px-4 py-3 whitespace-nowrap text-[11px] text-gray-500">
                                                                     {lead.assignedTo ? (
-                                                                        <div className="flex flex-col gap-1">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold">
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <div className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-[9px] font-bold">
                                                                                     {lead.assignedTo.name[0]}
                                                                                 </div>
-                                                                                <span className="font-medium text-gray-700">{lead.assignedTo.name}</span>
+                                                                                <span className="font-medium text-gray-700 text-[11px]">{lead.assignedTo.name}</span>
                                                                             </div>
-                                                                            {/* Show last assignment date */}
                                                                             {lead.assignedAgents && lead.assignedAgents.length > 0 && (
-                                                                                <div className="text-xs text-gray-400 ml-8 flex items-center gap-1">
-                                                                                    <Clock className="h-3 w-3" />
+                                                                                <div className="text-[9px] text-gray-400 ml-6.5 flex items-center gap-1">
+                                                                                    <Clock className="h-2.5 w-2.5" />
                                                                                     {format(new Date(lead.assignedAgents[lead.assignedAgents.length - 1].assignedAt), 'MMM d, h:mm a')}
                                                                                 </div>
                                                                             )}
-                                                                            {/* History count badge */}
                                                                             {lead.assignedAgents && lead.assignedAgents.length > 1 && (
                                                                                 <button
                                                                                     onClick={() => viewLeadHistory(lead)}
-                                                                                    className="text-xs text-indigo-600 hover:text-indigo-700 ml-8 flex items-center gap-1"
+                                                                                    className="text-[9px] text-indigo-600 hover:text-indigo-700 ml-6.5 flex items-center gap-1"
                                                                                 >
-                                                                                    <GitBranch className="h-3 w-3" />
+                                                                                    <GitBranch className="h-2.5 w-2.5" />
                                                                                     {lead.assignedAgents.length} assignments
                                                                                 </button>
                                                                             )}
                                                                         </div>
                                                                     ) : (
-                                                                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-50 text-gray-400 border border-dashed border-gray-200">
+                                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-50 text-gray-400 border border-dashed border-gray-200">
                                                                             Unassigned
                                                                         </span>
                                                                     )}
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                <td className="px-4 py-3 whitespace-nowrap text-[11px] text-gray-500">
                                                                     <div className="flex flex-col">
-                                                                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                                                                            <Clock className="h-3.5 w-3.5 text-gray-400" />
+                                                                        <div className="flex items-center gap-1 font-medium text-gray-700 text-[10px]">
+                                                                            <Clock className="h-3 w-3 text-gray-400" />
                                                                             {formatLeadTime(lead.createdAt)}
                                                                         </div>
                                                                         {lead.source && (
-                                                                            <span className="text-xs text-gray-400 mt-1 ml-5 flex items-center gap-1">
-                                                                                via <span className="font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">{lead.source}</span>
+                                                                            <span className="text-[9px] text-gray-400 mt-0.5 ml-4 flex items-center gap-1">
+                                                                                via <span className="font-medium text-gray-500 bg-gray-50 px-1 py-0.5 rounded text-[9px]">{lead.source}</span>
                                                                             </span>
                                                                         )}
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium capitalize
                                                                         ${lead.callType === 'paid' ? 'bg-purple-100 text-purple-800' :
                                                                             lead.callType === 'call back' ? 'bg-orange-100 text-orange-800' :
                                                                                 'bg-blue-100 text-blue-800'}`}>
                                                                         {lead.callType || 'fresh'}
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                <td className="px-4 py-3 whitespace-nowrap text-[10px] text-gray-500">
                                                                     {lead.leadDate ? formatLeadTime(lead.leadDate) : '-'}
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0">
+                                                                <td className="px-4 py-3 whitespace-nowrap text-right text-[11px] font-medium">
+                                                                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
                                                                         <button
                                                                             onClick={() => viewLeadHistory(lead)}
-                                                                            className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 transition-all shadow-sm border border-indigo-100"
+                                                                            className="p-1.5 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-all"
                                                                             title="View History"
                                                                         >
-                                                                            <History className="h-4 w-4" />
+                                                                            <History className="h-3.5 w-3.5" />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => startChat(lead)}
-                                                                            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 hover:text-green-700 transition-all shadow-sm border border-green-100"
+                                                                            className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-all"
                                                                             title="Start Chat"
                                                                         >
-                                                                            <MessageSquare className="h-4 w-4" />
+                                                                            <MessageSquare className="h-3.5 w-3.5" />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => openEditModal(lead)}
-                                                                            className="p-2 bg-white text-gray-500 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-all shadow-sm border border-gray-200"
+                                                                            className="p-1.5 bg-white text-gray-500 rounded hover:bg-gray-50 hover:text-blue-600 transition-all border border-gray-200"
                                                                             title="Edit"
                                                                         >
-                                                                            <Edit2 className="h-4 w-4" />
+                                                                            <Edit2 className="h-3.5 w-3.5" />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleDelete(lead._id)}
-                                                                            className="p-2 bg-white text-gray-400 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all shadow-sm border border-gray-200"
+                                                                            className="p-1.5 bg-white text-gray-400 rounded hover:bg-red-50 hover:text-red-600 transition-all border border-gray-200"
                                                                             title="Delete"
                                                                         >
-                                                                            <Trash2 className="h-4 w-4" />
+                                                                            <Trash2 className="h-3.5 w-3.5" />
                                                                         </button>
                                                                     </div>
                                                                 </td>

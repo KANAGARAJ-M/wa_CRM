@@ -17,5 +17,6 @@ module.exports = {
     Role,
     Product,
     Form: require('./Form'),
-    FormSubmission: require('./FormSubmission')
+    FormSubmission: require('./FormSubmission'),
+    FlowResponse: require('./FlowResponse')
 };

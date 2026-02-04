@@ -113,34 +113,44 @@ export default function Chats() {
         messages.forEach(msg => {
             const isIncoming = msg.direction === 'incoming' || msg.status === 'received';
             const contactPhone = isIncoming ? msg.from : msg.to;
+            const integrationId = msg.phoneNumberId || 'unknown';
 
             if (!contactPhone) return;
 
-            if (!groups[contactPhone]) {
-                groups[contactPhone] = {
-                    id: contactPhone,
+            // KEY FIX: Group by BOTH contact phone AND WhatsApp account ID
+            // This ensures Dheena on Account1 is SEPARATE from Dheena on Account2
+            const groupKey = `${contactPhone}_${integrationId}`;
+
+            if (!groups[groupKey]) {
+                // Find account name for display
+                const accountConfig = whatsappConfigs.find(c => c.phoneNumberId === integrationId);
+                const accountName = accountConfig?.name || integrationId;
+
+                groups[groupKey] = {
+                    id: groupKey,
                     contactName: isIncoming ? (msg.fromName || msg.from) : (msg.lead?.name || msg.to),
                     contactPhone: contactPhone,
                     messages: [],
                     unreadCount: 0,
                     lastMessage: null,
-                    integrationId: msg.phoneNumberId
+                    integrationId: integrationId,
+                    accountName: accountName // Store for display
                 };
             }
 
-            if (!groups[contactPhone].contactName || groups[contactPhone].contactName === contactPhone) {
+            if (!groups[groupKey].contactName || groups[groupKey].contactName === contactPhone) {
                 const name = isIncoming ? msg.fromName : msg.lead?.name;
-                if (name) groups[contactPhone].contactName = name;
+                if (name) groups[groupKey].contactName = name;
             }
 
-            groups[contactPhone].messages.push({
+            groups[groupKey].messages.push({
                 ...msg,
                 isIncoming,
                 timestamp: new Date(msg.timestamp || msg.createdAt)
             });
 
             if (isIncoming && msg.status !== 'read' && msg.status !== 'replied') {
-                groups[contactPhone].unreadCount++;
+                groups[groupKey].unreadCount++;
             }
         });
 
@@ -318,6 +328,12 @@ export default function Chats() {
                                                 <h3 className="font-medium text-gray-900 truncate">{chat.contactName}</h3>
                                                 <span className={`text-xs ${chat.unreadCount > 0 ? 'text-green-600 font-bold' : 'text-gray-400'}`}>
                                                     {formatDate(chat.lastMessage.timestamp)}
+                                                </span>
+                                            </div>
+                                            {/* Account Name Tag */}
+                                            <div className="mt-0.5">
+                                                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">
+                                                    {whatsappConfigs.find(c => c.phoneNumberId === chat.integrationId)?.name || chat.accountName || 'Unknown'}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center mt-1">
