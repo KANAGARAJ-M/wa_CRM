@@ -825,7 +825,8 @@ router.post('/link-catalog', auth, async (req, res) => {
 
         if (typeCheckData.metadata && typeCheckData.metadata.type) {
             console.log(`ℹ️ Object Type: ${typeCheckData.metadata.type}`);
-            if (typeCheckData.metadata.type !== 'WhatsAppBusinessAccount') {
+            const type = typeCheckData.metadata.type.toLowerCase();
+            if (type !== 'whatsappbusinessaccount') {
                 return res.status(400).json({
                     success: false,
                     message: `Invalid Account Type. The provided ID (${config.businessAccountId}) is a '${typeCheckData.metadata.type}', but a 'WhatsAppBusinessAccount' ID (WABA) is required to link a catalog.`
