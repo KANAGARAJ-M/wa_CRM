@@ -14,7 +14,7 @@ export default function PublicForm() {
     // We need a separate axios instance or just use fully qualified URL if api/axios has interceptors
     // Assuming api/axios is strictly for protected routes, we'll use vanilla axios or fetch here.
     // Ideally we use an environment variable for API URL.
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://srv1304549.hstgr.cloud/api';
 
     const [formData, setFormData] = useState({});
     const [submitterInfo, setSubmitterInfo] = useState({ name: '', phone: '', email: '' });
