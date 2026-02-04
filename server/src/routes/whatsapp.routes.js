@@ -280,7 +280,7 @@ router.get('/messages', auth, async (req, res) => {
         }
 
         // Exclude Order messages (as they have their own page now)
-        query.type = { $ne: 'order' };
+        query.type = { $nin: ['order', 'interactive'] }; // Also hide 'interactive' (Flows/Buttons)
         query['metadata.order'] = { $exists: false };
 
         // If cannot view all, filter by assigned leads
