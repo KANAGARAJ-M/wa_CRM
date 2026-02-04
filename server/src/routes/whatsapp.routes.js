@@ -372,6 +372,137 @@ router.get('/orders', auth, async (req, res) => {
     }
 });
 
+// @route   POST /api/whatsapp/flow-endpoint
+// @desc    Data Exchange Endpoint for WhatsApp Flows (handles intermediate saves)
+// @access  Public (but encrypted by Meta)
+// This endpoint receives data when users navigate between screens in a WhatsApp Flow
+router.post('/flow-endpoint', async (req, res) => {
+    try {
+        console.log('🌊 Flow Data Exchange Request:', JSON.stringify(req.body));
+
+        const {
+            version,
+            action,           // 'ping', 'INIT', 'data_exchange', 'back'
+            screen,           // Current screen ID
+            data,             // Data from current screen
+            flow_token        // Token to identify the session
+        } = req.body;
+
+        // Handle PING (health check from Meta)
+        if (action === 'ping') {
+            return res.json({
+                version: version || '3.0',
+                data: { status: 'active' }
+            });
+        }
+
+        // Handle INIT (flow started)
+        if (action === 'INIT') {
+            console.log(`🚀 Flow INIT with token: ${flow_token}`);
+
+            // Parse flow token to get context (you can embed companyId, productId, etc.)
+            let context = {};
+            try {
+                if (flow_token && flow_token.includes('-')) {
+                    const parts = flow_token.split('-');
+                    context = {
+                        type: parts[0],  // e.g., 'order'
+                        timestamp: parts[1]
+                    };
+                }
+            } catch (e) { }
+
+            // Return initial screen data if needed
+            return res.json({
+                version: version || '3.0',
+                screen: 'DETAILS_SCREEN',  // First screen
+                data: {}
+            });
+        }
+
+        // Handle data_exchange (intermediate saves)
+        if (action === 'data_exchange') {
+            console.log(`📝 Flow data exchange - Screen: ${screen}, Data:`, data);
+
+            // Find or create a flow response record for this session
+            let flowResponse = await FlowResponse.findOne({ flowToken: flow_token });
+
+            if (!flowResponse) {
+                // Parse phone from flow_token or data if available
+                const phone = data?.phone || 'unknown';
+
+                // Try to find company from any product with flows
+                const product = await Product.findOne({ whatsappFlowId: { $exists: true } });
+                const companyId = product?.company;
+
+                flowResponse = await FlowResponse.create({
+                    companyId: companyId,
+                    phoneNumberId: 'flow-endpoint',
+                    flowId: data?.flow_id || 'unknown',
+                    flowToken: flow_token,
+                    from: phone,
+                    responseData: data || {},
+                    parsedFields: Object.entries(data || {}).map(([k, v]) => ({
+                        fieldName: k,
+                        fieldValue: v,
+                        fieldType: typeof v
+                    })),
+                    status: 'in_progress',
+                    product: product?._id
+                });
+            } else {
+                // Update existing record with new data
+                const mergedData = { ...flowResponse.responseData, ...(data || {}) };
+                flowResponse.responseData = mergedData;
+                flowResponse.parsedFields = Object.entries(mergedData)
+                    .filter(([k]) => !['flow_token', 'flow_id'].includes(k))
+                    .map(([k, v]) => ({
+                        fieldName: k,
+                        fieldValue: v,
+                        fieldType: typeof v
+                    }));
+                flowResponse.status = 'in_progress';
+                await flowResponse.save();
+            }
+
+            console.log(`💾 Saved intermediate flow data for token: ${flow_token}`);
+
+            // Return next screen or success
+            // You can customize this based on your flow structure
+            return res.json({
+                version: version || '3.0',
+                screen: screen || 'NEXT_SCREEN',
+                data: { saved: true }
+            });
+        }
+
+        // Handle back navigation
+        if (action === 'back') {
+            return res.json({
+                version: version || '3.0',
+                screen: screen,
+                data: {}
+            });
+        }
+
+        // Default response
+        res.json({
+            version: version || '3.0',
+            data: {}
+        });
+
+    } catch (error) {
+        console.error('Flow endpoint error:', error);
+        // WhatsApp Flows expect specific error format
+        res.status(500).json({
+            version: '3.0',
+            data: {
+                error: error.message
+            }
+        });
+    }
+});
+
 // @route   POST /whatsapp
 // @desc    Webhook for WhatsApp Cloud API
 // @access  Public
@@ -481,23 +612,47 @@ router.post('/', async (req, res) => {
                                 if (product) productId = product._id;
                             }
 
-                            // Save the flow response
-                            await FlowResponse.create({
-                                companyId,
-                                phoneNumberId,
-                                flowId: flowId || 'unknown',
-                                flowToken,
-                                from,
-                                fromName,
-                                responseData,
-                                parsedFields,
-                                status: 'completed',
-                                product: productId,
-                                lead: leadId,
-                                messageId
-                            });
+                            // Check if there's an existing in-progress flow for this token
+                            let existingFlow = flowToken ?
+                                await FlowResponse.findOne({ flowToken, status: 'in_progress' }) : null;
 
-                            console.log(`✅ Flow response saved for customer: ${from}`);
+                            if (existingFlow) {
+                                // Update existing in-progress flow to completed
+                                const mergedData = { ...existingFlow.responseData, ...responseData };
+                                existingFlow.responseData = mergedData;
+                                existingFlow.parsedFields = Object.entries(mergedData)
+                                    .filter(([k]) => !['flow_token', 'flow_id'].includes(k))
+                                    .map(([fieldName, fieldValue]) => ({
+                                        fieldName,
+                                        fieldValue,
+                                        fieldType: typeof fieldValue
+                                    }));
+                                existingFlow.status = 'completed';
+                                existingFlow.from = from;
+                                existingFlow.fromName = fromName;
+                                existingFlow.messageId = messageId;
+                                if (leadId) existingFlow.lead = leadId;
+                                if (productId) existingFlow.product = productId;
+                                await existingFlow.save();
+                                console.log(`✅ Updated existing flow to completed: ${flowToken}`);
+                            } else {
+                                // Create new flow response
+                                await FlowResponse.create({
+                                    companyId,
+                                    phoneNumberId,
+                                    flowId: flowId || 'unknown',
+                                    flowToken,
+                                    from,
+                                    fromName,
+                                    responseData,
+                                    parsedFields,
+                                    status: 'completed',
+                                    product: productId,
+                                    lead: leadId,
+                                    messageId
+                                });
+                                console.log(`✅ Flow response saved for customer: ${from}`);
+                            }
                         }
 
                         // Also handle button_reply and list_reply if needed
