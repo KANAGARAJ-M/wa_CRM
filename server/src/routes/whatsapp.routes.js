@@ -283,6 +283,9 @@ router.get('/messages', auth, async (req, res) => {
         query.type = { $nin: ['order', 'interactive'] }; // Also hide 'interactive' (Flows/Buttons)
         query['metadata.order'] = { $exists: false };
 
+        // Also hide standard auto-replies
+        query.body = { $not: /Thanks for your order including/ };
+
         // If cannot view all, filter by assigned leads
         if (!canViewAll && canViewOwn) {
             const leads = await Lead.find({ assignedTo: user._id, companyId: req.companyId }).select('phone');
