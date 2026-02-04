@@ -36,6 +36,7 @@ export default function Communication() {
     const [previewData, setPreviewData] = useState([]);
     const fileInputRef = useRef(null);
     const [expandedAccounts, setExpandedAccounts] = useState({});
+    const [selectedAccountFilter, setSelectedAccountFilter] = useState('all'); // 'all' or specific phoneNumberId
 
     const [formData, setFormData] = useState({
         name: '',
@@ -48,12 +49,19 @@ export default function Communication() {
 
 
     useEffect(() => {
-        fetchData();
-        fetchLeads();
+        // Load settings FIRST (needed before processing messages)
         fetchSettings();
-        const interval = setInterval(fetchData, 15000);
-        return () => clearInterval(interval);
+        fetchLeads();
     }, []);
+
+    // Fetch messages AFTER settings are loaded
+    useEffect(() => {
+        if (whatsappConfigs.length > 0) {
+            fetchData();
+            const interval = setInterval(fetchData, 15000);
+            return () => clearInterval(interval);
+        }
+    }, [whatsappConfigs]);
 
     useEffect(() => {
         scrollToBottom();
@@ -109,26 +117,38 @@ export default function Communication() {
         messages.forEach(msg => {
             const isIncoming = msg.direction === 'incoming' || msg.status === 'received';
             const contactPhone = isIncoming ? msg.from : msg.to;
-            const integrationId = msg.phoneNumberId || 'unknown'; // Account ID
+
+            // CRITICAL: Determine which Business Account this message belongs to.
+            // If phoneNumberId is missing (legacy data), we might bundle it into 'unknown' or try to guess.
+            // But for new multi-account support, this ID is the key splitter.
+            const integrationId = msg.phoneNumberId || 'legacy_account';
 
             if (!contactPhone) return;
 
-            // Create a unique key for grouping: Phone + Account
-            // This ensures Dheena chatting on Account A is separate from Dheena on Account B
+            // UNIQUE KEY: Compose of Contact Phone + Business Account ID
             const groupKey = `${contactPhone}_${integrationId}`;
 
+            // DEBUG: Log the grouping logic
+            // console.log(`Msg from ${contactPhone} on Account ${integrationId} -> Group: ${groupKey}`);
+
             if (!groups[groupKey]) {
+                // Determine the account name for the label
+                const accountName = whatsappConfigs.find(c => c.phoneNumberId === integrationId)?.name || 'Account';
+
                 groups[groupKey] = {
                     id: groupKey,
+                    // Name is the Customer Name
                     contactName: isIncoming ? (msg.fromName || msg.from) : (msg.lead?.name || msg.to),
                     contactPhone: contactPhone,
                     messages: [],
                     unreadCount: 0,
                     lastMessage: null,
-                    integrationId: integrationId // Tag the chat with the account ID
+                    integrationId: integrationId,
+                    accountName: accountName // Store for display
                 };
             }
 
+            // Update contact name if better one found
             if (!groups[groupKey].contactName || groups[groupKey].contactName === contactPhone) {
                 const name = isIncoming ? msg.fromName : msg.lead?.name;
                 if (name) groups[groupKey].contactName = name;
@@ -152,6 +172,17 @@ export default function Communication() {
         });
 
         conversationList.sort((a, b) => b.lastMessage.timestamp - a.lastMessage.timestamp);
+
+        // DEBUG: Log processed conversations
+        console.log('Processed Conversations:', conversationList.map(c => ({
+            id: c.id,
+            name: c.contactName,
+            phone: c.contactPhone,
+            integrationId: c.integrationId,
+            accountName: c.accountName,
+            msgCount: c.messages.length
+        })));
+
         setConversations(conversationList);
 
         if (selectedChat) {
@@ -162,15 +193,29 @@ export default function Communication() {
 
     const startChat = (lead) => {
         setActiveTab('chats');
-        const existingChat = conversations.find(c =>
+
+        // When starting a chat, we ideally need to know WHICH account to start it from.
+        // For now, let's pick the first enabled account or the most recent one used for this lead if it exists.
+
+        // 1. Try to find ANY existing chat for this lead
+        const existingChats = conversations.filter(c =>
             c.contactPhone === lead.phone || c.contactPhone === lead.phone.replace('+', '')
         );
 
-        if (existingChat) {
-            setSelectedChat(existingChat);
+        if (existingChats.length > 0) {
+            // If exists, open the most recent one
+            setSelectedChat(existingChats[0]);
         } else {
+            // 2. Create a NEW chat. Default to the first enabled WhatsApp config.
+            const defaultConfig = whatsappConfigs.find(c => c.isEnabled) || whatsappConfigs[0];
+
+            if (!defaultConfig) {
+                alert("No WhatsApp Account Configured!");
+                return;
+            }
+
             const newChat = {
-                id: lead.phone,
+                id: `${lead.phone}_${defaultConfig.phoneNumberId}`, // Force the unique ID structure
                 contactName: lead.name,
                 contactPhone: lead.phone,
                 messages: [],
@@ -180,9 +225,13 @@ export default function Communication() {
                     timestamp: new Date(),
                     isIncoming: false
                 },
+                integrationId: defaultConfig.phoneNumberId,
+                accountName: defaultConfig.name,
                 isNew: true
             };
             setSelectedChat(newChat);
+            // Add to list temporarily so it renders
+            setConversations(prev => [newChat, ...prev]);
             setSearchQuery('');
         }
         setShowSidebar(false);
@@ -460,10 +509,22 @@ export default function Communication() {
         return format(d, 'MMM d, yyyy \'at\' h:mm a');
     };
 
-    const filteredConversations = conversations.filter(chat =>
-        chat.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        chat.contactPhone.includes(searchQuery)
-    );
+    const filteredConversations = conversations.filter(chat => {
+        // 1. Filter by Account
+        if (selectedAccountFilter !== 'all' && chat.integrationId !== selectedAccountFilter) {
+            return false;
+        }
+        // 2. Filter by Search Query
+        if (searchQuery) {
+            const lowerQuery = searchQuery.toLowerCase();
+            return chat.contactName.toLowerCase().includes(lowerQuery) ||
+                chat.contactPhone.includes(searchQuery);
+        }
+        return true;
+    });
+
+    // DEBUG: Log filter results
+    console.log('Filter:', selectedAccountFilter, '| Conversations:', conversations.length, '| Filtered:', filteredConversations.length);
 
     const filteredLeads = leads.filter(lead =>
         lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -506,6 +567,24 @@ export default function Communication() {
                                 Leads
                             </button>
                         </div>
+
+                        {/* Account Filter (Only for Chats) */}
+                        {activeTab === 'chats' && (
+                            <div className="px-3 pt-3 pb-1 border-b border-gray-100 bg-gray-50">
+                                <select
+                                    value={selectedAccountFilter}
+                                    onChange={(e) => setSelectedAccountFilter(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                >
+                                    <option value="all">All Accounts</option>
+                                    {whatsappConfigs.filter(c => c.isEnabled).map(config => (
+                                        <option key={config.phoneNumberId} value={config.phoneNumberId}>
+                                            {config.name || `Account ${config.phoneNumberId}`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         {/* Search & Actions Bar */}
                         <div className="p-3 border-b border-gray-100 bg-white">
@@ -587,12 +666,14 @@ export default function Communication() {
                                                         </span>
                                                     </div>
 
-                                                    {/* Account Tag */}
-                                                    <div className="flex items-center gap-1 mb-1">
-                                                        <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded border border-gray-300">
-                                                            {whatsappConfigs.find(c => c.phoneNumberId === chat.integrationId)?.name || 'Unknown Account'}
-                                                        </span>
-                                                    </div>
+                                                    {/* Account Tag - Show only when viewing "All Accounts" */}
+                                                    {selectedAccountFilter === 'all' && (
+                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                            <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">
+                                                                {chat.accountName || whatsappConfigs.find(c => c.phoneNumberId === chat.integrationId)?.name || chat.integrationId || 'Unknown'}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex justify-between items-center mt-1">
                                                         <p className="text-sm text-gray-500 truncate max-w-[80%]">
                                                             {!chat.lastMessage.isIncoming && (
