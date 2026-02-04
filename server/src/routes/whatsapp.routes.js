@@ -814,6 +814,30 @@ router.post('/link-catalog', auth, async (req, res) => {
         }
 
         const GRAPH_API_URL = 'https://graph.facebook.com/v19.0';
+
+        // Validate that the businessAccountId is actually a WABA
+        console.log(`🔍 Validating Business Account ID: ${config.businessAccountId}...`);
+        const typeCheckUrl = `${GRAPH_API_URL}/${config.businessAccountId}?metadata=1`;
+        const typeCheckResponse = await fetch(typeCheckUrl, {
+            headers: { 'Authorization': `Bearer ${config.accessToken}` }
+        });
+        const typeCheckData = await typeCheckResponse.json();
+
+        if (typeCheckData.metadata && typeCheckData.metadata.type) {
+            console.log(`ℹ️ Object Type: ${typeCheckData.metadata.type}`);
+            if (typeCheckData.metadata.type !== 'WhatsAppBusinessAccount') {
+                return res.status(400).json({
+                    success: false,
+                    message: `Invalid Account Type. The provided ID (${config.businessAccountId}) is a '${typeCheckData.metadata.type}', but a 'WhatsAppBusinessAccount' ID (WABA) is required to link a catalog.`
+                });
+            }
+        } else if (typeCheckData.error) {
+            return res.status(400).json({
+                success: false,
+                message: `Failed to validate Account ID: ${typeCheckData.error.message}`
+            });
+        }
+
         const url = `${GRAPH_API_URL}/${config.businessAccountId}/product_catalogs`;
 
         console.log('🚀 Sending request to Meta:', url);
