@@ -383,7 +383,8 @@ router.post('/', async (req, res) => {
                         if (product && product.linkedForm) {
                             console.log(`✨ Product ${product.name} has linked form: ${product.linkedForm.title}. Sending auto-reply...`);
 
-                            const formUrl = `http://localhost:5173/form/${product.linkedForm._id}`; // TODO: Use real domain in production
+                            const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+                            const formUrl = `${clientUrl}/form/${product.linkedForm._id}`;
                             const replyMessage = `Thanks for your interest in *${product.name}*! \n\nPlease complete your order by filling out this form:\n${formUrl}`;
 
                             // Determine which config to use for sending reply
@@ -426,6 +427,87 @@ router.post('/', async (req, res) => {
                                     console.error('Failed to send auto-reply:', replyErr);
                                 }
                             }
+                        }
+                    }
+
+                    // ORDER / CART AUTO-REPLY LOGIC
+                    if (msgType === 'order' && messageData.order && messageData.order.product_items) {
+                        const productItems = messageData.order.product_items;
+                        console.log(`🛒 Received order with ${productItems.length} items`);
+
+                        const retailerIds = productItems.map(item => item.product_retailer_id);
+
+                        // Find products with linked forms
+                        const products = await Product.find({
+                            company: companyId,
+                            retailerId: { $in: retailerIds },
+                            linkedForm: { $ne: null }
+                        }).populate('linkedForm');
+
+                        if (products.length > 0) {
+                            console.log(`✨ Found ${products.length} products with linked forms in the order.`);
+
+                            // Deduplicate by form ID
+                            const uniqueForms = {};
+                            products.forEach(p => {
+                                if (p.linkedForm) {
+                                    uniqueForms[p.linkedForm._id] = {
+                                        form: p.linkedForm,
+                                        productName: p.name
+                                    };
+                                }
+                            });
+
+                            // Send a link for each unique form
+                            for (const formId of Object.keys(uniqueForms)) {
+                                const { form, productName } = uniqueForms[formId];
+                                const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+                                const formUrl = `${clientUrl}/form/${form._id}`;
+                                const replyMessage = `Thanks for your order including *${productName}*! \n\nPlease complete the necessary details here:\n${formUrl}`;
+
+                                // Determine config
+                                const config = company.whatsappConfigs.find(c => c.phoneNumberId === phoneNumberId);
+
+                                if (config && config.accessToken) {
+                                    const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
+                                    const url = `${GRAPH_API_URL}/${phoneNumberId}/messages`;
+
+                                    try {
+                                        await fetch(url, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${config.accessToken}`
+                                            },
+                                            body: JSON.stringify({
+                                                messaging_product: 'whatsapp',
+                                                recipient_type: 'individual',
+                                                to: from,
+                                                type: 'text',
+                                                text: { body: replyMessage }
+                                            })
+                                        });
+
+                                        // Save auto-reply
+                                        await WhatsAppMessage.create({
+                                            companyId: companyId,
+                                            phoneNumberId,
+                                            from: phoneNumberId,
+                                            to: from,
+                                            direction: 'outgoing',
+                                            type: 'text',
+                                            body: replyMessage,
+                                            messageId: `auto-reply-order-${Date.now()}`,
+                                            status: 'sent'
+                                        });
+                                        console.log(`✅ Form link sent for order (Form: ${form.title})`);
+                                    } catch (replyErr) {
+                                        console.error('Failed to send order form link:', replyErr);
+                                    }
+                                }
+                            }
+                        } else {
+                            console.log('ℹ️ No linked forms found for the ordered products.');
                         }
                     }
 
