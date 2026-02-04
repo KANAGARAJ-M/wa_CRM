@@ -279,6 +279,10 @@ router.get('/messages', auth, async (req, res) => {
             query.phoneNumberId = phoneNumberId;
         }
 
+        // Exclude Order messages (as they have their own page now)
+        query.type = { $ne: 'order' };
+        query['metadata.order'] = { $exists: false };
+
         // If cannot view all, filter by assigned leads
         if (!canViewAll && canViewOwn) {
             const leads = await Lead.find({ assignedTo: user._id, companyId: req.companyId }).select('phone');
