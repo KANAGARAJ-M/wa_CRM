@@ -23,7 +23,8 @@ export default function Products() {
         currency: 'USD',
         imageUrl: '',
         retailerId: '',
-        linkedForm: ''
+        linkedForm: '',
+        whatsappFlowId: ''
     });
     const [submitting, setSubmitting] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -107,7 +108,8 @@ export default function Products() {
                 currency: product.currency || 'USD',
                 imageUrl: product.imageUrl || '',
                 retailerId: product.retailerId || '',
-                linkedForm: product.linkedForm || ''
+                linkedForm: product.linkedForm || '',
+                whatsappFlowId: product.whatsappFlowId || ''
             });
         } else {
             setEditingProduct(null);
@@ -118,7 +120,8 @@ export default function Products() {
                 currency: 'USD',
                 imageUrl: '',
                 retailerId: '',
-                linkedForm: ''
+                linkedForm: '',
+                whatsappFlowId: ''
             });
         }
         setIsModalOpen(true);
@@ -548,6 +551,17 @@ export default function Products() {
                                     onChange={e => setFormData({ ...formData, retailerId: e.target.value })}
                                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Flow ID</label>
+                                <input
+                                    type="text"
+                                    value={formData.whatsappFlowId}
+                                    onChange={e => setFormData({ ...formData, whatsappFlowId: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                    placeholder="e.g. 899702372463526"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">If set, customers will see a native form (Flow) instead of a website link.</p>
                             </div>
 
                             <div className="flex gap-3 pt-4">

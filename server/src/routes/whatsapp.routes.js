@@ -503,17 +503,17 @@ router.post('/', async (req, res) => {
                                 if (p.linkedForm) {
                                     uniqueForms[p.linkedForm._id] = {
                                         form: p.linkedForm,
-                                        productName: p.name
+                                        productName: p.name,
+                                        flowId: p.whatsappFlowId
                                     };
                                 }
                             });
 
-                            // Send a link for each unique form
+                            // Send a link OR Flow for each unique form/product
                             for (const formId of Object.keys(uniqueForms)) {
-                                const { form, productName } = uniqueForms[formId];
+                                const { form, productName, flowId } = uniqueForms[formId];
                                 const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
                                 const formUrl = `${clientUrl}/form/${form._id}`;
-                                const replyMessage = `Thanks for your order including *${productName}*! \n\nPlease complete the necessary details here:\n${formUrl}`;
 
                                 // Determine config
                                 const config = company.whatsappConfigs.find(c => c.phoneNumberId === phoneNumberId);
@@ -522,6 +522,49 @@ router.post('/', async (req, res) => {
                                     const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
                                     const url = `${GRAPH_API_URL}/${phoneNumberId}/messages`;
 
+                                    let payload;
+
+                                    // OPTION A: NATIVE FLOW (Widget)
+                                    if (flowId) {
+                                        console.log(`🌊 Sending WhatsApp Flow (${flowId}) for ${productName}`);
+                                        payload = {
+                                            messaging_product: 'whatsapp',
+                                            recipient_type: 'individual',
+                                            to: from,
+                                            type: 'interactive',
+                                            interactive: {
+                                                type: 'flow',
+                                                header: { type: 'text', text: 'Complete Order' },
+                                                body: { text: `Please provide details for *${productName}*.` },
+                                                footer: { text: 'Secure Form' },
+                                                action: {
+                                                    name: 'flow',
+                                                    parameters: {
+                                                        flow_message_version: '3',
+                                                        flow_token: `order-${Date.now()}`,
+                                                        flow_id: flowId,
+                                                        flow_cta: 'Fill Details',
+                                                        flow_action: 'navigate',
+                                                        flow_action_payload: {
+                                                            screen: 'DETAILS_SCREEN' // Default screen name, user must match this in Flow Builder
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        };
+                                    }
+                                    // OPTION B: WEB LINK (Fallback)
+                                    else {
+                                        const replyMessage = `Thanks for your order including *${productName}*! \n\nPlease complete the necessary details here:\n${formUrl}`;
+                                        payload = {
+                                            messaging_product: 'whatsapp',
+                                            recipient_type: 'individual',
+                                            to: from,
+                                            type: 'text',
+                                            text: { body: replyMessage }
+                                        };
+                                    }
+
                                     try {
                                         await fetch(url, {
                                             method: 'POST',
@@ -529,30 +572,24 @@ router.post('/', async (req, res) => {
                                                 'Content-Type': 'application/json',
                                                 'Authorization': `Bearer ${config.accessToken}`
                                             },
-                                            body: JSON.stringify({
-                                                messaging_product: 'whatsapp',
-                                                recipient_type: 'individual',
-                                                to: from,
-                                                type: 'text',
-                                                text: { body: replyMessage }
-                                            })
+                                            body: JSON.stringify(payload)
                                         });
 
-                                        // Save auto-reply
+                                        // Save auto-reply log
                                         await WhatsAppMessage.create({
                                             companyId: companyId,
                                             phoneNumberId,
                                             from: phoneNumberId,
                                             to: from,
                                             direction: 'outgoing',
-                                            type: 'text',
-                                            body: replyMessage,
+                                            type: flowId ? 'interactive' : 'text', // Store correct type
+                                            body: flowId ? `[Sent Flow ID: ${flowId}]` : `Sent Link: ${formUrl}`,
                                             messageId: `auto-reply-order-${Date.now()}`,
                                             status: 'sent'
                                         });
-                                        console.log(`✅ Form link sent for order (Form: ${form.title})`);
+                                        console.log(`✅ Auto-reply sent (${flowId ? 'Flow' : 'Link'})`);
                                     } catch (replyErr) {
-                                        console.error('Failed to send order form link:', replyErr);
+                                        console.error('Failed to send auto-reply:', replyErr);
                                     }
                                 }
                             }

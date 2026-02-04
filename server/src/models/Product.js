@@ -36,6 +36,10 @@ const productSchema = new mongoose.Schema({
     linkedForm: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Form'
+    },
+    whatsappFlowId: {
+        type: String, // ID of the WhatsApp Flow from Meta Business Manager
+        trim: true
     }
 }, {
     timestamps: true
