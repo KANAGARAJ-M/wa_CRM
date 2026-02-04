@@ -109,34 +109,39 @@ export default function Communication() {
         messages.forEach(msg => {
             const isIncoming = msg.direction === 'incoming' || msg.status === 'received';
             const contactPhone = isIncoming ? msg.from : msg.to;
+            const integrationId = msg.phoneNumberId || 'unknown'; // Account ID
 
             if (!contactPhone) return;
 
-            if (!groups[contactPhone]) {
-                groups[contactPhone] = {
-                    id: contactPhone,
+            // Create a unique key for grouping: Phone + Account
+            // This ensures Dheena chatting on Account A is separate from Dheena on Account B
+            const groupKey = `${contactPhone}_${integrationId}`;
+
+            if (!groups[groupKey]) {
+                groups[groupKey] = {
+                    id: groupKey,
                     contactName: isIncoming ? (msg.fromName || msg.from) : (msg.lead?.name || msg.to),
                     contactPhone: contactPhone,
                     messages: [],
                     unreadCount: 0,
                     lastMessage: null,
-                    integrationId: msg.phoneNumberId
+                    integrationId: integrationId // Tag the chat with the account ID
                 };
             }
 
-            if (!groups[contactPhone].contactName || groups[contactPhone].contactName === contactPhone) {
+            if (!groups[groupKey].contactName || groups[groupKey].contactName === contactPhone) {
                 const name = isIncoming ? msg.fromName : msg.lead?.name;
-                if (name) groups[contactPhone].contactName = name;
+                if (name) groups[groupKey].contactName = name;
             }
 
-            groups[contactPhone].messages.push({
+            groups[groupKey].messages.push({
                 ...msg,
                 isIncoming,
                 timestamp: new Date(msg.timestamp || msg.createdAt)
             });
 
             if (isIncoming && msg.status !== 'read' && msg.status !== 'replied') {
-                groups[contactPhone].unreadCount++;
+                groups[groupKey].unreadCount++;
             }
         });
 
@@ -211,7 +216,8 @@ export default function Communication() {
         try {
             const payload = {
                 message: optimisticMsg.body,
-                phone: selectedChat.contactPhone
+                phone: selectedChat.contactPhone,
+                phoneId: selectedChat.integrationId
             };
 
             await api.post('/whatsapp/send', payload);
@@ -578,6 +584,13 @@ export default function Communication() {
                                                         <h3 className="font-medium text-gray-900 truncate">{chat.contactName}</h3>
                                                         <span className={`text-xs ${chat.unreadCount > 0 ? 'text-green-600 font-bold' : 'text-gray-400'}`}>
                                                             {formatDate(chat.lastMessage.timestamp)}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Account Tag */}
+                                                    <div className="flex items-center gap-1 mb-1">
+                                                        <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded border border-gray-300">
+                                                            {whatsappConfigs.find(c => c.phoneNumberId === chat.integrationId)?.name || 'Unknown Account'}
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between items-center mt-1">
