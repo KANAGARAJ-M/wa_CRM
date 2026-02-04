@@ -30,7 +30,7 @@ router.post('/', auth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
-        const { name, price, description, imageUrl, retailerId, currency, linkedForm } = req.body;
+        const { name, price, description, imageUrl, retailerId, currency, linkedForm, whatsappFlowId } = req.body;
 
         const newProduct = new Product({
             company: req.companyId,
@@ -40,7 +40,8 @@ router.post('/', auth, async (req, res) => {
             imageUrl,
             retailerId,
             currency,
-            linkedForm
+            linkedForm,
+            whatsappFlowId
         });
 
         await newProduct.save();
@@ -60,7 +61,7 @@ router.put('/:id', auth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company context required' });
         }
 
-        const { name, price, description, imageUrl, retailerId, currency, active, linkedForm } = req.body;
+        const { name, price, description, imageUrl, retailerId, currency, active, linkedForm, whatsappFlowId } = req.body;
 
         const product = await Product.findOne({ _id: req.params.id, company: req.companyId });
         if (!product) {
@@ -75,6 +76,7 @@ router.put('/:id', auth, async (req, res) => {
         if (currency !== undefined) product.currency = currency;
         if (active !== undefined) product.active = active;
         if (linkedForm !== undefined) product.linkedForm = linkedForm;
+        if (whatsappFlowId !== undefined) product.whatsappFlowId = whatsappFlowId;
 
         await product.save();
         res.json({ success: true, data: product });
