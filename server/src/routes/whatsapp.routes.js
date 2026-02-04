@@ -431,6 +431,9 @@ router.post('/', async (req, res) => {
                     }
 
                     // ORDER / CART AUTO-REPLY LOGIC
+                    console.log(`Debug: Checking Order Logic. MsgType: ${msgType}, HasOrder: ${!!messageData.order}`);
+                    if (messageData.order) console.log('Debug: Order Data:', JSON.stringify(messageData.order));
+
                     if (msgType === 'order' && messageData.order && messageData.order.product_items) {
                         const productItems = messageData.order.product_items;
                         console.log(`🛒 Received order with ${productItems.length} items`);
