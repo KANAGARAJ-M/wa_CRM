@@ -373,135 +373,187 @@ router.get('/orders', auth, async (req, res) => {
 });
 
 // @route   POST /api/whatsapp/flow-endpoint
-// @desc    Data Exchange Endpoint for WhatsApp Flows (handles intermediate saves)
-// @access  Public (but encrypted by Meta)
-// This endpoint receives data when users navigate between screens in a WhatsApp Flow
+// @desc    Data Exchange Endpoint for WhatsApp Flows (handles encrypted requests from Meta)
+// @access  Public (encrypted by Meta)
+// Reference: https://developers.facebook.com/docs/whatsapp/flows/guides/implementingyourflowendpoint/
 router.post('/flow-endpoint', async (req, res) => {
+    const crypto = require('crypto');
+    const fs = require('fs');
+    const path = require('path');
+
+    console.log('🌊 Flow Endpoint Request received');
+
     try {
-        console.log('🌊 Flow Data Exchange Request:', JSON.stringify(req.body));
+        const { encrypted_aes_key, encrypted_flow_data, initial_vector } = req.body;
 
-        const {
-            version,
-            action,           // 'ping', 'INIT', 'data_exchange', 'back'
-            screen,           // Current screen ID
-            data,             // Data from current screen
-            flow_token        // Token to identify the session
-        } = req.body;
+        // If request is encrypted (production from Meta)
+        if (encrypted_aes_key && encrypted_flow_data && initial_vector) {
+            console.log('🔐 Encrypted request detected, decrypting...');
 
-        // Handle PING (health check from Meta)
-        if (action === 'ping') {
-            return res.json({
-                version: version || '3.0',
-                data: { status: 'active' }
-            });
-        }
+            // Load private key
+            const privateKeyPath = process.env.FLOW_PRIVATE_KEY_PATH || './keys/flow_private_key.pem';
+            const fullPath = path.resolve(__dirname, '../../', privateKeyPath);
 
-        // Handle INIT (flow started)
-        if (action === 'INIT') {
-            console.log(`🚀 Flow INIT with token: ${flow_token}`);
-
-            // Parse flow token to get context (you can embed companyId, productId, etc.)
-            let context = {};
-            try {
-                if (flow_token && flow_token.includes('-')) {
-                    const parts = flow_token.split('-');
-                    context = {
-                        type: parts[0],  // e.g., 'order'
-                        timestamp: parts[1]
-                    };
-                }
-            } catch (e) { }
-
-            // Return initial screen data if needed
-            return res.json({
-                version: version || '3.0',
-                screen: 'DETAILS_SCREEN',  // First screen
-                data: {}
-            });
-        }
-
-        // Handle data_exchange (intermediate saves)
-        if (action === 'data_exchange') {
-            console.log(`📝 Flow data exchange - Screen: ${screen}, Data:`, data);
-
-            // Find or create a flow response record for this session
-            let flowResponse = await FlowResponse.findOne({ flowToken: flow_token });
-
-            if (!flowResponse) {
-                // Parse phone from flow_token or data if available
-                const phone = data?.phone || 'unknown';
-
-                // Try to find company from any product with flows
-                const product = await Product.findOne({ whatsappFlowId: { $exists: true } });
-                const companyId = product?.company;
-
-                flowResponse = await FlowResponse.create({
-                    companyId: companyId,
-                    phoneNumberId: 'flow-endpoint',
-                    flowId: data?.flow_id || 'unknown',
-                    flowToken: flow_token,
-                    from: phone,
-                    responseData: data || {},
-                    parsedFields: Object.entries(data || {}).map(([k, v]) => ({
-                        fieldName: k,
-                        fieldValue: v,
-                        fieldType: typeof v
-                    })),
-                    status: 'in_progress',
-                    product: product?._id
-                });
-            } else {
-                // Update existing record with new data
-                const mergedData = { ...flowResponse.responseData, ...(data || {}) };
-                flowResponse.responseData = mergedData;
-                flowResponse.parsedFields = Object.entries(mergedData)
-                    .filter(([k]) => !['flow_token', 'flow_id'].includes(k))
-                    .map(([k, v]) => ({
-                        fieldName: k,
-                        fieldValue: v,
-                        fieldType: typeof v
-                    }));
-                flowResponse.status = 'in_progress';
-                await flowResponse.save();
+            if (!fs.existsSync(fullPath)) {
+                console.error('❌ Private key not found at:', fullPath);
+                return res.status(500).json({ error: 'Private key not configured' });
             }
 
-            console.log(`💾 Saved intermediate flow data for token: ${flow_token}`);
+            const privatePem = fs.readFileSync(fullPath, 'utf-8');
 
-            // Return next screen or success
-            // You can customize this based on your flow structure
-            return res.json({
-                version: version || '3.0',
-                screen: screen || 'NEXT_SCREEN',
-                data: { saved: true }
-            });
+            // Decrypt the AES key
+            const decryptedAesKey = crypto.privateDecrypt(
+                {
+                    key: crypto.createPrivateKey(privatePem),
+                    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+                    oaepHash: 'sha256',
+                },
+                Buffer.from(encrypted_aes_key, 'base64')
+            );
+
+            // Decrypt the Flow data
+            const flowDataBuffer = Buffer.from(encrypted_flow_data, 'base64');
+            const initialVectorBuffer = Buffer.from(initial_vector, 'base64');
+            const TAG_LENGTH = 16;
+            const encrypted_flow_data_body = flowDataBuffer.subarray(0, -TAG_LENGTH);
+            const encrypted_flow_data_tag = flowDataBuffer.subarray(-TAG_LENGTH);
+
+            const decipher = crypto.createDecipheriv('aes-128-gcm', decryptedAesKey, initialVectorBuffer);
+            decipher.setAuthTag(encrypted_flow_data_tag);
+
+            const decryptedJSONString = Buffer.concat([
+                decipher.update(encrypted_flow_data_body),
+                decipher.final(),
+            ]).toString('utf-8');
+
+            const decryptedBody = JSON.parse(decryptedJSONString);
+            console.log('📦 Decrypted request:', JSON.stringify(decryptedBody));
+
+            // Process the request
+            const responseData = await processFlowRequest(decryptedBody);
+
+            // Encrypt the response
+            // Flip the initialization vector
+            const flipped_iv = [];
+            for (const pair of initialVectorBuffer.entries()) {
+                flipped_iv.push(~pair[1]);
+            }
+
+            const cipher = crypto.createCipheriv('aes-128-gcm', decryptedAesKey, Buffer.from(flipped_iv));
+            const encryptedResponse = Buffer.concat([
+                cipher.update(JSON.stringify(responseData), 'utf-8'),
+                cipher.final(),
+                cipher.getAuthTag(),
+            ]).toString('base64');
+
+            console.log('✅ Sending encrypted response');
+            res.set('Content-Type', 'text/plain');
+            return res.send(encryptedResponse);
+
+        } else {
+            // Unencrypted request (for testing or health check)
+            console.log('📦 Unencrypted request:', JSON.stringify(req.body));
+            const responseData = await processFlowRequest(req.body);
+            return res.json(responseData);
         }
-
-        // Handle back navigation
-        if (action === 'back') {
-            return res.json({
-                version: version || '3.0',
-                screen: screen,
-                data: {}
-            });
-        }
-
-        // Default response
-        res.json({
-            version: version || '3.0',
-            data: {}
-        });
 
     } catch (error) {
-        console.error('Flow endpoint error:', error);
-        // WhatsApp Flows expect specific error format
-        res.status(500).json({
-            version: '3.0',
-            data: {
-                error: error.message
-            }
-        });
+        console.error('❌ Flow endpoint error:', error);
+        // Return 421 for decryption errors as per Meta docs
+        if (error.message?.includes('decrypt') || error.code === 'ERR_OSSL_RSA_OAEP_DECODING_ERROR') {
+            return res.status(421).json({ error: 'Decryption failed' });
+        }
+        return res.status(500).json({ error: error.message });
     }
 });
+
+// Helper function to process flow requests
+async function processFlowRequest(body) {
+    const { version, action, screen, data, flow_token } = body;
+
+    // Handle PING (health check from Meta)
+    if (action === 'ping') {
+        console.log('🏓 Health check ping received');
+        return { version: version || '3.0', data: { status: 'active' } };
+    }
+
+    // Handle INIT (flow started)
+    if (action === 'INIT') {
+        console.log(`🚀 Flow INIT with token: ${flow_token}`);
+        return {
+            version: version || '3.0',
+            screen: 'DETAILS_SCREEN',
+            data: {}
+        };
+    }
+
+    // Handle data_exchange (intermediate saves)
+    if (action === 'data_exchange') {
+        console.log(`📝 Flow data exchange - Screen: ${screen}, Data:`, data);
+
+        // Find or create a flow response record for this session
+        let flowResponse = await FlowResponse.findOne({ flowToken: flow_token });
+
+        if (!flowResponse) {
+            const phone = data?.phone || 'unknown';
+            const product = await Product.findOne({ whatsappFlowId: { $exists: true } });
+            const companyId = product?.company;
+
+            flowResponse = await FlowResponse.create({
+                companyId: companyId,
+                phoneNumberId: 'flow-endpoint',
+                flowId: data?.flow_id || 'unknown',
+                flowToken: flow_token,
+                from: phone,
+                responseData: data || {},
+                parsedFields: Object.entries(data || {}).map(([k, v]) => ({
+                    fieldName: k,
+                    fieldValue: v,
+                    fieldType: typeof v
+                })),
+                status: 'in_progress',
+                product: product?._id
+            });
+        } else {
+            const mergedData = { ...flowResponse.responseData, ...(data || {}) };
+            flowResponse.responseData = mergedData;
+            flowResponse.parsedFields = Object.entries(mergedData)
+                .filter(([k]) => !['flow_token', 'flow_id'].includes(k))
+                .map(([k, v]) => ({
+                    fieldName: k,
+                    fieldValue: v,
+                    fieldType: typeof v
+                }));
+            flowResponse.status = 'in_progress';
+            await flowResponse.save();
+        }
+
+        console.log(`💾 Saved intermediate flow data for token: ${flow_token}`);
+
+        // Determine next screen based on current screen
+        let nextScreen = 'SUCCESS_SCREEN';
+        if (screen === 'DETAILS_SCREEN') {
+            nextScreen = 'PAYMENT_SCREEN';
+        }
+
+        return {
+            version: version || '3.0',
+            screen: nextScreen,
+            data: {
+                saved: true,
+                ...data // meaningful data to pass to next screen
+            }
+        };
+    }
+
+    // Handle back navigation
+    if (action === 'back') {
+        return { version: version || '3.0', screen: screen, data: {} };
+    }
+
+    // Default response
+    return { version: version || '3.0', data: {} };
+}
 
 // @route   POST /whatsapp
 // @desc    Webhook for WhatsApp Cloud API
