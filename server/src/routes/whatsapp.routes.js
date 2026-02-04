@@ -309,8 +309,55 @@ router.get('/messages', auth, async (req, res) => {
                 pages: Math.ceil(total / limit)
             }
         });
+
     } catch (error) {
         console.error('Get WhatsApp messages error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+});
+
+// @route   GET /api/whatsapp/orders
+// @desc    Get all WhatsApp Order messages
+// @access  Private/Admin/Agent
+router.get('/orders', auth, async (req, res) => {
+    try {
+        const { page = 1, limit = 50 } = req.query;
+
+        if (!req.companyId) {
+            return res.status(400).json({ success: false, message: 'Company context required' });
+        }
+
+        const query = {
+            companyId: req.companyId,
+            // Check for both explicit type 'order' or where metadata has order field (just in case)
+            $or: [
+                { type: 'order' },
+                { 'metadata.order': { $exists: true } }
+            ]
+        };
+
+        const orders = await WhatsAppMessage.find(query)
+            .sort({ timestamp: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        const total = await WhatsAppMessage.countDocuments(query);
+
+        res.json({
+            success: true,
+            data: orders,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get WhatsApp orders error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error'

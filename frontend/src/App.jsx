@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import AgentStatus from './pages/AgentStatus';
 import Roles from './pages/Roles';
 import Products from './pages/Products';
+import Orders from './pages/Orders';
 import PublicForm from './pages/PublicForm';
 import Layout from './components/Layout';
 
@@ -206,6 +207,15 @@ function App() {
             element={
               <AdminRoute>
                 <Products />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/orders"
+            element={
+              <AdminRoute>
+                <Orders />
               </AdminRoute>
             }
           />
