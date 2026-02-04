@@ -381,6 +381,40 @@ export default function Products() {
                                             </div>
                                         )}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    // Robustly find phone number
+                                                    let phone = '';
+                                                    if (currentCompany?.whatsappConfigs?.length > 0) {
+                                                        // Try to find enabled config first
+                                                        const enabledConfig = currentCompany.whatsappConfigs.find(c => c.isEnabled);
+                                                        if (enabledConfig?.phoneNumberId) {
+                                                            phone = enabledConfig.phoneNumberId;
+                                                        } else if (currentCompany.whatsappConfigs[0].phoneNumberId) {
+                                                            phone = currentCompany.whatsappConfigs[0].phoneNumberId;
+                                                        }
+                                                    }
+
+                                                    // Fallback to company profile phone
+                                                    if (!phone && currentCompany?.phone) {
+                                                        phone = currentCompany.phone;
+                                                    }
+
+                                                    if (!phone) {
+                                                        alert("Warning: No phone number found in company settings. The link will be incomplete.");
+                                                    }
+
+                                                    const text = `Hi, I'm interested in ${product.name}`;
+                                                    const link = `https://wa.me/${phone ? phone.replace(/[^0-9]/g, '') : ''}?text=${encodeURIComponent(text)}`;
+
+                                                    navigator.clipboard.writeText(link);
+                                                    alert(`Link copied to clipboard!\n${link}`);
+                                                }}
+                                                className="p-2 bg-white rounded-full text-gray-700 hover:text-blue-600"
+                                                title="Copy WhatsApp Link"
+                                            >
+                                                <LinkIcon className="h-4 w-4" />
+                                            </button>
                                             <button onClick={() => handleOpenModal(product)} className="p-2 bg-white rounded-full text-gray-700 hover:text-green-600">
                                                 <Edit2 className="h-4 w-4" />
                                             </button>

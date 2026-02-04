@@ -16,12 +16,12 @@ router.get('/mine', auth, async (req, res) => {
         if (req.user.role === 'superadmin' || hasCreateCompanyPerm) {
             // Superadmins or users with create_company permission see all companies
             companies = await Company.find({})
-                .select('name address phone website isEnabled createdAt');
+                .select('name address phone website isEnabled createdAt whatsappConfigs');
         } else {
             // Regular users see only their assigned companies
             companies = await Company.find({
                 users: req.user._id
-            }).select('name address phone website isEnabled createdAt');
+            }).select('name address phone website isEnabled createdAt whatsappConfigs');
         }
 
         res.json({ success: true, data: companies });
