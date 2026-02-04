@@ -20,7 +20,7 @@ const whatsappMessageSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['text', 'image', 'document', 'audio', 'video', 'sticker', 'location', 'contacts', 'unknown'],
+        enum: ['text', 'image', 'document', 'audio', 'video', 'sticker', 'location', 'contacts', 'order', 'interactive', 'template', 'unknown'],
         default: 'text'
     },
     body: {
