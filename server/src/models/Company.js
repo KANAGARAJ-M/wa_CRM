@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const whatsappConfigSchema = new mongoose.Schema({
     name: { type: String, required: true }, // e.g., "Sales Team", "Support"
     apiKey: { type: String, default: '' },
+    phoneNumber: { type: String, default: '' }, // Added display Phone Number
     accessToken: { type: String, default: '' },
     phoneNumberId: { type: String, default: '' },
     businessAccountId: { type: String, default: '' },

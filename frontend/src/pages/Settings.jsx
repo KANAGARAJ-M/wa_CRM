@@ -90,6 +90,7 @@ export default function Settings() {
             {
                 name: `Account ${whatsappConfigs.length + 1}`,
                 apiKey: '',
+                phoneNumber: '', // Display phone number (e.g. 15551234567)
                 accessToken: '',
                 phoneNumberId: '',
                 businessAccountId: '',
@@ -527,6 +528,14 @@ export default function Settings() {
                                                         value={config.name}
                                                         onChange={(e) => handleConfigChange(index, 'name', e.target.value)}
                                                         placeholder="Account Name"
+                                                        disabled={isLocked}
+                                                        className="w-full px-3 py-2 border rounded-lg focus:ring-green-500"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={config.phoneNumber || ''}
+                                                        onChange={(e) => handleConfigChange(index, 'phoneNumber', e.target.value)}
+                                                        placeholder="Phone Number (e.g. 15550001111)"
                                                         disabled={isLocked}
                                                         className="w-full px-3 py-2 border rounded-lg focus:ring-green-500"
                                                     />

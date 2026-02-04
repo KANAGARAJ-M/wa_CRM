@@ -14,6 +14,7 @@ export default function Products() {
     // Products State
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [companyDetails, setCompanyDetails] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [formData, setFormData] = useState({
@@ -46,12 +47,29 @@ export default function Products() {
     const [error, setError] = useState('');
 
     useEffect(() => {
+        fetchCompanyDetails(); // Fetch fresh details
         if (activeTab === 'products') {
             fetchProducts();
         } else {
             fetchForms();
         }
     }, [activeTab]);
+
+    const fetchCompanyDetails = async () => {
+        try {
+            // We assume the first company is the current one for now, or match by ID if available from context
+            const res = await api.get('/companies/mine');
+            if (res.data.data && res.data.data.length > 0) {
+                // Find the one that matches currentCompany._id if possible, else take first
+                const freshCompany = currentCompany
+                    ? res.data.data.find(c => c._id === currentCompany._id) || res.data.data[0]
+                    : res.data.data[0];
+                setCompanyDetails(freshCompany);
+            }
+        } catch (err) {
+            console.error("Failed to fetch fresh company details:", err);
+        }
+    };
 
     // --- Product Functions ---
 
@@ -383,21 +401,26 @@ export default function Products() {
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                             <button
                                                 onClick={() => {
+                                                    // Use freshly fetched company details if available
+                                                    const targetCompany = companyDetails || currentCompany;
+
                                                     // Robustly find phone number
                                                     let phone = '';
-                                                    if (currentCompany?.whatsappConfigs?.length > 0) {
+                                                    if (targetCompany?.whatsappConfigs?.length > 0) {
                                                         // Try to find enabled config first
-                                                        const enabledConfig = currentCompany.whatsappConfigs.find(c => c.isEnabled);
-                                                        if (enabledConfig?.phoneNumberId) {
-                                                            phone = enabledConfig.phoneNumberId;
-                                                        } else if (currentCompany.whatsappConfigs[0].phoneNumberId) {
-                                                            phone = currentCompany.whatsappConfigs[0].phoneNumberId;
+                                                        const enabledConfig = targetCompany.whatsappConfigs.find(c => c.isEnabled);
+                                                        // Prefer explicit phoneNumber if set, otherwise fallback to phoneNumberId
+                                                        if (enabledConfig) {
+                                                            phone = enabledConfig.phoneNumber || enabledConfig.phoneNumberId;
+                                                        } else {
+                                                            const firstConfig = targetCompany.whatsappConfigs[0];
+                                                            phone = firstConfig.phoneNumber || firstConfig.phoneNumberId;
                                                         }
                                                     }
 
                                                     // Fallback to company profile phone
-                                                    if (!phone && currentCompany?.phone) {
-                                                        phone = currentCompany.phone;
+                                                    if (!phone && targetCompany?.phone) {
+                                                        phone = targetCompany.phone;
                                                     }
 
                                                     if (!phone) {
