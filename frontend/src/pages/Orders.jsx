@@ -159,7 +159,7 @@ export default function Orders() {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
             currency: currency
-        }).format(amount / 1000);
+        }).format(amount);
     };
 
     const formatFieldValue = (value) => {
@@ -402,9 +402,9 @@ export default function Orders() {
                                             {/* Flow Card */}
                                             <div className="flex justify-end">
                                                 <div className={`rounded-2xl rounded-tr-md px-4 py-3 max-w-[85%] shadow-sm ${status === 'completed' ? 'bg-[#dcf8c6]' :
-                                                        status === 'in_progress' ? 'bg-yellow-100' :
-                                                            status === 'draft' ? 'bg-gray-100' :
-                                                                'bg-red-50'
+                                                    status === 'in_progress' ? 'bg-yellow-100' :
+                                                        status === 'draft' ? 'bg-gray-100' :
+                                                            'bg-red-50'
                                                     }`}>
                                                     <div
                                                         className="flex items-center gap-2 mb-2 cursor-pointer"
@@ -431,9 +431,9 @@ export default function Orders() {
 
                                                     <div className="flex items-center justify-between mt-2">
                                                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${status === 'completed' ? 'bg-green-200 text-green-700' :
-                                                                status === 'in_progress' ? 'bg-yellow-200 text-yellow-700' :
-                                                                    status === 'draft' ? 'bg-gray-200 text-gray-600' :
-                                                                        'bg-red-200 text-red-700'
+                                                            status === 'in_progress' ? 'bg-yellow-200 text-yellow-700' :
+                                                                status === 'draft' ? 'bg-gray-200 text-gray-600' :
+                                                                    'bg-red-200 text-red-700'
                                                             }`}>
                                                             {status === 'in_progress' ? 'Incomplete' : status}
                                                         </span>
@@ -606,8 +606,8 @@ export default function Orders() {
                                     </div>
 
                                     <div className={`p-3 rounded-xl ${detailModal.data.status === 'completed' ? 'bg-green-100' :
-                                            detailModal.data.status === 'in_progress' ? 'bg-yellow-100' :
-                                                'bg-gray-100'
+                                        detailModal.data.status === 'in_progress' ? 'bg-yellow-100' :
+                                            'bg-gray-100'
                                         }`}>
                                         <div className="flex items-center gap-2">
                                             {detailModal.data.status === 'completed' && <CheckCircle className="w-5 h-5 text-green-600" />}
