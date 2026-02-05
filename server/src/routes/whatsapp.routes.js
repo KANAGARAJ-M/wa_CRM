@@ -29,17 +29,21 @@ router.post('/send', auth, async (req, res) => {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
+        // Normalize phone for matching: remove non-digits and leading zeros
+        const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
+        const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
+
         if (!canViewAll && canViewOwn) {
             // Check if Lead is assigned
-            const lead = await Lead.findOne({ phone: phone, assignedTo: user._id, companyId: req.companyId });
+            const lead = await Lead.findOne({
+                $or: [{ phone: regex }, { phone: phone }],
+                assignedTo: user._id,
+                companyId: req.companyId
+            });
 
             let isAuthorized = !!lead;
 
             if (!isAuthorized) {
-                // Try normalizing the phone (strip +, spaces, etc)
-                const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
-                const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
-
                 // Check if any WhatsAppMessage for this phone is assigned to this worker
                 const assignedMsg = await WhatsAppMessage.findOne({
                     companyId: req.companyId,
@@ -81,9 +85,6 @@ router.post('/send', auth, async (req, res) => {
 
         // If phoneNumberId not provided, try to get from Lead
         if (!phoneNumberId) {
-            const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
-            const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
-
             const lead = await Lead.findOne({
                 $or: [{ phone: regex }, { phone: phone }],
                 companyId: req.companyId

@@ -70,13 +70,8 @@ router.get('/messages/:phone', auth, async (req, res) => {
             return res.status(403).json({ success: false, message: 'Not authorized to view messages for this contact' });
         }
 
-        // Normalize phone for matching: remove non-digits and leading zeros
-        const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
-
         let query;
         if (cleanPhone.length >= 7) {
-            // If we have a decent length number, match as suffix
-            const regex = new RegExp(cleanPhone + '$');
             query = {
                 $or: [
                     { from: regex },
