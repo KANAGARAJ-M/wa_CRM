@@ -59,6 +59,22 @@ const flowResponseSchema = new mongoose.Schema({
         type: String,
         unique: true,
         sparse: true
+    },
+    // Assignment fields
+    assignedTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    agentStatus: {
+        type: String,
+        enum: ['pending', 'in_progress', 'completed', 'cancelled'],
+        default: 'pending'
+    },
+    agentNotes: {
+        type: String
+    },
+    agreedTo: {
+        type: Date
     }
 }, {
     timestamps: true

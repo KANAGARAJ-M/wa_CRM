@@ -257,3 +257,78 @@ class TodayCallStats {
     );
   }
 }
+
+class AssignedItem {
+  final String id;
+  final String type; // 'order', 'flow', 'message'
+  final String name;
+  final String phone;
+  final DateTime receivedAt;
+  final String agentStatus;
+  final String? agentNotes;
+  final DateTime? agreedTo;
+  final Map<String, dynamic>? data;
+
+  AssignedItem({
+    required this.id,
+    required this.type,
+    required this.name,
+    required this.phone,
+    required this.receivedAt,
+    required this.agentStatus,
+    this.agentNotes,
+    this.agreedTo,
+    this.data,
+  });
+
+  factory AssignedItem.fromMessage(Map<String, dynamic> json) {
+    final hasOrder = json['metadata']?['order'] != null || json['type'] == 'order';
+    return AssignedItem(
+      id: json['_id'] ?? '',
+      type: hasOrder ? 'order' : 'message',
+      name: json['fromName'] ?? json['from'] ?? '',
+      phone: json['from'] ?? '',
+      receivedAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      agentStatus: json['agentStatus'] ?? 'pending',
+      agentNotes: json['agentNotes'],
+      agreedTo: json['agreedTo'] != null ? DateTime.parse(json['agreedTo']) : null,
+      data: json,
+    );
+  }
+
+  factory AssignedItem.fromFlow(Map<String, dynamic> json) {
+    return AssignedItem(
+      id: json['_id'] ?? '',
+      type: 'flow',
+      name: json['fromName'] ?? json['from'] ?? '',
+      phone: json['from'] ?? '',
+      receivedAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      agentStatus: json['agentStatus'] ?? 'pending',
+      agentNotes: json['agentNotes'],
+      agreedTo: json['agreedTo'] != null ? DateTime.parse(json['agreedTo']) : null,
+      data: json,
+    );
+  }
+
+  AssignedItem copyWith({
+    String? agentStatus,
+    String? agentNotes,
+    DateTime? agreedTo,
+  }) {
+    return AssignedItem(
+      id: id,
+      type: type,
+      name: name,
+      phone: phone,
+      receivedAt: receivedAt,
+      agentStatus: agentStatus ?? this.agentStatus,
+      agentNotes: agentNotes ?? this.agentNotes,
+      agreedTo: agreedTo ?? this.agreedTo,
+      data: data,
+    );
+  }
+}

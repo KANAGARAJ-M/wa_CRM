@@ -9,6 +9,7 @@ import Workers from './pages/Workers';
 import CallAnalytics from './pages/CallAnalytics';
 import WorkerDashboard from './pages/worker/WorkerDashboard';
 import WorkerChat from './pages/worker/WorkerChat';
+import AssignedOrders from './pages/worker/AssignedOrders';
 import CompanySelection from './pages/CompanySelection';
 import Dashboard from './pages/Dashboard';
 import AgentStatus from './pages/AgentStatus';
@@ -17,6 +18,7 @@ import Products from './pages/Products';
 import Orders from './pages/Orders';
 import PublicForm from './pages/PublicForm';
 import Layout from './components/Layout';
+
 
 const AdminRoute = ({ children }) => {
   const { user, loading, currentCompany } = useAuth();
@@ -226,6 +228,14 @@ function App() {
             element={
               <WorkerRoute>
                 <WorkerDashboard />
+              </WorkerRoute>
+            }
+          />
+          <Route
+            path="/worker/assigned"
+            element={
+              <WorkerRoute>
+                <AssignedOrders />
               </WorkerRoute>
             }
           />

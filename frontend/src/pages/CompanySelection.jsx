@@ -62,27 +62,45 @@ export default function CompanySelection() {
         }
     };
 
+    const getCompanyColor = (id) => {
+        const colors = [
+            { bg: 'bg-blue-50', text: 'text-blue-600', gradient: 'from-blue-500 to-indigo-600' },
+            { bg: 'bg-emerald-50', text: 'text-emerald-600', gradient: 'from-emerald-500 to-teal-600' },
+            { bg: 'bg-violet-50', text: 'text-violet-600', gradient: 'from-violet-500 to-purple-600' },
+            { bg: 'bg-orange-50', text: 'text-orange-600', gradient: 'from-orange-500 to-rose-600' },
+            { bg: 'bg-cyan-50', text: 'text-cyan-600', gradient: 'from-cyan-500 to-blue-600' },
+            { bg: 'bg-rose-50', text: 'text-rose-600', gradient: 'from-rose-500 to-pink-600' },
+            { bg: 'bg-amber-50', text: 'text-amber-600', gradient: 'from-amber-500 to-orange-600' },
+        ];
+        // Use the sum of character codes of the ID to pick a color
+        const index = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+        return colors[index];
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <Loader2 className="h-8 w-8 text-green-500 animate-spin" />
+            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
+                    <p className="text-gray-500 font-medium animate-pulse">Loading workspaces...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
             {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 bg-gradient-to-br from-green-400 to-teal-500 rounded-lg flex items-center justify-center">
-                        <LayoutGrid className="h-5 w-5 text-white" />
+            <div className="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-gradient-to-br from-green-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-100">
+                        <LayoutGrid className="h-6 w-6 text-white" />
                     </div>
-                    <span className="font-bold text-xl text-gray-800">WhatsApp CRM</span>
+                    <span className="font-bold text-xl text-gray-800 tracking-tight">WhatsApp CRM</span>
                 </div>
                 <button
                     onClick={logout}
-                    className="text-sm text-gray-600 hover:text-red-500 flex items-center gap-1 transition-colors"
+                    className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-all duration-200"
                 >
                     <LogOut className="h-4 w-4" />
                     Logout
@@ -90,86 +108,86 @@ export default function CompanySelection() {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
-                <div className="flex justify-between items-end mb-8">
+            <div className="flex-1 container mx-auto px-4 py-12 max-w-4xl">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Select Workspace</h1>
-                        <p className="text-gray-500 mt-1">Choose a company to manage or create a new one.</p>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Select Workspace</h1>
+                        <p className="text-gray-500 mt-2 text-lg">Choose a company to manage or create a new one.</p>
                     </div>
                     {(user?.role === 'superadmin' || user?.customRole?.permissions?.includes('create_company')) && (
                         <button
                             onClick={() => setShowCreate(true)}
-                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 shadow-sm font-medium"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 active:scale-95 transition-all duration-200 shadow-lg shadow-green-100 font-bold"
                         >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-5 w-5" />
                             Create Company
                         </button>
                     )}
                 </div>
 
                 {showCreate && (
-                    <div className="mb-8 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-top-4">
-                        <div className="border-b border-gray-200 px-6 py-4 bg-gray-50">
-                            <h3 className="font-semibold text-gray-800">Create New Company</h3>
+                    <div className="mb-12 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-6 duration-500">
+                        <div className="border-b border-gray-50 px-8 py-5 bg-[#FBFCFE]">
+                            <h3 className="font-bold text-gray-800 text-lg">Create New Company</h3>
                         </div>
-                        <form onSubmit={handleCreate} className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+                        <form onSubmit={handleCreate} className="p-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-bold text-gray-700">Company Name *</label>
                                     <input
                                         required
                                         type="text"
                                         value={newCompany.name}
                                         onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-green-50 focus:border-green-500 transition-all outline-none bg-gray-50/50"
                                         placeholder="Acme Corp"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-bold text-gray-700">Website</label>
                                     <input
                                         type="text"
                                         value={newCompany.website}
                                         onChange={(e) => setNewCompany({ ...newCompany, website: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-green-50 focus:border-green-500 transition-all outline-none bg-gray-50/50"
                                         placeholder="https://acme.com"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-bold text-gray-700">Phone</label>
                                     <input
                                         type="text"
                                         value={newCompany.phone}
                                         onChange={(e) => setNewCompany({ ...newCompany, phone: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-green-50 focus:border-green-500 transition-all outline-none bg-gray-50/50"
                                         placeholder="+1 234 567 890"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-bold text-gray-700">Address</label>
                                     <input
                                         type="text"
                                         value={newCompany.address}
                                         onChange={(e) => setNewCompany({ ...newCompany, address: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-green-50 focus:border-green-500 transition-all outline-none bg-gray-50/50"
                                         placeholder="123 Business St"
                                     />
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3">
+                            <div className="flex justify-end gap-4">
                                 <button
                                     type="button"
                                     onClick={() => setShowCreate(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                    className="px-6 py-3 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={creating}
-                                    className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 disabled:opacity-70"
+                                    className="px-8 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 active:scale-95 transition-all duration-200 flex items-center gap-2 disabled:opacity-70 font-bold shadow-lg shadow-green-100"
                                 >
-                                    {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                    {creating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
                                     Create and Add
                                 </button>
                             </div>
@@ -177,42 +195,61 @@ export default function CompanySelection() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {companies.map(company => (
-                        <div
-                            key={company._id}
-                            onClick={() => handleSelect(company)}
-                            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-green-400 transition-all group relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <ArrowRight className="h-5 w-5 text-green-500" />
-                            </div>
+                <div className="space-y-4">
+                    {companies.map(company => {
+                        const style = getCompanyColor(company._id);
+                        return (
+                            <div
+                                key={company._id}
+                                onClick={() => handleSelect(company)}
+                                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 cursor-pointer hover:shadow-xl hover:shadow-indigo-50/50 hover:border-indigo-200 transition-all duration-300 group flex items-center gap-6 relative"
+                            >
+                                <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${style.gradient} flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-100 group-hover:scale-105 transition-transform duration-300`}>
+                                    <span className="text-2xl font-black text-white uppercase">{company.name?.[0]}</span>
+                                </div>
 
-                            <div className="flex items-start gap-4 mb-4">
-                                <div className="h-12 w-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <Building className="h-6 w-6 text-blue-500" />
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="font-extrabold text-xl text-gray-900 truncate group-hover:text-indigo-600 transition-colors">
+                                            {company.name}
+                                        </h3>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+                                        <p className="text-gray-500 flex items-center gap-1.5 font-medium">
+                                            <Building className="h-3.5 w-3.5" />
+                                            {company.website || 'No website'}
+                                        </p>
+                                        <p className="text-gray-400 flex items-center gap-1.5">
+                                            Created: {new Date(company.createdAt).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <div className="mt-2 text-green-600 font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Open Workspace
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-lg text-gray-800 line-clamp-1">{company.name}</h3>
-                                    <p className="text-sm text-gray-500 truncate">{company.website || 'No website'}</p>
-                                </div>
-                            </div>
 
-                            <div className="space-y-2 text-sm text-gray-600">
-                                <p className="flex items-center gap-2">
-                                    <span className="w-20 text-gray-400">Created:</span>
-                                    {new Date(company.createdAt).toLocaleDateString()}
-                                </p>
-                                <div className="pt-4 mt-4 border-t border-gray-100 flex items-center text-green-600 font-medium">
-                                    <span>Open Workspace</span>
+                                <div className="flex items-center gap-3">
+                                    <button className="h-10 w-10 rounded-full flex items-center justify-center bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
+                                        <ArrowRight className="h-5 w-5" />
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
 
                     {companies.length === 0 && !loading && (
-                        <div className="col-span-full text-center py-12 text-gray-500">
-                            <p>No companies found. Create one to get started.</p>
+                        <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100">
+                            <div className="h-20 w-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Building className="h-10 w-10 text-indigo-200" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">No workspaces yet</h3>
+                            <p className="text-gray-500 mt-2">Create your first company to get started with the CRM.</p>
+                            <button
+                                onClick={() => setShowCreate(true)}
+                                className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all"
+                            >
+                                Get Started
+                            </button>
                         </div>
                     )}
                 </div>

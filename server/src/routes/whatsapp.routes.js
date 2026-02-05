@@ -1437,4 +1437,91 @@ router.get('/flow-responses', auth, async (req, res) => {
     }
 });
 
+// @route   POST /api/whatsapp/assign
+// @desc    Assign regular order/flow/message to an agent
+// @access  Private/Admin
+router.post('/assign', auth, async (req, res) => {
+    try {
+        const { orderId, flowId, messageId, userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ success: false, message: 'User ID is required' });
+        }
+
+        const updateData = {
+            assignedTo: userId,
+            agentStatus: 'pending'
+        };
+
+        const promises = [];
+
+        if (orderId) {
+            promises.push(WhatsAppMessage.findByIdAndUpdate(orderId, updateData));
+        }
+        if (flowId) {
+            promises.push(FlowResponse.findByIdAndUpdate(flowId, updateData));
+        }
+        if (messageId) {
+            promises.push(WhatsAppMessage.findByIdAndUpdate(messageId, updateData));
+        }
+
+        await Promise.all(promises);
+
+        res.json({ success: true, message: 'Assigned successfully' });
+
+    } catch (error) {
+        console.error('Assignment error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// @route   POST /api/whatsapp/update-status
+// @desc    Update status/notes for assigned item
+// @access  Private/Agent
+router.post('/update-status', auth, async (req, res) => {
+    try {
+        const { id, type, status, notes, agreedTo } = req.body;
+        // type: 'order', 'flow', 'message'
+
+        const updateData = {};
+        if (status) updateData.agentStatus = status;
+        if (notes !== undefined) updateData.agentNotes = notes;
+        if (agreedTo !== undefined) updateData.agreedTo = agreedTo;
+
+        if (type === 'order' || type === 'message') {
+            await WhatsAppMessage.findByIdAndUpdate(id, updateData);
+        } else if (type === 'flow') {
+            await FlowResponse.findByIdAndUpdate(id, updateData);
+        }
+
+        res.json({ success: true, message: 'Updated successfully' });
+    } catch (error) {
+        console.error('Update status error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// @route   GET /api/whatsapp/assigned
+// @desc    Get items assigned to current user
+// @access  Private/Agent
+router.get('/assigned', auth, async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // Fetch assigned messages (orders/inquiries)
+        const messages = await WhatsAppMessage.find({ assignedTo: userId }).sort({ createdAt: -1 });
+
+        // Fetch assigned flows
+        const flows = await FlowResponse.find({ assignedTo: userId }).sort({ createdAt: -1 });
+
+        // We will merge and format these on the frontend mostly, or here.
+        // Let's return raw for now.
+
+        res.json({ success: true, data: { messages, flows } });
+    } catch (error) {
+        console.error('Get assigned items error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 module.exports = router;

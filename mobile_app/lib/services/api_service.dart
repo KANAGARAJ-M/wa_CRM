@@ -161,4 +161,56 @@ class ApiService {
     // Fallback or empty if failed, or throw exception
     return [];
   }
+
+  Future<List<AssignedItem>> getAssignedItems() async {
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/whatsapp/assigned'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final messagesJson = data['data']?['messages'] as List<dynamic>? ?? [];
+      final flowsJson = data['data']?['flows'] as List<dynamic>? ?? [];
+
+      final items = <AssignedItem>[];
+
+      for (var msg in messagesJson) {
+        items.add(AssignedItem.fromMessage(msg));
+      }
+      for (var flow in flowsJson) {
+        items.add(AssignedItem.fromFlow(flow));
+      }
+
+      items.sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
+      return items;
+    }
+    throw Exception('Failed to load assigned items');
+  }
+
+  Future<void> updateItemStatus({
+    required String id,
+    required String type,
+    required String status,
+    String? notes,
+    DateTime? agreedTo,
+  }) async {
+    final body = <String, dynamic>{
+      'id': id,
+      'type': type,
+      'status': status,
+    };
+    if (notes != null) body['notes'] = notes;
+    if (agreedTo != null) body['agreedTo'] = agreedTo.toIso8601String();
+
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/whatsapp/update-status'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update status');
+    }
+  }
 }

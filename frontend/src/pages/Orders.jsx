@@ -1,54 +1,40 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import {
-    ShoppingCart, Calendar, User, Package, MessageCircle, X,
-    Clock, CheckCircle, AlertCircle, FileText, ChevronRight, ChevronDown,
-    Loader2, RefreshCw, Eye, Zap, Phone, ShoppingBag, Send, Paperclip
+    ShoppingCart, User, Package, MessageCircle, X,
+    Clock, CheckCircle, FileText, Loader2, RefreshCw, Eye, Phone, StickyNote, CheckSquare, Square, Users
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, differenceInMinutes } from 'date-fns';
 
 export default function Orders() {
+    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [flowResponses, setFlowResponses] = useState([]);
-    const [chatMessages, setChatMessages] = useState([]);
+    const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [expandedOrders, setExpandedOrders] = useState({});
     const [detailModal, setDetailModal] = useState(null);
-    const [newMessage, setNewMessage] = useState('');
-    const [sendingMessage, setSendingMessage] = useState(false);
-    const chatEndRef = useRef(null);
+    const [agents, setAgents] = useState([]);
+    const [assignModal, setAssignModal] = useState(null);
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [bulkAssignModal, setBulkAssignModal] = useState(false);
 
     useEffect(() => {
         fetchAllData();
+        fetchAgents();
     }, []);
 
-    // Scroll to bottom when customer changes or new messages
-    useEffect(() => {
-        if (chatEndRef.current) {
-            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [selectedCustomer, chatMessages]);
-
-    // Fetch chat messages when customer is selected
-    useEffect(() => {
-        if (selectedCustomer) {
-            fetchChatMessages(selectedCustomer.phone);
-        }
-    }, [selectedCustomer]);
-
     const fetchAllData = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-
-            // Fetch WhatsApp catalog orders
-            const ordersRes = await api.get('/whatsapp/orders', { params: { limit: 200 } });
+            const [ordersRes, flowsRes, messagesRes] = await Promise.all([
+                api.get('/whatsapp/orders'),
+                api.get('/whatsapp/flow-responses'),
+                api.get('/whatsapp/messages')
+            ]);
             setOrders(ordersRes.data.data || []);
-
-            // Also fetch flow responses
-            const flowsRes = await api.get('/whatsapp/flow-responses', { params: { limit: 200 } });
             setFlowResponses(flowsRes.data.data || []);
-
+            setMessages(messagesRes.data.data || []);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -56,104 +42,201 @@ export default function Orders() {
         }
     };
 
-    const fetchChatMessages = async (phone) => {
+    const fetchAgents = async () => {
         try {
-            const res = await api.get('/whatsapp/messages', {
-                params: { phone, limit: 100 }
-            });
-            setChatMessages(res.data.data || []);
+            const res = await api.get('/workers');
+            setAgents(res.data.data || []);
         } catch (error) {
-            console.error('Error fetching chat messages:', error);
-            setChatMessages([]);
+            console.error('Error fetching agents:', error);
         }
     };
 
-    const sendMessage = async () => {
-        if (!newMessage.trim() || !selectedCustomer || sendingMessage) return;
+    const handleAssign = async (agentId) => {
+        if (!assignModal) return;
 
         try {
-            setSendingMessage(true);
-            await api.post('/whatsapp/send', {
-                phone: selectedCustomer.phone,
-                message: newMessage
-            });
-            setNewMessage('');
-            // Refresh chat messages
-            fetchChatMessages(selectedCustomer.phone);
+            const payload = { userId: agentId };
+            if (assignModal.order) payload.orderId = assignModal.order._id;
+            if (assignModal.flow) payload.flowId = assignModal.flow._id;
+            if (assignModal.type === 'message') payload.messageId = assignModal.id;
+
+            await api.post('/whatsapp/assign', payload);
+            setAssignModal(null);
+            fetchAllData();
         } catch (error) {
-            console.error('Error sending message:', error);
-            alert('Failed to send message');
-        } finally {
-            setSendingMessage(false);
+            console.error('Assignment error:', error);
         }
     };
 
-    // Group orders and flows by customer phone
-    const customerGroups = useMemo(() => {
-        const groups = {};
+    const getAssignmentDetails = (item) => {
+        const source = item.order || item.flow || (item.type === 'message' ? item.data : null);
+        if (!source) return { assignedTo: null, status: '-', agreedTo: null, notes: '' };
 
-        // Add catalog orders
-        orders.forEach(order => {
-            const phone = order.from;
-            if (!groups[phone]) {
-                groups[phone] = {
-                    phone,
-                    name: order.fromName || phone,
-                    items: [],
-                    lastActivity: order.timestamp || order.createdAt
-                };
-            }
-            groups[phone].items.push({
-                type: 'order',
-                data: order,
-                timestamp: new Date(order.timestamp || order.createdAt)
-            });
-            const ts = new Date(order.timestamp || order.createdAt);
-            if (ts > new Date(groups[phone].lastActivity)) {
-                groups[phone].lastActivity = order.timestamp || order.createdAt;
-            }
-        });
+        return {
+            assignedTo: source.assignedTo,
+            status: source.agentStatus || 'pending',
+            agreedTo: source.agreedTo,
+            notes: source.agentNotes || ''
+        };
+    };
 
-        // Add flow responses
-        flowResponses.forEach(flow => {
-            const phone = flow.from;
-            if (!groups[phone]) {
-                groups[phone] = {
-                    phone,
-                    name: flow.fromName || phone,
-                    items: [],
-                    lastActivity: flow.createdAt
-                };
-            }
-            groups[phone].items.push({
-                type: 'flow',
-                data: flow,
-                timestamp: new Date(flow.createdAt)
-            });
-            const ts = new Date(flow.createdAt);
-            if (ts > new Date(groups[phone].lastActivity)) {
-                groups[phone].lastActivity = flow.createdAt;
-                groups[phone].name = flow.fromName || groups[phone].name;
-            }
-        });
+    const getAgentName = (id) => {
+        const agent = agents.find(a => a._id === id);
+        return agent ? agent.name : 'Unknown';
+    };
 
-        // Sort items within each group by timestamp ASCENDING (oldest first - like WhatsApp)
-        Object.values(groups).forEach(group => {
-            group.items.sort((a, b) => a.timestamp - b.timestamp);
-        });
-
-        // Convert to array and sort by last activity (newest customers first)
-        return Object.values(groups).sort((a, b) =>
-            new Date(b.lastActivity) - new Date(a.lastActivity)
+    const toggleSelectItem = (itemId) => {
+        setSelectedItems(prev =>
+            prev.includes(itemId)
+                ? prev.filter(id => id !== itemId)
+                : [...prev, itemId]
         );
-    }, [orders, flowResponses]);
-
-    const toggleOrderExpand = (itemId) => {
-        setExpandedOrders(prev => ({
-            ...prev,
-            [itemId]: !prev[itemId]
-        }));
     };
+
+    const toggleSelectAll = (items) => {
+        if (selectedItems.length === items.length) {
+            setSelectedItems([]);
+        } else {
+            setSelectedItems(items.map(item => item.id));
+        }
+    };
+
+    const handleBulkAssign = async (agentId) => {
+        if (selectedItems.length === 0) return;
+
+        try {
+            // Find the items and assign them
+            const assignPromises = selectedItems.map(itemId => {
+                const item = allItems.find(i => i.id === itemId);
+                if (!item) return Promise.resolve();
+
+                const payload = { userId: agentId };
+                if (item.order) payload.orderId = item.order._id;
+                if (item.flow) payload.flowId = item.flow._id;
+                if (item.type === 'message') payload.messageId = item.id;
+
+                return api.post('/whatsapp/assign', payload);
+            });
+
+            await Promise.all(assignPromises);
+            setSelectedItems([]);
+            setBulkAssignModal(false);
+            fetchAllData();
+        } catch (error) {
+            console.error('Bulk assignment error:', error);
+        }
+    };
+
+    const allItems = useMemo(() => {
+        const rawItems = [];
+
+        orders.forEach(order => {
+            rawItems.push({
+                rawType: 'order',
+                data: order,
+                id: order._id,
+                timestamp: new Date(order.timestamp || order.createdAt),
+                phone: order.from,
+                name: order.fromName || order.from
+            });
+        });
+
+        flowResponses.forEach(flow => {
+            rawItems.push({
+                rawType: 'flow',
+                data: flow,
+                id: flow._id,
+                timestamp: new Date(flow.createdAt),
+                phone: flow.from,
+                name: flow.fromName || flow.from
+            });
+        });
+
+        messages.forEach(msg => {
+            if (msg.direction === 'incoming' && msg.type === 'text') {
+                rawItems.push({
+                    rawType: 'message',
+                    data: msg,
+                    id: msg._id,
+                    timestamp: new Date(msg.createdAt),
+                    phone: msg.from,
+                    name: msg.fromName || msg.from,
+                    body: msg.body
+                });
+            }
+        });
+
+        rawItems.sort((a, b) => a.timestamp - b.timestamp);
+
+        const mergedItems = [];
+        const lastUserItem = {};
+
+        rawItems.forEach(item => {
+            const phone = item.phone;
+            const prevItem = lastUserItem[phone];
+            const isRecent = prevItem && differenceInMinutes(item.timestamp, prevItem.timestamp) < 30;
+
+            if (item.rawType === 'message') {
+                const newItem = {
+                    type: 'message',
+                    id: item.id,
+                    timestamp: item.timestamp,
+                    phone: item.phone,
+                    name: item.name,
+                    keyword: item.body,
+                    order: null,
+                    flow: null,
+                    data: item.data
+                };
+                mergedItems.push(newItem);
+                lastUserItem[phone] = newItem;
+            } else if (item.rawType === 'flow') {
+                if (prevItem && prevItem.type === 'message' && isRecent) {
+                    prevItem.type = 'flow';
+                    prevItem.flow = item.data;
+                    prevItem.flowTimestamp = item.timestamp;
+                    prevItem.timestamp = item.timestamp;
+                    prevItem.id = item.id;
+                } else {
+                    const newItem = {
+                        type: 'flow',
+                        id: item.id,
+                        timestamp: item.timestamp,
+                        phone: item.phone,
+                        name: item.name,
+                        keyword: '-',
+                        order: null,
+                        flow: item.data,
+                        flowTimestamp: item.timestamp
+                    };
+                    mergedItems.push(newItem);
+                    lastUserItem[phone] = newItem;
+                }
+            } else if (item.rawType === 'order') {
+                if (prevItem && (prevItem.type === 'message' || prevItem.type === 'flow') && isRecent) {
+                    prevItem.type = 'order';
+                    prevItem.order = item.data;
+                    prevItem.timestamp = item.timestamp;
+                    prevItem.id = item.id;
+                } else {
+                    const newItem = {
+                        type: 'order',
+                        id: item.id,
+                        timestamp: item.timestamp,
+                        phone: item.phone,
+                        name: item.name,
+                        keyword: '-',
+                        order: item.data,
+                        flow: null
+                    };
+                    mergedItems.push(newItem);
+                    lastUserItem[phone] = newItem;
+                }
+            }
+        });
+
+        return mergedItems.sort((a, b) => b.timestamp - a.timestamp);
+    }, [orders, flowResponses, messages]);
 
     const formatCurrency = (amount, currency = 'INR') => {
         return new Intl.NumberFormat('en-IN', {
@@ -162,467 +245,541 @@ export default function Orders() {
         }).format(amount);
     };
 
-    const formatFieldValue = (value) => {
-        if (value === null || value === undefined) return '-';
-        if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-        if (Array.isArray(value)) return value.join(', ');
-        return String(value);
+    const handlePhoneClick = (phone, name) => {
+        navigate('/chats', {
+            state: {
+                lead: { phone, name }
+            }
+        });
     };
 
-    const openDetailModal = (item) => {
-        setDetailModal(item);
+    const getStatus = (item, hasOrder, hasFlow) => {
+        if (hasOrder && hasFlow && item.flow.status === 'completed') {
+            return { label: 'Paid', color: 'bg-green-100 text-green-700' };
+        }
+        if ((hasOrder && (!hasFlow || item.flow.status !== 'completed')) ||
+            (hasFlow && item.flow.status === 'in_progress')) {
+            return { label: 'Waiting', color: 'bg-yellow-100 text-yellow-700' };
+        }
+        if (hasFlow && item.flow.status === 'completed' && !hasOrder) {
+            return { label: 'Completed', color: 'bg-blue-100 text-blue-700' };
+        }
+        if (item.type === 'message') {
+            return { label: 'Inquiry', color: 'bg-gray-100 text-gray-600' };
+        }
+        return { label: 'Unknown', color: 'bg-gray-100 text-gray-600' };
     };
 
     return (
-        <div className="h-full bg-gradient-to-br from-slate-50 to-gray-100 flex overflow-hidden">
-            {/* Left Panel - Customer List */}
-            <div className={`w-full md:w-80 bg-white border-r border-gray-200 flex flex-col ${selectedCustomer ? 'hidden md:flex' : 'flex'}`}>
-                {/* Header */}
-                <div className="p-4 bg-gradient-to-r from-orange-500 to-amber-500">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                                <ShoppingBag className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-lg font-bold text-white">Orders & Responses</h1>
-                                <p className="text-xs text-white/70">{customerGroups.length} customers</p>
-                            </div>
-                        </div>
+        <div className="h-full bg-gray-100 p-6 overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Orders & Responses</h1>
+                    <p className="text-sm text-gray-500 mt-1">
+                        View and manage all customer orders and form entries
+                    </p>
+                </div>
+                <button
+                    onClick={fetchAllData}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 shadow-sm"
+                >
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                </button>
+            </div>
+
+            {/* Bulk Action Toolbar */}
+            {selectedItems.length > 0 && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <CheckSquare className="w-5 h-5 text-indigo-600" />
+                        <span className="text-sm font-medium text-indigo-900">
+                            {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={fetchAllData}
-                            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                            onClick={() => setSelectedItems([])}
+                            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-white rounded-lg transition-colors"
                         >
-                            <RefreshCw className={`w-4 h-4 text-white ${loading ? 'animate-spin' : ''}`} />
+                            Clear
+                        </button>
+                        <button
+                            onClick={() => setBulkAssignModal(true)}
+                            className="flex items-center gap-2 px-4 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                        >
+                            <Users className="w-4 h-4" />
+                            Bulk Assign
                         </button>
                     </div>
                 </div>
+            )}
 
-                {/* Customer List */}
-                <div className="flex-1 overflow-y-auto">
-                    {loading ? (
-                        <div className="flex items-center justify-center h-64">
-                            <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
-                        </div>
-                    ) : customerGroups.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-gray-400 p-6">
-                            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                                <ShoppingCart className="w-8 h-8 text-gray-300" />
-                            </div>
-                            <p className="text-sm font-medium">No orders yet</p>
-                            <p className="text-xs text-gray-400 text-center mt-1">
-                                Customer orders and form responses will appear here
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-gray-50">
-                            {customerGroups.map((customer) => {
-                                const orderCount = customer.items.filter(i => i.type === 'order').length;
-                                const flowCount = customer.items.filter(i => i.type === 'flow').length;
-
-                                return (
-                                    <div
-                                        key={customer.phone}
-                                        onClick={() => setSelectedCustomer(customer)}
-                                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 ${selectedCustomer?.phone === customer.phone ? 'bg-orange-50 border-l-4 border-orange-500' : ''
-                                            }`}
+            {/* Content */}
+            <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="px-4 py-4 w-10">
+                                    <button
+                                        onClick={() => toggleSelectAll(allItems)}
+                                        className="p-1 hover:bg-gray-100 rounded transition-colors"
                                     >
-                                        <div className="flex items-start gap-3">
-                                            <div className="relative flex-shrink-0">
-                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                                                    {customer.name[0]?.toUpperCase() || <User className="w-5 h-5" />}
-                                                </div>
-                                                <div className="absolute -bottom-1 -right-1 bg-orange-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
-                                                    {customer.items.length}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <h3 className="font-semibold text-gray-900 text-sm truncate">
-                                                        {customer.name}
-                                                    </h3>
-                                                    <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                                                        {formatDistanceToNow(new Date(customer.lastActivity), { addSuffix: true })}
-                                                    </span>
-                                                </div>
-
-                                                <p className="text-xs text-gray-500 truncate mt-0.5 flex items-center gap-1">
-                                                    <Phone className="w-3 h-3" />
-                                                    {customer.phone}
-                                                </p>
-
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    {orderCount > 0 && (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700">
-                                                            <ShoppingCart className="w-3 h-3" />
-                                                            {orderCount}
-                                                        </span>
-                                                    )}
-                                                    {flowCount > 0 && (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">
-                                                            <Zap className="w-3 h-3" />
-                                                            {flowCount}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                                        {selectedItems.length === allItems.length && allItems.length > 0 ? (
+                                            <CheckSquare className="w-5 h-5 text-indigo-600" />
+                                        ) : (
+                                            <Square className="w-5 h-5 text-gray-400" />
+                                        )}
+                                    </button>
+                                </th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Keyword</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Form</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Order</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned To</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Agent Status</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Agreed To</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="12" className="px-6 py-12 text-center">
+                                        <div className="flex justify-center">
+                                            <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                                    </td>
+                                </tr>
+                            ) : allItems.length === 0 ? (
+                                <tr>
+                                    <td colSpan="12" className="px-6 py-12 text-center text-gray-400">
+                                        No orders or responses found
+                                    </td>
+                                </tr>
+                            ) : (
+                                allItems.map((item) => {
+                                    const hasOrder = !!item.order;
+                                    const hasFlow = !!item.flow;
+                                    const status = getStatus(item, hasOrder, hasFlow);
+                                    const assignment = getAssignmentDetails(item);
+                                    const isSelected = selectedItems.includes(item.id);
+
+                                    return (
+                                        <tr key={item.id} className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-indigo-50' : ''}`}>
+                                            {/* Checkbox */}
+                                            <td className="px-4 py-4 w-10">
+                                                <button
+                                                    onClick={() => toggleSelectItem(item.id)}
+                                                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                                                >
+                                                    {isSelected ? (
+                                                        <CheckSquare className="w-5 h-5 text-indigo-600" />
+                                                    ) : (
+                                                        <Square className="w-5 h-5 text-gray-400" />
+                                                    )}
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {format(item.timestamp, 'MMM d, yyyy')}
+                                                </div>
+                                                <div className="text-xs text-gray-500">
+                                                    {format(item.timestamp, 'h:mm a')}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${item.type === 'order' ? 'bg-orange-500' :
+                                                            item.type === 'flow' ? 'bg-green-500' : 'bg-gray-500'
+                                                            }`}>
+                                                            {item.name?.[0]?.toUpperCase() || <User className="w-3 h-3" />}
+                                                        </div>
+                                                        <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handlePhoneClick(item.phone, item.name)}
+                                                        className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-green-600 transition-colors w-fit"
+                                                    >
+                                                        <Phone className="w-3 h-3" />
+                                                        {item.phone}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm text-gray-900 font-medium max-w-[200px] break-words">
+                                                    {item.keyword}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {hasFlow ? (
+                                                    <button
+                                                        onClick={() => setDetailModal({
+                                                            type: 'flow',
+                                                            data: item.flow,
+                                                            name: item.name,
+                                                            phone: item.phone,
+                                                            timestamp: item.flowTimestamp || item.timestamp
+                                                        })}
+                                                        className="text-xs inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+                                                    >
+                                                        <FileText className="w-3 h-3" />
+                                                        View Form
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${status.color}`}>
+                                                    {status.label}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {hasOrder ? (
+                                                    <div className="text-sm">
+                                                        <div className="font-medium text-gray-900">
+                                                            {formatCurrency(
+                                                                (item.order.metadata?.order?.product_items || []).reduce(
+                                                                    (sum, p) => sum + (p.item_price * p.quantity), 0
+                                                                ),
+                                                                item.order.metadata?.order?.product_items?.[0]?.currency || 'INR'
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 truncate max-w-[150px]">
+                                                            {(item.order.metadata?.order?.product_items || []).length} items
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">-</span>
+                                                )}
+                                            </td>
+
+                                            {/* Assigned To */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {assignment.assignedTo ? (
+                                                    <button
+                                                        onClick={() => setAssignModal(item)}
+                                                        className="flex items-center gap-2 hover:bg-gray-100 p-1 rounded transition-colors"
+                                                    >
+                                                        <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">
+                                                            {getAgentName(assignment.assignedTo)?.[0]}
+                                                        </div>
+                                                        <span className="text-sm text-gray-700">{getAgentName(assignment.assignedTo)}</span>
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setAssignModal(item)}
+                                                        className="text-xs text-indigo-600 hover:text-indigo-800 border border-indigo-200 hover:border-indigo-400 px-2 py-1 rounded transition-colors"
+                                                    >
+                                                        + Assign
+                                                    </button>
+                                                )}
+                                            </td>
+
+                                            {/* Agent Status */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`text-xs font-medium capitalize px-2 py-1 rounded-full ${assignment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                                    assignment.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                                        assignment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                                            'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                    {assignment.status}
+                                                </span>
+                                            </td>
+
+                                            {/* Agreed To */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {assignment.agreedTo ? (
+                                                    <div className="text-xs text-gray-700">
+                                                        {format(new Date(assignment.agreedTo), 'MMM d, h:mm a')}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">-</span>
+                                                )}
+                                            </td>
+
+                                            {/* Notes */}
+                                            <td className="px-6 py-4">
+                                                {assignment.notes ? (
+                                                    <div className="flex items-start gap-1 max-w-[150px]" title={assignment.notes}>
+                                                        <StickyNote className="w-3 h-3 text-yellow-500 flex-shrink-0 mt-0.5" />
+                                                        <span className="text-xs text-gray-600 line-clamp-2">{assignment.notes}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">-</span>
+                                                )}
+                                            </td>
+
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                {hasOrder && (
+                                                    <button
+                                                        onClick={() => setDetailModal({
+                                                            type: 'order',
+                                                            data: item.order,
+                                                            name: item.name,
+                                                            phone: item.phone,
+                                                            timestamp: item.timestamp
+                                                        })}
+                                                        className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                                        title="View Order"
+                                                    >
+                                                        <ShoppingCart className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {hasFlow && !hasOrder && (
+                                                    <button
+                                                        onClick={() => setDetailModal({
+                                                            type: 'flow',
+                                                            data: item.flow,
+                                                            name: item.name,
+                                                            phone: item.phone,
+                                                            timestamp: item.timestamp
+                                                        })}
+                                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="View Form"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
+                    <span>Showing {allItems.length} records</span>
                 </div>
             </div>
 
-            {/* Right Panel - Customer Orders as Chat */}
-            <div className={`flex-1 flex flex-col bg-gray-50 ${selectedCustomer ? 'flex' : 'hidden md:flex'}`}>
-                {selectedCustomer ? (
-                    <>
-                        {/* Detail Header */}
-                        <div className="p-4 bg-white border-b border-gray-200 shadow-sm">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
+            {/* Assignments Modal */}
+            {assignModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setAssignModal(null)}>
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="font-semibold text-gray-900">Assign To Agent</h3>
+                            <button onClick={() => setAssignModal(null)} className="text-gray-400 hover:text-gray-600">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-4 max-h-[60vh] overflow-y-auto">
+                            <div className="space-y-2">
+                                {agents.map(agent => (
                                     <button
-                                        onClick={() => setSelectedCustomer(null)}
-                                        className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                        key={agent._id}
+                                        onClick={() => handleAssign(agent._id)}
+                                        className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors text-left"
                                     >
-                                        <ChevronRight className="w-5 h-5 rotate-180" />
+                                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                                            {agent.name?.[0]}
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-gray-900">{agent.name}</div>
+                                            <div className="text-xs text-gray-500">{agent.role}</div>
+                                        </div>
                                     </button>
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold text-sm">
-                                        {selectedCustomer.name[0]?.toUpperCase() || <User className="w-4 h-4" />}
-                                    </div>
-                                    <div>
-                                        <h2 className="font-semibold text-gray-900 text-sm">{selectedCustomer.name}</h2>
-                                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                                            <Phone className="w-3 h-3" />
-                                            {selectedCustomer.phone}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                                        <ShoppingBag className="w-3.5 h-3.5" />
-                                        {selectedCustomer.items.length} activities
-                                    </span>
-                                </div>
+                                ))}
                             </div>
                         </div>
-
-                        {/* Chat-like Orders Display - OLDEST FIRST (like WhatsApp) */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: 'linear-gradient(180deg, #e5ddd5 0%, #d9d2c5 100%)' }}>
-                            {selectedCustomer.items.map((item, idx) => {
-                                const isOrder = item.type === 'order';
-                                const isExpanded = expandedOrders[item.data._id];
-                                const prevItem = selectedCustomer.items[idx - 1];
-                                const showDate = idx === 0 || (prevItem && format(item.timestamp, 'yyyy-MM-dd') !== format(prevItem.timestamp, 'yyyy-MM-dd'));
-
-                                if (isOrder) {
-                                    const orderData = item.data.metadata?.order || {};
-                                    const products = orderData.product_items || [];
-                                    const totalAmount = products.reduce((sum, p) => sum + (p.item_price * p.quantity), 0);
-                                    const currency = products[0]?.currency || 'INR';
-
-                                    return (
-                                        <div key={item.data._id} className="flex flex-col gap-2">
-                                            {showDate && (
-                                                <div className="flex justify-center my-2">
-                                                    <span className="bg-white/80 text-gray-500 text-[10px] px-3 py-1 rounded-full shadow-sm">
-                                                        {format(item.timestamp, 'MMMM d, yyyy')}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* Order Card - Customer's order (right side) */}
-                                            <div className="flex justify-end">
-                                                <div className="bg-[#dcf8c6] rounded-2xl rounded-tr-md px-4 py-3 max-w-[85%] shadow-sm">
-                                                    <div
-                                                        className="flex items-center gap-2 mb-2 cursor-pointer"
-                                                        onClick={() => openDetailModal(item)}
-                                                    >
-                                                        <ShoppingCart className="w-4 h-4 text-orange-600" />
-                                                        <span className="text-xs font-semibold text-orange-600">Catalog Order</span>
-                                                        <Eye className="w-3.5 h-3.5 text-blue-500 ml-auto" />
-                                                    </div>
-
-                                                    <div className="space-y-1.5">
-                                                        {products.slice(0, 2).map((product, pIdx) => (
-                                                            <div key={pIdx} className="flex items-center justify-between text-sm">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="w-5 h-5 bg-white rounded flex items-center justify-center text-xs font-bold text-gray-600">
-                                                                        {product.quantity}
-                                                                    </span>
-                                                                    <span className="text-gray-800 truncate max-w-[150px]">
-                                                                        {product.name || `Item`}
-                                                                    </span>
-                                                                </div>
-                                                                <span className="text-gray-600 text-xs">
-                                                                    {formatCurrency(product.item_price * product.quantity, currency)}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                        {products.length > 2 && (
-                                                            <p className="text-xs text-blue-600">+{products.length - 2} more items</p>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-green-200">
-                                                        <span className="text-xs font-medium text-gray-600">Total</span>
-                                                        <span className="font-bold text-gray-800">{formatCurrency(totalAmount, currency)}</span>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-end gap-1 mt-2">
-                                                        <span className="text-[10px] text-gray-500">
-                                                            {format(item.timestamp, 'h:mm a')}
-                                                        </span>
-                                                        <CheckCircle className="w-3 h-3 text-blue-500" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                } else {
-                                    // Flow Response
-                                    const fields = item.data.parsedFields || [];
-                                    const status = item.data.status || 'completed';
-
-                                    return (
-                                        <div key={item.data._id} className="flex flex-col gap-2">
-                                            {showDate && (
-                                                <div className="flex justify-center my-2">
-                                                    <span className="bg-white/80 text-gray-500 text-[10px] px-3 py-1 rounded-full shadow-sm">
-                                                        {format(item.timestamp, 'MMMM d, yyyy')}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* Flow Card */}
-                                            <div className="flex justify-end">
-                                                <div className={`rounded-2xl rounded-tr-md px-4 py-3 max-w-[85%] shadow-sm ${status === 'completed' ? 'bg-[#dcf8c6]' :
-                                                    status === 'in_progress' ? 'bg-yellow-100' :
-                                                        status === 'draft' ? 'bg-gray-100' :
-                                                            'bg-red-50'
-                                                    }`}>
-                                                    <div
-                                                        className="flex items-center gap-2 mb-2 cursor-pointer"
-                                                        onClick={() => openDetailModal(item)}
-                                                    >
-                                                        <MessageCircle className="w-4 h-4 text-green-600" />
-                                                        <span className="text-xs font-semibold text-green-600">
-                                                            {item.data.product?.name || 'Form Response'}
-                                                        </span>
-                                                        <Eye className="w-3.5 h-3.5 text-blue-500 ml-auto" />
-                                                    </div>
-
-                                                    <div className="space-y-1">
-                                                        {fields.slice(0, 3).map((field, fIdx) => (
-                                                            <div key={fIdx} className="text-sm">
-                                                                <span className="text-gray-500 text-xs">{field.fieldName}:</span>
-                                                                <span className="text-gray-800 ml-1 text-xs">{formatFieldValue(field.fieldValue)}</span>
-                                                            </div>
-                                                        ))}
-                                                        {fields.length > 3 && (
-                                                            <p className="text-xs text-blue-600">+{fields.length - 3} more fields</p>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between mt-2">
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${status === 'completed' ? 'bg-green-200 text-green-700' :
-                                                            status === 'in_progress' ? 'bg-yellow-200 text-yellow-700' :
-                                                                status === 'draft' ? 'bg-gray-200 text-gray-600' :
-                                                                    'bg-red-200 text-red-700'
-                                                            }`}>
-                                                            {status === 'in_progress' ? 'Incomplete' : status}
-                                                        </span>
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-[10px] text-gray-500">
-                                                                {format(item.timestamp, 'h:mm a')}
-                                                            </span>
-                                                            {status === 'completed' && <CheckCircle className="w-3 h-3 text-blue-500" />}
-                                                            {status === 'in_progress' && <Clock className="w-3 h-3 text-yellow-500" />}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-                            })}
-
-                            {selectedCustomer.items.length === 0 && (
-                                <div className="flex justify-center">
-                                    <span className="bg-white/80 text-gray-500 text-xs px-4 py-2 rounded-lg shadow-sm">
-                                        No orders or responses yet
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Scroll anchor */}
-                            <div ref={chatEndRef} />
-                        </div>
-
-                        {/* Message Input */}
-                        <div className="p-3 bg-gray-100 border-t border-gray-200">
-                            <div className="flex items-center gap-2">
-                                <div className="flex-1 flex items-center bg-white rounded-full px-4 py-2 shadow-sm">
-                                    <input
-                                        type="text"
-                                        placeholder="Type a message..."
-                                        value={newMessage}
-                                        onChange={(e) => setNewMessage(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                                        className="flex-1 text-sm outline-none bg-transparent"
-                                    />
-                                </div>
-                                <button
-                                    onClick={sendMessage}
-                                    disabled={!newMessage.trim() || sendingMessage}
-                                    className="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {sendingMessage ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                        <Send className="w-5 h-5" />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8">
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center mb-6">
-                            <Eye className="w-12 h-12 text-orange-300" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-600">Select a customer</h3>
-                        <p className="text-sm text-gray-400 text-center mt-2 max-w-xs">
-                            Click on any customer from the list to view their orders and chat
-                        </p>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Detail Modal */}
             {detailModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setDetailModal(null)}>
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setDetailModal(null)}>
                     <div
-                        className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden shadow-2xl"
+                        className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Modal Header */}
-                        <div className={`p-4 ${detailModal.type === 'order' ? 'bg-orange-500' : 'bg-green-500'}`}>
+                        <div className={`p-4 ${detailModal.type === 'order' ? 'bg-orange-500' : 'bg-green-500'} flex-shrink-0`}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3 text-white">
-                                    {detailModal.type === 'order' ? (
-                                        <ShoppingCart className="w-5 h-5" />
-                                    ) : (
-                                        <MessageCircle className="w-5 h-5" />
-                                    )}
+                                    <div className="p-2 bg-white/20 rounded-lg backdrop-blur-md">
+                                        {detailModal.type === 'order' ? (
+                                            <ShoppingCart className="w-5 h-5" />
+                                        ) : (
+                                            <MessageCircle className="w-5 h-5" />
+                                        )}
+                                    </div>
                                     <div>
-                                        <h3 className="font-bold">
-                                            {detailModal.type === 'order' ? 'Order Details' : 'Form Response Details'}
+                                        <h3 className="font-bold text-lg">
+                                            {detailModal.type === 'order' ? 'Order Details' : 'Form Response'}
                                         </h3>
-                                        <p className="text-xs text-white/70">
-                                            {format(detailModal.timestamp, 'MMMM d, yyyy h:mm a')}
+                                        <p className="text-white/80 text-xs">
+                                            {format(detailModal.timestamp, 'MMMM d, yyyy • h:mm a')}
                                         </p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setDetailModal(null)}
-                                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                                    className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+                            {detailModal.type === 'order' ? (
+                                <div className="space-y-6">
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                        <div className="flex justify-between items-start mb-4 border-b border-gray-100 pb-3">
+                                            <div>
+                                                <h4 className="font-semibold text-gray-900">Items Ordered</h4>
+                                                <p className="text-xs text-gray-500">
+                                                    Order ID: #{detailModal.data.messageId?.slice(-6) || detailModal.data._id?.slice(-6)}
+                                                </p>
+                                            </div>
+                                            <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded">
+                                                Catalog
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {(detailModal.data.metadata?.order?.product_items || []).map((product, pIdx) => (
+                                                <div key={pIdx} className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                        <Package className="w-5 h-5 text-gray-500" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h5 className="font-medium text-sm text-gray-900 truncate">
+                                                            {product.name || `Product ${product.product_retailer_id}`}
+                                                        </h5>
+                                                        <p className="text-xs text-gray-500">
+                                                            {product.quantity} x {formatCurrency(product.item_price, product.currency)}
+                                                        </p>
+                                                    </div>
+                                                    <span className="font-semibold text-sm text-gray-900">
+                                                        {formatCurrency(product.item_price * product.quantity, product.currency)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                                            <span className="text-sm font-medium text-gray-600">Total Amount</span>
+                                            <span className="text-lg font-bold text-orange-600">
+                                                {formatCurrency(
+                                                    (detailModal.data.metadata?.order?.product_items || []).reduce(
+                                                        (sum, p) => sum + (p.item_price * p.quantity), 0
+                                                    ),
+                                                    detailModal.data.metadata?.order?.product_items?.[0]?.currency || 'INR'
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                        <h4 className="font-semibold text-gray-900 mb-3 text-sm">Customer</h4>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold">
+                                                {detailModal.name?.[0]?.toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-sm text-gray-900">{detailModal.name}</p>
+                                                <button
+                                                    onClick={() => {
+                                                        setDetailModal(null);
+                                                        handlePhoneClick(detailModal.phone, detailModal.name);
+                                                    }}
+                                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-0.5"
+                                                >
+                                                    <Phone className="w-3 h-3" />
+                                                    {detailModal.phone}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="font-semibold text-gray-900">Response Data</h4>
+                                            <span className={`px-2 py-1 rounded text-xs font-bold capitalize ${detailModal.data.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                detailModal.data.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
+                                                    'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                {detailModal.data.status || 'Completed'}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {detailModal.data.response_json && (
+                                                Object.entries(detailModal.data.response_json).map(([key, value]) => (
+                                                    <div key={key} className="bg-gray-50 p-3 rounded-lg">
+                                                        <span className="text-xs font-medium text-gray-500 uppercase block mb-1">
+                                                            {key.replace(/_/g, ' ')}
+                                                        </span>
+                                                        <span className="text-sm text-gray-900 font-medium">
+                                                            {Array.isArray(value) ? value.join(', ') : String(value)}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Assign Modal */}
+            {bulkAssignModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Users className="w-6 h-6 text-white" />
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">Bulk Assign</h3>
+                                        <p className="text-indigo-200 text-sm">{selectedItems.length} items selected</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setBulkAssignModal(false)}
+                                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
                                 >
                                     <X className="w-5 h-5 text-white" />
                                 </button>
                             </div>
                         </div>
-
-                        {/* Modal Content */}
-                        <div className="p-4 overflow-y-auto max-h-[60vh]">
-                            {detailModal.type === 'order' ? (
-                                // Order Details
-                                <div className="space-y-4">
-                                    <div className="text-sm text-gray-500">
-                                        Order ID: {detailModal.data.messageId || detailModal.data._id}
-                                    </div>
-
-                                    {(detailModal.data.metadata?.order?.product_items || []).map((product, pIdx) => (
-                                        <div key={pIdx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                                            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                                                <Package className="w-6 h-6 text-orange-500" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-medium text-gray-900">
-                                                    {product.name || `Product ${product.product_retailer_id}`}
-                                                </h4>
-                                                <p className="text-xs text-gray-500">
-                                                    Qty: {product.quantity} × {formatCurrency(product.item_price, product.currency)}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="font-bold text-gray-900">
-                                                    {formatCurrency(product.item_price * product.quantity, product.currency)}
-                                                </span>
-                                            </div>
+                        <div className="p-6">
+                            <p className="text-sm text-gray-600 mb-4">Select an agent to assign the selected items:</p>
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {agents.map(agent => (
+                                    <button
+                                        key={agent._id}
+                                        onClick={() => handleBulkAssign(agent._id)}
+                                        className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-indigo-50 hover:border-indigo-300 transition-colors text-left"
+                                    >
+                                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                                            {agent.name?.[0]?.toUpperCase() || 'A'}
                                         </div>
-                                    ))}
-
-                                    <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl">
-                                        <span className="font-medium text-gray-700">Total Amount</span>
-                                        <span className="font-bold text-xl text-orange-600">
-                                            {formatCurrency(
-                                                (detailModal.data.metadata?.order?.product_items || []).reduce(
-                                                    (sum, p) => sum + (p.item_price * p.quantity), 0
-                                                ),
-                                                detailModal.data.metadata?.order?.product_items?.[0]?.currency || 'INR'
-                                            )}
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : (
-                                // Flow Response Details
-                                <div className="space-y-4">
-                                    {detailModal.data.product && (
-                                        <div className="p-3 bg-green-50 rounded-xl">
-                                            <span className="text-xs text-green-600 font-medium">Product</span>
-                                            <p className="font-medium text-gray-900">{detailModal.data.product.name}</p>
+                                        <div>
+                                            <p className="font-medium text-gray-900">{agent.name}</p>
+                                            <p className="text-xs text-gray-500">{agent.role || 'Agent'}</p>
                                         </div>
-                                    )}
-
-                                    {detailModal.data.flowId && (
-                                        <div className="text-sm text-gray-500">
-                                            Flow ID: {detailModal.data.flowId}
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-3">
-                                        {(detailModal.data.parsedFields || []).map((field, fIdx) => (
-                                            <div key={fIdx} className="p-3 bg-gray-50 rounded-xl">
-                                                <span className="text-xs text-gray-500 uppercase tracking-wide">{field.fieldName}</span>
-                                                <p className="font-medium text-gray-900 mt-1">{formatFieldValue(field.fieldValue)}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className={`p-3 rounded-xl ${detailModal.data.status === 'completed' ? 'bg-green-100' :
-                                        detailModal.data.status === 'in_progress' ? 'bg-yellow-100' :
-                                            'bg-gray-100'
-                                        }`}>
-                                        <div className="flex items-center gap-2">
-                                            {detailModal.data.status === 'completed' && <CheckCircle className="w-5 h-5 text-green-600" />}
-                                            {detailModal.data.status === 'in_progress' && <Clock className="w-5 h-5 text-yellow-600" />}
-                                            {detailModal.data.status === 'draft' && <FileText className="w-5 h-5 text-gray-600" />}
-                                            <span className="font-medium capitalize">{detailModal.data.status || 'Completed'}</span>
-                                        </div>
-                                        {detailModal.data.status === 'in_progress' && (
-                                            <p className="text-xs text-yellow-700 mt-1">
-                                                Customer started but hasn't completed all steps
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
+                                    </button>
+                                ))}
+                                {agents.length === 0 && (
+                                    <p className="text-center text-gray-500 py-4">No agents available</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
