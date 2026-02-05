@@ -59,10 +59,11 @@ export default function Products() {
 
     useEffect(() => {
         fetchCompanyDetails(); // Fetch fresh details
-        if (activeTab === 'products') {
-            fetchProducts();
-        } else {
+        if (activeTab === 'forms') {
             fetchForms();
+        } else {
+            // Products and Auto-Replies tabs both need product data
+            fetchProducts();
         }
     }, [activeTab]);
 
