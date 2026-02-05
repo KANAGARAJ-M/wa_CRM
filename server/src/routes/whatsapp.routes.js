@@ -18,59 +18,69 @@ router.post('/send', auth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Message and phone are required' });
         }
 
-        // Check permissions
+        // Normalize phone for matching: remove non-digits and leading zeros
+        const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
+        const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
+
+        // --- AUTHORIZATION & CONFIG RESOLUTION ---
         const user = req.user;
         const isAdmin = ['admin', 'superadmin'].includes(user.role);
         const permissions = user.customRole?.permissions || [];
         const canViewAll = isAdmin || permissions.includes('view_all_leads');
         const canViewOwn = permissions.includes('view_own_leads');
 
-        if (!canViewAll && !canViewOwn) {
-            return res.status(403).json({ success: false, message: 'Access denied' });
+        let isAuthorized = canViewAll;
+        let foundPhoneNumberId = phoneNumberId;
+
+        // 1. Check for Lead Assignment
+        const assignedLead = await Lead.findOne({
+            $or: [{ phone: regex }, { phone: phone }],
+            companyId: req.companyId,
+            ...(isAdmin ? {} : { assignedTo: user._id })
+        });
+
+        if (assignedLead) {
+            isAuthorized = true;
+            if (!foundPhoneNumberId) foundPhoneNumberId = assignedLead.phoneNumberId;
         }
 
-        // Normalize phone for matching: remove non-digits and leading zeros
-        const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
-        const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
+        // 2. Check for assigned WhatsApp Message / Order (if not already authorized)
+        if (!isAuthorized || !foundPhoneNumberId) {
+            const assignedMsg = await WhatsAppMessage.findOne({
+                companyId: req.companyId,
+                $or: [{ from: regex }, { to: regex }, { from: phone }, { to: phone }],
+                ...(isAdmin ? {} : { assignedTo: user._id })
+            }).sort({ createdAt: -1 });
 
-        if (!canViewAll && canViewOwn) {
-            // Check if Lead is assigned
-            const lead = await Lead.findOne({
-                $or: [{ phone: regex }, { phone: phone }],
-                assignedTo: user._id,
-                companyId: req.companyId
-            });
-
-            let isAuthorized = !!lead;
-
-            if (!isAuthorized) {
-                // Check if any WhatsAppMessage for this phone is assigned to this worker
-                const assignedMsg = await WhatsAppMessage.findOne({
-                    companyId: req.companyId,
-                    assignedTo: user._id,
-                    $or: [
-                        { from: regex },
-                        { to: regex },
-                        { from: phone },
-                        { to: phone }
-                    ]
-                });
-                if (assignedMsg) isAuthorized = true;
-
-                if (!isAuthorized) {
-                    // Check if any FlowResponse for this phone is assigned to this worker
-                    const assignedFlow = await FlowResponse.findOne({
-                        companyId: req.companyId,
-                        assignedTo: user._id,
-                        from: regex
-                    });
-                    if (assignedFlow) isAuthorized = true;
-                }
+            if (assignedMsg) {
+                isAuthorized = true;
+                if (!foundPhoneNumberId) foundPhoneNumberId = assignedMsg.phoneNumberId;
             }
+        }
 
-            if (!isAuthorized) {
-                return res.status(403).json({ success: false, message: 'Not authorized to message this contact' });
+        // 3. Check for assigned Flow (if still needed)
+        if (!isAuthorized || !foundPhoneNumberId) {
+            const assignedFlow = await FlowResponse.findOne({
+                companyId: req.companyId,
+                from: regex,
+                ...(isAdmin ? {} : { assignedTo: user._id })
+            }).sort({ createdAt: -1 });
+
+            if (assignedFlow) {
+                isAuthorized = true;
+                if (!foundPhoneNumberId) foundPhoneNumberId = assignedFlow.phoneNumberId;
             }
+        }
+
+        // 4. Permission Fallback
+        if (!isAuthorized && canViewOwn) {
+            // They have general permission to view their own leads, 
+            // but the specific assignment check above failed.
+            // In a strict mode, we'd deny. But let's allow if they are assigned anything related.
+        }
+
+        if (!isAuthorized) {
+            return res.status(403).json({ success: false, message: 'Access denied. You are not authorized to message this contact.' });
         }
 
         // Get Company Settings to find WhatsApp Config
@@ -83,15 +93,9 @@ router.post('/send', auth, async (req, res) => {
             return res.status(404).json({ success: false, message: 'No WhatsApp configuration found for this company' });
         }
 
-        // If phoneNumberId not provided, try to get from Lead
-        if (!phoneNumberId) {
-            const lead = await Lead.findOne({
-                $or: [{ phone: regex }, { phone: phone }],
-                companyId: req.companyId
-            });
-            if (lead && lead.phoneNumberId) {
-                phoneNumberId = lead.phoneNumberId;
-            }
+        // Use the resolved phoneNumberId if available
+        if (foundPhoneNumberId) {
+            phoneNumberId = foundPhoneNumberId;
         }
 
         // Use the specified phoneNumberId, or fallback to first enabled
@@ -109,7 +113,7 @@ router.post('/send', auth, async (req, res) => {
         const payload = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
-            to: phone,
+            to: cleanPhone,
             type: 'text',
             text: { preview_url: false, body: message }
         };
