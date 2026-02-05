@@ -36,23 +36,32 @@ router.post('/send', auth, async (req, res) => {
             let isAuthorized = !!lead;
 
             if (!isAuthorized) {
+                // Try normalizing the phone (strip +, spaces, etc)
+                const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
+                const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
+
                 // Check if any WhatsAppMessage for this phone is assigned to this worker
                 const assignedMsg = await WhatsAppMessage.findOne({
                     companyId: req.companyId,
                     assignedTo: user._id,
-                    $or: [{ from: phone }, { to: phone }]
+                    $or: [
+                        { from: regex },
+                        { to: regex },
+                        { from: phone },
+                        { to: phone }
+                    ]
                 });
                 if (assignedMsg) isAuthorized = true;
-            }
 
-            if (!isAuthorized) {
-                // Check if any FlowResponse for this phone is assigned to this worker
-                const assignedFlow = await FlowResponse.findOne({
-                    companyId: req.companyId,
-                    assignedTo: user._id,
-                    from: phone
-                });
-                if (assignedFlow) isAuthorized = true;
+                if (!isAuthorized) {
+                    // Check if any FlowResponse for this phone is assigned to this worker
+                    const assignedFlow = await FlowResponse.findOne({
+                        companyId: req.companyId,
+                        assignedTo: user._id,
+                        from: regex
+                    });
+                    if (assignedFlow) isAuthorized = true;
+                }
             }
 
             if (!isAuthorized) {
@@ -72,7 +81,13 @@ router.post('/send', auth, async (req, res) => {
 
         // If phoneNumberId not provided, try to get from Lead
         if (!phoneNumberId) {
-            const lead = await Lead.findOne({ phone: phone, companyId: req.companyId });
+            const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
+            const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
+
+            const lead = await Lead.findOne({
+                $or: [{ phone: regex }, { phone: phone }],
+                companyId: req.companyId
+            });
             if (lead && lead.phoneNumberId) {
                 phoneNumberId = lead.phoneNumberId;
             }

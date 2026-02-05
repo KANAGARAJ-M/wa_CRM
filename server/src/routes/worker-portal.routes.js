@@ -31,9 +31,13 @@ router.get('/messages/:phone', auth, async (req, res) => {
     try {
         const { phone } = req.params;
 
+        // Normalize phone for matching: remove non-digits and leading zeros
+        const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
+        const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
+
         // 1. Verify lead is assigned to worker
         let lead = await Lead.findOne({
-            phone,
+            $or: [{ phone: regex }, { phone: phone }],
             assignedTo: req.user._id
         });
 
@@ -43,7 +47,12 @@ router.get('/messages/:phone', auth, async (req, res) => {
         if (!isAuthorized) {
             const assignedMsg = await WhatsAppMessage.findOne({
                 assignedTo: req.user._id,
-                $or: [{ from: phone }, { to: phone }]
+                $or: [
+                    { from: regex },
+                    { to: regex },
+                    { from: phone },
+                    { to: phone }
+                ]
             });
             if (assignedMsg) isAuthorized = true;
         }
@@ -52,7 +61,7 @@ router.get('/messages/:phone', auth, async (req, res) => {
         if (!isAuthorized) {
             const assignedFlow = await FlowResponse.findOne({
                 assignedTo: req.user._id,
-                from: phone
+                from: regex
             });
             if (assignedFlow) isAuthorized = true;
         }
