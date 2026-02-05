@@ -3,7 +3,7 @@ import api from '../api/axios';
 import {
     Plus, Search, Edit2, Trash2, Tag, DollarSign, Image as ImageIcon,
     MoreVertical, Archive, RefreshCw, ShoppingBag, Loader2, FileText,
-    Link as LinkIcon, Eye, List, CheckSquare, AlignLeft, Calendar
+    Link as LinkIcon, Eye, List, CheckSquare, AlignLeft, Calendar, Zap, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -30,6 +30,17 @@ export default function Products() {
     const [submitting, setSubmitting] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [pushing, setPushing] = useState(false);
+
+    // Auto-Reply Rules State
+    const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
+    const [editingRule, setEditingRule] = useState(null);
+    const [ruleFormData, setRuleFormData] = useState({
+        keyword: '',
+        matchType: 'contains',
+        responseType: 'text',
+        responseText: '',
+        linkedProduct: ''
+    });
 
     // Forms State
     const [forms, setForms] = useState([]);
@@ -68,6 +79,73 @@ export default function Products() {
             }
         } catch (err) {
             console.error("Failed to fetch fresh company details:", err);
+        }
+    };
+
+    // --- Auto-Reply Rule Functions ---
+    const handleOpenRuleModal = (rule = null) => {
+        if (rule) {
+            setEditingRule(rule);
+            setRuleFormData({
+                keyword: rule.keyword,
+                matchType: rule.matchType,
+                responseType: rule.responseType,
+                responseText: rule.responseText || '',
+                linkedProduct: rule.linkedProduct ? (typeof rule.linkedProduct === 'object' ? rule.linkedProduct._id : rule.linkedProduct) : ''
+            });
+        } else {
+            setEditingRule(null);
+            setRuleFormData({
+                keyword: '',
+                matchType: 'contains',
+                responseType: 'text',
+                responseText: '',
+                linkedProduct: ''
+            });
+        }
+        setIsRuleModalOpen(true);
+    };
+
+    const handleSaveRule = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            // Need to transform ruleFormData to match schema
+            // Specifically handling linkedProduct which might be empty string -> null/undefined
+            const payload = { ...ruleFormData };
+            if (!payload.linkedProduct) delete payload.linkedProduct;
+
+            const currentRules = companyDetails?.autoReplyRules || [];
+            let newRules;
+
+            if (editingRule) {
+                newRules = currentRules.map(r => r._id === editingRule._id ? { ...r, ...payload } : r);
+            } else {
+                newRules = [...currentRules, payload];
+            }
+
+            await api.put('/settings', { autoReplyRules: newRules });
+            await fetchCompanyDetails();
+            setIsRuleModalOpen(false);
+            alert('Rule saved successfully');
+        } catch (err) {
+            console.error(err);
+            alert('Failed to save rule');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteRule = async (ruleId) => {
+        if (!confirm("Delete this auto-reply rule?")) return;
+        try {
+            const currentRules = companyDetails?.autoReplyRules || [];
+            const newRules = currentRules.filter(r => r._id !== ruleId);
+            await api.put('/settings', { autoReplyRules: newRules });
+            await fetchCompanyDetails();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete rule");
         }
     };
 
@@ -314,7 +392,7 @@ export default function Products() {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        {activeTab === 'products' ? (
+                        {activeTab === 'products' && (
                             <>
                                 <button
                                     onClick={handleSync}
@@ -340,13 +418,23 @@ export default function Products() {
                                     Add Product
                                 </button>
                             </>
-                        ) : (
+                        )}
+                        {activeTab === 'forms' && (
                             <button
                                 onClick={() => handleOpenFormModal()}
                                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm font-bold"
                             >
                                 <Plus className="h-5 w-5" />
                                 Create Form
+                            </button>
+                        )}
+                        {activeTab === 'autoreply' && (
+                            <button
+                                onClick={() => handleOpenRuleModal()}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm font-bold"
+                            >
+                                <Plus className="h-5 w-5" />
+                                Add Rule
                             </button>
                         )}
                     </div>
@@ -372,11 +460,20 @@ export default function Products() {
                     >
                         Order Forms
                     </button>
+                    <button
+                        onClick={() => setActiveTab('autoreply')}
+                        className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'autoreply'
+                            ? 'border-green-500 text-green-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        Auto-Replies
+                    </button>
                 </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-                {activeTab === 'products' ? (
+                {activeTab === 'products' && (
                     /* Products Grid */
                     products.length === 0 && !loading ? (
                         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
@@ -407,14 +504,22 @@ export default function Products() {
                                                     // Robustly find phone number
                                                     let phone = '';
                                                     if (targetCompany?.whatsappConfigs?.length > 0) {
-                                                        // Try to find enabled config first
-                                                        const enabledConfig = targetCompany.whatsappConfigs.find(c => c.isEnabled);
-                                                        // Prefer explicit phoneNumber if set, otherwise fallback to phoneNumberId
-                                                        if (enabledConfig) {
-                                                            phone = enabledConfig.phoneNumber || enabledConfig.phoneNumberId;
-                                                        } else {
-                                                            const firstConfig = targetCompany.whatsappConfigs[0];
-                                                            phone = firstConfig.phoneNumber || firstConfig.phoneNumberId;
+                                                        // 1. Try to find enabled config WITH a catalogId (prioritize catalog-integrated account)
+                                                        let bestConfig = targetCompany.whatsappConfigs.find(c => c.isEnabled && c.catalogId);
+
+                                                        // 2. Fallback to any enabled config
+                                                        if (!bestConfig) {
+                                                            bestConfig = targetCompany.whatsappConfigs.find(c => c.isEnabled);
+                                                        }
+
+                                                        // 3. Fallback to first config
+                                                        if (!bestConfig && targetCompany.whatsappConfigs.length > 0) {
+                                                            bestConfig = targetCompany.whatsappConfigs[0];
+                                                        }
+
+                                                        if (bestConfig) {
+                                                            // Prefer explicit phoneNumber (e.g. 1555...) over ID
+                                                            phone = bestConfig.phoneNumber || bestConfig.phoneNumberId;
                                                         }
                                                     }
 
@@ -459,7 +564,8 @@ export default function Products() {
                             ))}
                         </div>
                     )
-                ) : (
+                )}
+                {activeTab === 'forms' && (
                     /* Forms Grid */
                     forms.length === 0 && !loading ? (
                         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
@@ -515,6 +621,77 @@ export default function Products() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )
+                )}
+
+                {activeTab === 'autoreply' && (
+                    (!companyDetails?.autoReplyRules || companyDetails.autoReplyRules.length === 0) ? (
+                        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
+                            <Zap className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900">No auto-reply rules</h3>
+                            <p className="text-gray-500 text-sm mt-1">Configure keywords to automatically reply to customers</p>
+                            <button onClick={() => handleOpenRuleModal()} className="text-green-600 font-medium hover:text-green-700 hover:underline mt-2">
+                                Add your first rule
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <table className="w-full text-left text-sm text-gray-600">
+                                <thead className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-4">Keyword</th>
+                                        <th className="px-6 py-4">Type</th>
+                                        <th className="px-6 py-4">Response</th>
+                                        <th className="px-6 py-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {companyDetails.autoReplyRules.map((rule) => {
+                                        const linkedProductObj = products.find(p => p._id === (typeof rule.linkedProduct === 'object' ? rule.linkedProduct._id : rule.linkedProduct));
+
+                                        return (
+                                            <tr key={rule._id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 font-medium text-gray-900">
+                                                    <span className="bg-gray-100 px-2 py-1 rounded border border-gray-200">{rule.keyword}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${rule.responseType === 'product' ? 'bg-blue-100 text-blue-700' :
+                                                        rule.responseType === 'text' ? 'bg-green-100 text-green-700' :
+                                                            'bg-purple-100 text-purple-700'
+                                                        }`}>
+                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 max-w-xs truncate">
+                                                    {rule.responseType === 'text' && rule.responseText}
+                                                    {rule.responseType === 'product' && (
+                                                        <div className="flex items-center gap-2">
+                                                            {linkedProductObj?.imageUrl && (
+                                                                <img src={linkedProductObj.imageUrl} className="w-6 h-6 rounded object-cover" />
+                                                            )}
+                                                            <span>{linkedProductObj?.name || 'Unknown Product'}</span>
+                                                        </div>
+                                                    )}
+                                                    {rule.responseType === 'all_products_prices' && (
+                                                        <span className="text-gray-400 italic">Sends list of all available products</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={() => handleOpenRuleModal(rule)} className="p-1 hover:bg-gray-200 rounded text-gray-500">
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </button>
+                                                        <button onClick={() => handleDeleteRule(rule._id)} className="p-1 hover:bg-red-50 rounded text-red-500">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
                     )
                 )}
@@ -625,6 +802,105 @@ export default function Products() {
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 bg-gray-100 rounded-lg">Cancel</button>
                                 <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg">
                                     {submitting ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Auto-Reply Rule Modal */}
+            {isRuleModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h2 className="text-lg font-bold text-gray-800">
+                                {editingRule ? 'Edit Auto-Reply Rule' : 'New Auto-Reply Rule'}
+                            </h2>
+                            <button onClick={() => setIsRuleModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                <span className="text-2xl">&times;</span>
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveRule} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Keyword</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={ruleFormData.keyword}
+                                    onChange={e => setRuleFormData({ ...ruleFormData, keyword: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                    placeholder="e.g. price, catalog, shoes"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Customers will trigger this by sending this word.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Match Type</label>
+                                <select
+                                    value={ruleFormData.matchType}
+                                    onChange={e => setRuleFormData({ ...ruleFormData, matchType: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                >
+                                    <option value="contains">Contains (e.g. "what is the price?")</option>
+                                    <option value="exact">Exact Match (e.g. "price")</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Response Type</label>
+                                <select
+                                    value={ruleFormData.responseType}
+                                    onChange={e => setRuleFormData({ ...ruleFormData, responseType: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                >
+                                    <option value="text">Send Text Message</option>
+                                    <option value="product">Send Product Card</option>
+                                    <option value="all_products_prices">Send Price List (All Products)</option>
+                                </select>
+                            </div>
+
+                            {ruleFormData.responseType === 'text' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Response Text</label>
+                                    <textarea
+                                        required
+                                        rows={3}
+                                        value={ruleFormData.responseText}
+                                        onChange={e => setRuleFormData({ ...ruleFormData, responseText: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                        placeholder="Enter the message to send back..."
+                                    />
+                                </div>
+                            )}
+
+                            {ruleFormData.responseType === 'product' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Product</label>
+                                    <select
+                                        required
+                                        value={ruleFormData.linkedProduct}
+                                        onChange={e => setRuleFormData({ ...ruleFormData, linkedProduct: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                    >
+                                        <option value="">-- Choose a Product --</option>
+                                        {products.map(p => (
+                                            <option key={p._id} value={p._id}>{p.name} ({new Intl.NumberFormat('en-US', { style: 'currency', currency: p.currency }).format(p.price)})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {ruleFormData.responseType === 'all_products_prices' && (
+                                <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm">
+                                    <p>The system will automatically generate and send a list of all your active products and their prices.</p>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-4">
+                                <button type="button" onClick={() => setIsRuleModalOpen(false)} className="flex-1 px-4 py-2 bg-gray-100 rounded-lg">Cancel</button>
+                                <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg">
+                                    {submitting ? 'Saving...' : 'Save Rule'}
                                 </button>
                             </div>
                         </form>

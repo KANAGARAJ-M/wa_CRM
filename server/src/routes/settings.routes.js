@@ -57,7 +57,7 @@ router.put('/', auth, async (req, res) => {
 
         const {
             whatsappConfigs, name, address, phone, website, products,
-            metaCatalogConfig, autoReplyConfig, paymentConfig, clientFormConfig
+            metaCatalogConfig, autoReplyConfig, paymentConfig, clientFormConfig, autoReplyRules
         } = req.body;
 
         if (!req.companyId) {
@@ -78,6 +78,7 @@ router.put('/', auth, async (req, res) => {
 
         if (metaCatalogConfig !== undefined) company.metaCatalogConfig = metaCatalogConfig;
         if (autoReplyConfig !== undefined) company.autoReplyConfig = autoReplyConfig;
+        if (autoReplyRules !== undefined) company.autoReplyRules = autoReplyRules;
         if (paymentConfig !== undefined) company.paymentConfig = paymentConfig;
         if (clientFormConfig !== undefined) company.clientFormConfig = clientFormConfig;
 

@@ -57,6 +57,14 @@ const companySchema = new mongoose.Schema({
         enabled: { type: Boolean, default: false },
         message: { type: String, default: '' }
     },
+    // Dynamic Keyword Rules
+    autoReplyRules: [{
+        keyword: { type: String, required: true, trim: true },
+        matchType: { type: String, enum: ['exact', 'contains'], default: 'contains' },
+        responseType: { type: String, enum: ['text', 'product', 'all_products_prices'], required: true },
+        responseText: { type: String },
+        linkedProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' }
+    }],
     paymentConfig: {
         provider: { type: String, default: 'manual' }, // stripe, manual, etc.
         enabled: { type: Boolean, default: false },

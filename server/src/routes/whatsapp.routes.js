@@ -906,6 +906,116 @@ router.post('/', async (req, res) => {
                         }
                     }
 
+                    // DYNAMIC KEYWORD AUTO-REPLY LOGIC
+                    if (msgType === 'text' && msgBody) {
+                        const normalizedBody = msgBody.trim().toLowerCase();
+
+                        // Find matching rule
+                        const rule = company.autoReplyRules?.find(r => {
+                            const keyword = r.keyword.toLowerCase();
+                            if (r.matchType === 'exact') return normalizedBody === keyword;
+                            return normalizedBody.includes(keyword);
+                        });
+
+                        if (rule) {
+                            console.log(`🤖 Found auto-reply keyword: ${rule.keyword} (${rule.responseType})`);
+
+                            // Get config
+                            const config = company.whatsappConfigs.find(c => c.phoneNumberId === phoneNumberId);
+
+                            if (config && config.accessToken) {
+                                const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
+                                const url = `${GRAPH_API_URL}/${phoneNumberId}/messages`;
+                                let payload = {
+                                    messaging_product: 'whatsapp',
+                                    recipient_type: 'individual',
+                                    to: from
+                                };
+
+                                // 1. Text Response
+                                if (rule.responseType === 'text' && rule.responseText) {
+                                    payload.type = 'text';
+                                    payload.text = { body: rule.responseText };
+                                }
+
+                                // 2. Product Response
+                                else if (rule.responseType === 'product' && rule.linkedProduct) {
+                                    const product = await Product.findById(rule.linkedProduct);
+                                    if (product) {
+                                        // Try to send Catalog Product Message if everything is configured
+                                        if (product.retailerId && company.metaCatalogConfig?.catalogId) {
+                                            payload.type = 'interactive';
+                                            payload.interactive = {
+                                                type: 'product',
+                                                body: { text: product.description || product.name },
+                                                footer: { text: 'Tap to view details' },
+                                                action: {
+                                                    catalog_id: company.metaCatalogConfig.catalogId,
+                                                    product_retailer_id: product.retailerId
+                                                }
+                                            };
+                                        } else {
+                                            // Fallback: Image with Caption
+                                            if (product.imageUrl) {
+                                                payload.type = 'image';
+                                                payload.image = { link: product.imageUrl, caption: `*${product.name}*\n${product.currency || 'USD'} ${product.price}\n\n${product.description || ''}` };
+                                            } else {
+                                                payload.type = 'text';
+                                                payload.text = { body: `*${product.name}*\nPrice: ${product.price}\n\n${product.description || ''}` };
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 3. Price List (All Products)
+                                else if (rule.responseType === 'all_products_prices') {
+                                    const products = await Product.find({ company: companyId }).limit(15);
+                                    if (products.length > 0) {
+                                        let listText = "*Current Price List:*\n\n";
+                                        products.forEach(p => {
+                                            listText += `• *${p.name}*: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: p.currency || 'USD' }).format(p.price)}\n`;
+                                        });
+                                        listText += "\nReply with a product name for more details.";
+                                        payload.type = 'text';
+                                        payload.text = { body: listText };
+                                    } else {
+                                        payload.type = 'text';
+                                        payload.text = { body: "Sorry, no products are currently available." };
+                                    }
+                                }
+
+                                // Send
+                                try {
+                                    if (payload.type) {
+                                        await fetch(url, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${config.accessToken}`
+                                            },
+                                            body: JSON.stringify(payload)
+                                        });
+
+                                        // Save to DB
+                                        await WhatsAppMessage.create({
+                                            companyId: companyId,
+                                            phoneNumberId,
+                                            from: phoneNumberId,
+                                            to: from,
+                                            direction: 'outgoing',
+                                            type: payload.type,
+                                            body: payload.text?.body || `Auto-reply: ${rule.responseType}`,
+                                            messageId: `auto-reply-rule-${Date.now()}`,
+                                            status: 'sent'
+                                        });
+                                    }
+                                } catch (err) {
+                                    console.error('Failed to send keyword auto-reply:', err);
+                                }
+                            }
+                        }
+                    }
+
                     // Create or update lead from WhatsApp message
                     try {
                         // Check if lead already exists with this phone number FOR THIS COMPANY
