@@ -20,12 +20,93 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
   String? _error;
   String _statusFilter = 'all'; // all, pending, in_progress, completed
 
-  static const Color kBgColor = Color(0xFFF8FAFC);
-  static const Color kCardColor = Colors.white;
-  static const Color kPrimaryColor = Color(0xFF2563EB);
-  static const Color kSecondaryColor = Color(0xFF64748B);
-  static const Color kTextColor = Color(0xFF1E293B);
-  static const Color kSubTextColor = Color(0xFF94A3B8);
+  // Skeuomorphic Theme Colors
+  static const Color kBgColor = Color(0xFFE8E0D5);
+  static const Color kCardColor = Color(0xFFF5F0E8);
+  static const Color kPrimaryColor = Color(0xFF8B4513);
+  static const Color kAccentColor = Color(0xFFCD853F);
+  static const Color kSecondaryColor = Color(0xFF6B4423);
+  static const Color kTextColor = Color(0xFF3E2723);
+  static const Color kSubTextColor = Color(0xFF795548);
+  static const Color kHighlightColor = Color(0xFFFFFBF5);
+  static const Color kShadowColor = Color(0xFF5D4037);
+
+  // Skeuomorphic helper methods
+  BoxDecoration _skeuoEmbossedDecoration({Color? baseColor, double radius = 16}) {
+    final color = baseColor ?? kCardColor;
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: kHighlightColor.withOpacity(0.5), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: kShadowColor.withOpacity(0.25),
+          blurRadius: 8,
+          offset: const Offset(4, 4),
+        ),
+        BoxShadow(
+          color: kHighlightColor.withOpacity(0.9),
+          blurRadius: 8,
+          offset: const Offset(-3, -3),
+        ),
+      ],
+    );
+  }
+
+  BoxDecoration _skeuoDebossedDecoration({Color? baseColor, double radius = 12}) {
+    final color = baseColor ?? kBgColor;
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: kShadowColor.withOpacity(0.15), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: kShadowColor.withOpacity(0.15),
+          blurRadius: 4,
+          offset: const Offset(2, 2),
+        ),
+        BoxShadow(
+          color: kHighlightColor.withOpacity(0.5),
+          blurRadius: 4,
+          offset: const Offset(-1, -1),
+        ),
+      ],
+    );
+  }
+
+  BoxDecoration _skeuoButtonDecoration(Color color, {bool pressed = false}) {
+    if (pressed) {
+      return BoxDecoration(
+        color: color.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black.withOpacity(0.2), width: 1),
+      );
+    }
+    return BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          color.withOpacity(1.0),
+          Color.lerp(color, Colors.black, 0.2)!,
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.black.withOpacity(0.3), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.4),
+          blurRadius: 4,
+          offset: const Offset(2, 3),
+        ),
+        BoxShadow(
+          color: Colors.white.withOpacity(0.2),
+          blurRadius: 1,
+          offset: const Offset(-1, -1),
+        ),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -214,37 +295,51 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
       appBar: AppBar(
         backgroundColor: kCardColor,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: kTextColor),
-          onPressed: () => Navigator.pop(context),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: _skeuoEmbossedDecoration(radius: 10),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: kPrimaryColor, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Assigned Orders',
               style: TextStyle(
                 color: kTextColor,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: kHighlightColor.withOpacity(0.9),
+                    offset: const Offset(1, 1),
+                  ),
+                ],
               ),
             ),
             Text(
               '${_items.length} assignments',
-              style: const TextStyle(color: kSubTextColor, fontSize: 12),
+              style: TextStyle(color: kSubTextColor, fontSize: 12),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh_rounded, color: kSecondaryColor),
-            onPressed: _isLoading ? null : _loadData,
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: _skeuoEmbossedDecoration(radius: 10),
+            child: IconButton(
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: kPrimaryColor),
+                    )
+                  : const Icon(Icons.refresh_rounded, color: kSecondaryColor, size: 20),
+              onPressed: _isLoading ? null : _loadData,
+            ),
           ),
         ],
       ),
@@ -316,23 +411,10 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
     return GestureDetector(
       onTap: () => setState(() => _statusFilter = value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? kPrimaryColor : kCardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? kPrimaryColor : const Color(0xFFE5E7EB),
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: kPrimaryColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: isSelected
+            ? _skeuoButtonDecoration(kPrimaryColor)
+            : _skeuoEmbossedDecoration(radius: 20),
         child: Text(
           label,
           style: TextStyle(
@@ -347,17 +429,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
 
   Widget _buildItemCard(AssignedItem item) {
     return Container(
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: _skeuoEmbossedDecoration(radius: 18),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -366,13 +438,13 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
               const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           leading: Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: _getTypeColor(item.type).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+            decoration: _skeuoDebossedDecoration(
+              baseColor: _getTypeColor(item.type).withOpacity(0.15),
+              radius: 12,
             ),
             child: Icon(
               _getTypeIcon(item.type),
-              color: _getTypeColor(item.type),
+              color: _getTypeColor(item.type).withOpacity(0.8),
               size: 22,
             ),
           ),
@@ -404,14 +476,14 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(item.agentStatus).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                decoration: _skeuoDebossedDecoration(
+                  baseColor: _getStatusColor(item.agentStatus).withOpacity(0.15),
+                  radius: 12,
                 ),
                 child: Text(
                   item.agentStatus.replaceAll('_', ' ').toUpperCase(),
                   style: TextStyle(
-                    color: _getStatusColor(item.agentStatus),
+                    color: _getStatusColor(item.agentStatus).withOpacity(0.8),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
@@ -431,23 +503,20 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
                         onTap: () => _makeCall(item.phone),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                              horizontal: 12, vertical: 8),
+                          decoration: _skeuoButtonDecoration(const Color(0xFF2E7D32)),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.phone_rounded,
-                                  size: 14, color: Color(0xFF22C55E)),
+                                  size: 14, color: Colors.white),
                               SizedBox(width: 4),
                               Text(
                                 'Call',
                                 style: TextStyle(
-                                  color: Color(0xFF22C55E),
+                                  color: Colors.white,
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
@@ -471,23 +540,20 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: kPrimaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                              horizontal: 12, vertical: 8),
+                          decoration: _skeuoButtonDecoration(kPrimaryColor),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.chat_rounded,
-                                  size: 14, color: kPrimaryColor),
+                                  size: 14, color: Colors.white),
                               SizedBox(width: 4),
                               Text(
                                 'Chat',
                                 style: TextStyle(
-                                  color: kPrimaryColor,
+                                  color: Colors.white,
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
@@ -528,24 +594,17 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
                     return GestureDetector(
                       onTap: () => _updateStatus(item, status),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? kPrimaryColor
-                              : kBgColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color:
-                                isSelected ? kPrimaryColor : const Color(0xFFE5E7EB),
-                          ),
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: isSelected 
+                          ? _skeuoButtonDecoration(kPrimaryColor) 
+                          : _skeuoDebossedDecoration(radius: 8),
                         child: Text(
                           status.replaceAll('_', ' ').toUpperCase(),
                           style: TextStyle(
-                            color: isSelected ? Colors.white : kSecondaryColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : kSubTextColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),

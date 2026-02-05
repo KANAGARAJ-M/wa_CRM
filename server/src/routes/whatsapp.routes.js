@@ -30,9 +30,33 @@ router.post('/send', auth, async (req, res) => {
         }
 
         if (!canViewAll && canViewOwn) {
+            // Check if Lead is assigned
             const lead = await Lead.findOne({ phone: phone, assignedTo: user._id, companyId: req.companyId });
-            if (!lead) {
-                return res.status(403).json({ success: false, message: 'Not authorized to message this lead' });
+
+            let isAuthorized = !!lead;
+
+            if (!isAuthorized) {
+                // Check if any WhatsAppMessage for this phone is assigned to this worker
+                const assignedMsg = await WhatsAppMessage.findOne({
+                    companyId: req.companyId,
+                    assignedTo: user._id,
+                    $or: [{ from: phone }, { to: phone }]
+                });
+                if (assignedMsg) isAuthorized = true;
+            }
+
+            if (!isAuthorized) {
+                // Check if any FlowResponse for this phone is assigned to this worker
+                const assignedFlow = await FlowResponse.findOne({
+                    companyId: req.companyId,
+                    assignedTo: user._id,
+                    from: phone
+                });
+                if (assignedFlow) isAuthorized = true;
+            }
+
+            if (!isAuthorized) {
+                return res.status(403).json({ success: false, message: 'Not authorized to message this contact' });
             }
         }
 

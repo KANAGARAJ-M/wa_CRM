@@ -9,6 +9,17 @@ import 'call_log_screen.dart';
 import 'call_screen.dart';
 import 'chat_screen.dart';
 
+// Skeuomorphic Theme Colors
+const Color kBgColor = Color(0xFFE8E0D5);
+const Color kCardColor = Color(0xFFF5F0E8);
+const Color kPrimaryColor = Color(0xFF8B4513);
+const Color kAccentColor = Color(0xFFCD853F);
+const Color kSecondaryColor = Color(0xFF6B4423);
+const Color kTextColor = Color(0xFF3E2723);
+const Color kSubTextColor = Color(0xFF795548);
+const Color kHighlightColor = Color(0xFFFFFBF5);
+const Color kShadowColor = Color(0xFF5D4037);
+
 class DialerScreen extends StatefulWidget {
   const DialerScreen({super.key});
 
@@ -30,6 +41,83 @@ class _DialerScreenState extends State<DialerScreen>
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
   final TextEditingController _searchController = TextEditingController();
+
+  // Skeuomorphic helper methods
+  BoxDecoration _skeuoEmbossedDecoration({Color? baseColor, double radius = 16}) {
+    final color = baseColor ?? kCardColor;
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: kHighlightColor.withOpacity(0.5), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: kShadowColor.withOpacity(0.25),
+          blurRadius: 8,
+          offset: const Offset(4, 4),
+        ),
+        BoxShadow(
+          color: kHighlightColor.withOpacity(0.9),
+          blurRadius: 8,
+          offset: const Offset(-3, -3),
+        ),
+      ],
+    );
+  }
+
+  BoxDecoration _skeuoDebossedDecoration({Color? baseColor, double radius = 12}) {
+    final color = baseColor ?? kBgColor;
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: kShadowColor.withOpacity(0.15), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: kShadowColor.withOpacity(0.15),
+          blurRadius: 4,
+          offset: const Offset(2, 2),
+        ),
+        BoxShadow(
+          color: kHighlightColor.withOpacity(0.5),
+          blurRadius: 4,
+          offset: const Offset(-1, -1),
+        ),
+      ],
+    );
+  }
+
+  BoxDecoration _skeuoButtonDecoration(Color color, {bool pressed = false}) {
+    if (pressed) {
+      return BoxDecoration(
+        color: color.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black.withOpacity(0.2), width: 1),
+      );
+    }
+    return BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          color.withOpacity(1.0),
+          Color.lerp(color, Colors.black, 0.2)!,
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.black.withOpacity(0.3), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.4),
+          blurRadius: 4,
+          offset: const Offset(2, 3),
+        ),
+        BoxShadow(
+          color: Colors.white.withOpacity(0.2),
+          blurRadius: 1,
+          offset: const Offset(-1, -1),
+        ),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -249,34 +337,52 @@ class _DialerScreenState extends State<DialerScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: kBgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: kCardColor,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1F2937)),
-          onPressed: () => Navigator.pop(context),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: _skeuoEmbossedDecoration(radius: 10),
+          child: IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: kPrimaryColor, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-        title: const Text(
+        title: Text(
           'Call Center',
-          style:
-              TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: kTextColor,
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(
+                color: kHighlightColor.withOpacity(0.9),
+                offset: const Offset(1, 1),
+              ),
+            ],
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF6B7280)),
-            onPressed: _fetchData,
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: _skeuoEmbossedDecoration(radius: 10),
+            child: IconButton(
+              icon: Icon(Icons.refresh_rounded, color: kSecondaryColor, size: 20),
+              onPressed: _fetchData,
+            ),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF22C55E),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFF22C55E),
+          labelColor: kPrimaryColor,
+          unselectedLabelColor: kSubTextColor,
+          indicatorColor: kPrimaryColor,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           tabs: const [
-            Tab(icon: Icon(Icons.dialpad), text: 'Keypad'),
-            Tab(icon: Icon(Icons.assignment), text: 'My Leads'),
-            Tab(icon: Icon(Icons.history), text: 'History'),
+            Tab(icon: Icon(Icons.dialpad_rounded), text: 'Keypad'),
+            Tab(icon: Icon(Icons.people_alt_rounded), text: 'My Leads'),
+            Tab(icon: Icon(Icons.history_rounded), text: 'History'),
           ],
         ),
       ),
@@ -292,102 +398,124 @@ class _DialerScreenState extends State<DialerScreen>
   }
 
   Widget _buildKeypadTab() {
-    return Column(
-      children: [
-        // Display Area
-        Expanded(
-          flex: 2,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    _numberController.text.isEmpty
-                        ? 'Enter number'
-                        : _numberController.text,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                      color: _numberController.text.isEmpty
-                          ? Colors.grey
-                          : const Color(0xFF1F2937),
+    return Container(
+      color: kBgColor,
+      child: Column(
+        children: [
+          // Display Area
+          Expanded(
+            flex: 2,
+            child: Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                    decoration: _skeuoDebossedDecoration(radius: 20),
+                    child: Text(
+                      _numberController.text.isEmpty
+                          ? 'Enter number'
+                          : _numberController.text,
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        color: _numberController.text.isEmpty
+                            ? kSubTextColor
+                            : kTextColor,
+                        shadows: _numberController.text.isNotEmpty
+                            ? [
+                                Shadow(
+                                  color: kHighlightColor.withOpacity(0.9),
+                                  offset: const Offset(1, 1),
+                                ),
+                              ]
+                            : null,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
 
-        // Keypad
-        Expanded(
-          flex: 4,
-          child: Container(
-            padding: const EdgeInsets.only(bottom: 32, left: 16, right: 16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildRow(['1', '2', '3']),
-                _buildRow(['4', '5', '6']),
-                _buildRow(['7', '8', '9']),
-                _buildRow(['*', '0', '#']),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    const SizedBox(width: 80),
-                    // Call Button
-                    GestureDetector(
-                      onTap: () => _makeCall(),
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.green, Colors.green.shade700],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.green.withOpacity(0.4),
-                              blurRadius: 15,
-                              offset: const Offset(0, 6),
+          // Keypad
+          Expanded(
+            flex: 4,
+            child: Container(
+              padding: const EdgeInsets.only(bottom: 32, left: 16, right: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildRow(['1', '2', '3']),
+                  _buildRow(['4', '5', '6']),
+                  _buildRow(['7', '8', '9']),
+                  _buildRow(['*', '0', '#']),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      const SizedBox(width: 80),
+                      // Call Button - Metallic green
+                      GestureDetector(
+                        onTap: () => _makeCall(),
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF2E7D32),
+                                const Color(0xFF1B5E20),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                          ],
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.black.withOpacity(0.3),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: kShadowColor.withOpacity(0.5),
+                                blurRadius: 12,
+                                offset: const Offset(4, 6),
+                              ),
+                              BoxShadow(
+                                color: kHighlightColor.withOpacity(0.4),
+                                blurRadius: 4,
+                                offset: const Offset(-2, -2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.call_rounded,
+                              color: Colors.white, size: 36),
                         ),
-                        child: const Icon(Icons.call,
-                            color: Colors.white, size: 36),
                       ),
-                    ),
-                    // Backspace
-                    SizedBox(
-                      width: 80,
-                      child: IconButton(
-                        onPressed: _onBackspace,
-                        onLongPress: _clearNumber,
-                        icon: const Icon(Icons.backspace_outlined),
-                        iconSize: 28,
+                      // Backspace - Embossed button
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: _skeuoEmbossedDecoration(radius: 30),
+                        child: IconButton(
+                          onPressed: _onBackspace,
+                          onLongPress: _clearNumber,
+                          icon: Icon(Icons.backspace_rounded, color: kSecondaryColor),
+                          iconSize: 24,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -416,20 +544,37 @@ class _DialerScreenState extends State<DialerScreen>
         height: 80,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.grey[100],
+          color: kCardColor,
+          border: Border.all(color: kHighlightColor.withOpacity(0.6), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: kShadowColor.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(3, 3),
+            ),
+            BoxShadow(
+              color: kHighlightColor.withOpacity(0.8),
+              blurRadius: 6,
+              offset: const Offset(-2, -2),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               digit,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: kTextColor,
+              ),
             ),
             if (subLabel.isNotEmpty)
               Text(
                 subLabel,
                 style: TextStyle(
-                    fontSize: 10, color: Colors.grey[600], letterSpacing: 1),
+                    fontSize: 10, color: kSubTextColor, letterSpacing: 1),
               ),
           ],
         ),
@@ -518,69 +663,60 @@ class _DialerScreenState extends State<DialerScreen>
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  decoration: InputDecoration(
-                    hintText: 'Search leads...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty 
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 16),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          ) 
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.grey),
+                child: Container(
+                  decoration: _skeuoDebossedDecoration(radius: 12),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    style: TextStyle(color: kTextColor),
+                    decoration: InputDecoration(
+                      hintText: 'Search leads...',
+                      hintStyle: TextStyle(color: kSubTextColor),
+                      prefixIcon: Icon(Icons.search_rounded, size: 20, color: kSubTextColor),
+                      suffixIcon: _searchQuery.isNotEmpty 
+                          ? IconButton(
+                              icon: Icon(Icons.clear_rounded, size: 16, color: kSubTextColor),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            ) 
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: InputBorder.none,
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              InkWell(
-                onTap: _selectDateRange,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _selectedDateRange != null ? const Color(0xFF22C55E) : Colors.grey.withOpacity(0.3)
+              Container(
+                decoration: _skeuoEmbossedDecoration(radius: 12),
+                child: InkWell(
+                  onTap: _selectDateRange,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.calendar_today_rounded, 
+                      color: _selectedDateRange != null ? kPrimaryColor : kSubTextColor,
+                      size: 20,
                     ),
-                  ),
-                  child: Icon(
-                    Icons.calendar_today, 
-                    color: _selectedDateRange != null ? const Color(0xFF22C55E) : Colors.grey[600],
-                    size: 20,
                   ),
                 ),
               ),
               if (_selectedDateRange != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedDateRange = null),
-                     borderRadius: BorderRadius.circular(12),
-                     child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8)
-                        ),
-                        child: const Icon(Icons.close, color: Colors.red, size: 16),
-                     ),
+                  child: Container(
+                    decoration: _skeuoButtonDecoration(const Color(0xFFC62828)),
+                    child: InkWell(
+                      onTap: () => setState(() => _selectedDateRange = null),
+                       borderRadius: BorderRadius.circular(10),
+                       child: const Padding(
+                         padding: EdgeInsets.all(6),
+                         child: Icon(Icons.close_rounded, color: Colors.white, size: 14),
+                       ),
+                    ),
                   ),
                 )
             ],
@@ -623,13 +759,13 @@ class _DialerScreenState extends State<DialerScreen>
         // Leads List
         Expanded(
           child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF22C55E)))
+              ? Center(
+                  child: CircularProgressIndicator(color: kPrimaryColor))
               : filteredLeads.isEmpty
                   ? _buildEmptyState()
                   : RefreshIndicator(
                       onRefresh: _fetchData,
-                      color: const Color(0xFF22C55E),
+                      color: kPrimaryColor,
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: filteredLeads.length,
@@ -647,22 +783,27 @@ class _DialerScreenState extends State<DialerScreen>
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
+        decoration: _skeuoEmbossedDecoration(radius: 12),
         child: Column(
           children: [
             Text(
               count.toString(),
               style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.bold, color: color),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+                shadows: [
+                  Shadow(
+                    color: kHighlightColor.withOpacity(0.9),
+                    offset: const Offset(1, 1),
+                  ),
+                ],
+              ),
             ),
             Text(
               label,
               style: TextStyle(
-                  fontSize: 12, color: color, fontWeight: FontWeight.w500),
+                  fontSize: 12, color: kSecondaryColor, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -672,14 +813,22 @@ class _DialerScreenState extends State<DialerScreen>
 
   Widget _buildFilterChip(String value, String label) {
     final isSelected = _selectedFilter == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() => _selectedFilter = selected ? value : 'all');
-      },
-      selectedColor: const Color(0xFF22C55E).withOpacity(0.2),
-      checkmarkColor: const Color(0xFF22C55E),
+    return GestureDetector(
+      onTap: () => setState(() => _selectedFilter = isSelected ? 'all' : value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: isSelected
+            ? _skeuoButtonDecoration(kPrimaryColor)
+            : _skeuoEmbossedDecoration(radius: 20),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : kSecondaryColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 
@@ -690,12 +839,9 @@ class _DialerScreenState extends State<DialerScreen>
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              shape: BoxShape.circle,
-            ),
+            decoration: _skeuoDebossedDecoration(radius: 50),
             child:
-                Icon(Icons.phone_disabled, size: 48, color: Colors.grey[400]),
+                Icon(Icons.phone_disabled_rounded, size: 48, color: kSubTextColor),
           ),
           const SizedBox(height: 16),
           Text(
@@ -703,12 +849,12 @@ class _DialerScreenState extends State<DialerScreen>
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[700]),
+                color: kTextColor),
           ),
           const SizedBox(height: 8),
           Text(
             'Contact your admin for lead assignments',
-            style: TextStyle(color: Colors.grey[500]),
+            style: TextStyle(color: kSubTextColor),
           ),
         ],
       ),
@@ -720,51 +866,42 @@ class _DialerScreenState extends State<DialerScreen>
     final status = lead.status?.toLowerCase() ?? 'new';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color:
-            isActive ? const Color(0xFF22C55E).withOpacity(0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isActive ? const Color(0xFF22C55E) : Colors.grey[200]!,
-          width: isActive ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: _skeuoEmbossedDecoration(
+        baseColor: isActive ? kAccentColor.withOpacity(0.05) : kCardColor,
+        radius: 18,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _showCallOutcomeDialog(lead),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Avatar
+                // Avatar - Skeuomorphic
                 Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF22C55E), Color(0xFF14B8A6)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
+                  width: 60,
+                  height: 60,
+                  decoration: _skeuoDebossedDecoration(
+                    baseColor: kAccentColor.withOpacity(0.15),
+                    radius: 15,
                   ),
                   child: Center(
                     child: Text(
                       lead.name[0].toUpperCase(),
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: kPrimaryColor,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color: kHighlightColor.withOpacity(0.8),
+                            offset: const Offset(1, 1),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -777,35 +914,40 @@ class _DialerScreenState extends State<DialerScreen>
                     children: [
                       Text(
                         lead.name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                          color: kTextColor,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.phone_android,
-                              size: 14, color: Colors.grey[600]),
+                          Icon(Icons.phone_android_rounded,
+                              size: 14, color: kSubTextColor),
                           const SizedBox(width: 4),
-                          Text(lead.phone,
-                              style: TextStyle(color: Colors.grey[600])),
+                          Text(
+                            lead.phone,
+                            style: TextStyle(color: kSubTextColor, fontSize: 13),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(status).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
+                                horizontal: 10, vertical: 4),
+                            decoration: _skeuoDebossedDecoration(
+                              baseColor: _getStatusColor(status).withOpacity(0.15),
+                              radius: 8,
                             ),
                             child: Text(
                               status.toUpperCase(),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: _getStatusColor(status),
+                                color: _getStatusColor(status).withOpacity(0.8),
                               ),
                             ),
                           ),
@@ -813,23 +955,23 @@ class _DialerScreenState extends State<DialerScreen>
                           // Source Indicator
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: (lead.source == 'whatsapp')
-                                  ? const Color(0xFF25D366).withOpacity(0.1)
-                                  : Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
+                                horizontal: 10, vertical: 4),
+                            decoration: _skeuoDebossedDecoration(
+                              baseColor: (lead.source == 'whatsapp')
+                                  ? const Color(0xFF25D366).withOpacity(0.15)
+                                  : Colors.blue.withOpacity(0.15),
+                              radius: 8,
                             ),
                             child: Row(
                               children: [
                                 Icon(
                                   (lead.source == 'whatsapp')
-                                      ? Icons.chat
-                                      : Icons.table_chart,
+                                      ? Icons.chat_rounded
+                                      : Icons.table_view_rounded,
                                   size: 10,
                                   color: (lead.source == 'whatsapp')
-                                      ? const Color(0xFF25D366)
-                                      : Colors.blue,
+                                      ? const Color(0xFF1B5E20)
+                                      : const Color(0xFF0D47A1),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -840,8 +982,8 @@ class _DialerScreenState extends State<DialerScreen>
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                     color: (lead.source == 'whatsapp')
-                                        ? const Color(0xFF25D366)
-                                        : Colors.blue,
+                                        ? const Color(0xFF1B5E20)
+                                        : const Color(0xFF0D47A1),
                                   ),
                                 ),
                               ],
@@ -849,66 +991,38 @@ class _DialerScreenState extends State<DialerScreen>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () => _showLeadHistory(lead),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.history,
-                                size: 14, color: Color(0xFF22C55E)),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'View History',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF22C55E),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
 
-                // Action Buttons
-                Row(
+                // Actions Column
+                Column(
                   children: [
-                    // Chat Button
-                    IconButton(
-                      icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF22C55E)),
-                      onPressed: () {
+                    // Call Button - Skeuomorphic Green
+                    GestureDetector(
+                      onTap: () => _makeCall(lead: lead),
+                      child: Container(
+                        width: 54,
+                        height: 54,
+                        decoration: _skeuoButtonDecoration(const Color(0xFF2E7D32)),
+                        child: const Icon(Icons.call_rounded,
+                            color: Colors.white, size: 26),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Chat Button - Skeuomorphic Link
+                    GestureDetector(
+                      onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)),
                         );
                       },
-                    ),
-                    const SizedBox(width: 8),
-                    // Call Button
-                    GestureDetector(
-                      onTap: () => _makeCall(lead: lead),
                       child: Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.green, Colors.green.shade700],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.green.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child:
-                            const Icon(Icons.call, color: Colors.white, size: 24),
+                        padding: const EdgeInsets.all(8),
+                        decoration: _skeuoDebossedDecoration(radius: 10),
+                        child: Icon(Icons.chat_bubble_rounded,
+                            color: kPrimaryColor, size: 18),
                       ),
                     ),
                   ],
@@ -927,19 +1041,23 @@ class _DialerScreenState extends State<DialerScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history, size: 64, color: Colors.grey[300]),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: _skeuoDebossedDecoration(radius: 50),
+              child: Icon(Icons.history_rounded, size: 48, color: kSubTextColor),
+            ),
+            const SizedBox(height: 20),
             Text(
               'No call history',
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[600]),
+                  color: kTextColor),
             ),
             const SizedBox(height: 8),
             Text(
               'Your recent calls will appear here',
-              style: TextStyle(color: Colors.grey[500]),
+              style: TextStyle(color: kSubTextColor),
             ),
           ],
         ),
@@ -948,87 +1066,67 @@ class _DialerScreenState extends State<DialerScreen>
 
     return RefreshIndicator(
       onRefresh: _fetchData,
-      color: const Color(0xFF22C55E),
+      color: kPrimaryColor,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _callHistory.length,
         itemBuilder: (context, index) {
           final call = _callHistory[index];
           return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: _skeuoEmbossedDecoration(radius: 14),
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: _getStatusColor(call.status ?? 'completed')
-                    .withOpacity(0.1),
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: _skeuoDebossedDecoration(
+                  baseColor: _getStatusColor(call.status ?? 'completed').withOpacity(0.15),
+                  radius: 12,
+                ),
                 child: Icon(
-                  Icons.phone_callback,
+                  Icons.phone_callback_rounded,
                   color: _getStatusColor(call.status ?? 'completed'),
+                  size: 20,
                 ),
               ),
               title: Text(
                 call.leadName ?? 'Unknown',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(fontWeight: FontWeight.bold, color: kTextColor),
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     '${call.phoneNumber} • ${call.createdAt != null ? DateFormat('MMM d, h:mm a').format(call.createdAt!) : ''}',
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(fontSize: 12, color: kSubTextColor),
                   ),
                   if (call.notes != null && call.notes!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         call.notes!,
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 11, color: kTextColor.withOpacity(0.7), fontStyle: FontStyle.italic),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  if (call.workerName != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.person_outline,
-                              size: 12, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Agent: ${call.workerName}',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[600],
-                                fontStyle: FontStyle.italic),
-                          ),
-                        ],
                       ),
                     ),
                 ],
               ),
               trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getOutcomeColor(call.outcome ?? 'other')
-                      .withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: _skeuoDebossedDecoration(
+                  baseColor: _getOutcomeColor(call.outcome ?? 'other').withOpacity(0.15),
+                  radius: 8,
                 ),
                 child: Text(
                   (call.outcome ?? 'other').toUpperCase(),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: _getOutcomeColor(call.outcome ?? 'other'),
+                    color: _getOutcomeColor(call.outcome ?? 'other').withOpacity(0.8),
                   ),
                 ),
               ),
               onTap: () {
-                // Find the lead and make a call
                 final lead = _leads.firstWhere(
                   (l) => l.phone == call.phoneNumber,
                   orElse: () => Lead(

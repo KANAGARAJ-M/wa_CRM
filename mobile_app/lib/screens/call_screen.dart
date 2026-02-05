@@ -9,6 +9,17 @@ import '../services/auth_service.dart';
 import 'dialer_screen.dart'; // For CallOutcomeSheet
 import 'chat_screen.dart';
 
+// Skeuomorphic Theme Colors
+const Color kBgColor = Color(0xFFE8E0D5);
+const Color kCardColor = Color(0xFFF5F0E8);
+const Color kPrimaryColor = Color(0xFF8B4513);
+const Color kAccentColor = Color(0xFFCD853F);
+const Color kSecondaryColor = Color(0xFF6B4423);
+const Color kTextColor = Color(0xFF3E2723);
+const Color kSubTextColor = Color(0xFF795548);
+const Color kHighlightColor = Color(0xFFFFFBF5);
+const Color kShadowColor = Color(0xFF5D4037);
+
 class CallScreen extends StatefulWidget {
   final Lead lead;
 
@@ -25,6 +36,83 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
   DateTime? _callStartTime;
   List<CallLog> _history = [];
   bool _isLoadingHistory = true;
+
+  // Skeuomorphic helper methods
+  BoxDecoration _skeuoEmbossedDecoration({Color? baseColor, double radius = 16}) {
+    final color = baseColor ?? kCardColor;
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: kHighlightColor.withOpacity(0.5), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: kShadowColor.withOpacity(0.25),
+          blurRadius: 8,
+          offset: const Offset(4, 4),
+        ),
+        BoxShadow(
+          color: kHighlightColor.withOpacity(0.9),
+          blurRadius: 8,
+          offset: const Offset(-3, -3),
+        ),
+      ],
+    );
+  }
+
+  BoxDecoration _skeuoDebossedDecoration({Color? baseColor, double radius = 12}) {
+    final color = baseColor ?? kBgColor;
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: kShadowColor.withOpacity(0.15), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: kShadowColor.withOpacity(0.15),
+          blurRadius: 4,
+          offset: const Offset(2, 2),
+        ),
+        BoxShadow(
+          color: kHighlightColor.withOpacity(0.5),
+          blurRadius: 4,
+          offset: const Offset(-1, -1),
+        ),
+      ],
+    );
+  }
+
+  BoxDecoration _skeuoButtonDecoration(Color color, {bool pressed = false}) {
+    if (pressed) {
+      return BoxDecoration(
+        color: color.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black.withOpacity(0.2), width: 1),
+      );
+    }
+    return BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          color.withOpacity(1.0),
+          Color.lerp(color, Colors.black, 0.2)!,
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.black.withOpacity(0.3), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.4),
+          blurRadius: 4,
+          offset: const Offset(2, 3),
+        ),
+        BoxShadow(
+          color: Colors.white.withOpacity(0.2),
+          blurRadius: 1,
+          offset: const Offset(-1, -1),
+        ),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -43,8 +131,7 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _isCallActive) {
-      // User returned to app, maybe call ended?
-      // We can't know for sure, but we can prompt them or just keep timer running
+      // User returned
     }
   }
 
@@ -52,12 +139,8 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = ApiService(authService.token!);
-      final calls = await apiService.getCalls(limit: 5); // Get recent calls
-
-      // Filter for this lead locally since API might not support filtering by leadId yet for history
-      // Or if it does, update ApiService. For now, simple filter:
-      final leadCalls =
-          calls.where((c) => c.phoneNumber == widget.lead.phone).toList();
+      final calls = await apiService.getCalls(limit: 5); 
+      final leadCalls = calls.where((c) => c.phoneNumber == widget.lead.phone).toList();
 
       if (mounted) {
         setState(() {
@@ -69,7 +152,6 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
       if (mounted) {
         setState(() => _isLoadingHistory = false);
       }
-      print('Error loading history: $e');
     }
   }
 
@@ -86,22 +168,16 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
       });
     });
 
-    // Launch system dialer
     String number = widget.lead.phone.trim();
-    // Fix: If number starts with 91 and is 12 digits, strip the 91 country code
-    // as it can cause "wrong number" errors on some dialers without the + prefix
     if (number.startsWith('91') && number.length == 12) {
       number = number.substring(2);
     }
-
     await FlutterPhoneDirectCaller.callNumber(number);
   }
 
   void _endCall() {
     _timer?.cancel();
     setState(() => _isCallActive = false);
-
-    // Show outcome sheet with auto-calculated duration
     _showOutcomeSheet();
   }
 
@@ -113,45 +189,15 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
       builder: (context) => CallOutcomeSheet(
         lead: widget.lead,
         initialDuration: _durationSeconds,
-        onOutcomeSelected: (outcome,
-            notes,
-            duration,
-            followUpDate,
-            followUpNotes,
-            priority,
-            product,
-            location,
-            businessDetails,
-            orderStatus) async {
-          Navigator.pop(context); // Close sheet
-          await _saveCallOutcome(
-              outcome,
-              notes,
-              duration,
-              followUpDate,
-              followUpNotes,
-              priority,
-              product,
-              location,
-              businessDetails,
-              orderStatus);
+        onOutcomeSelected: (outcome, notes, duration, followUpDate, followUpNotes, priority, product, location, businessDetails, orderStatus) async {
+          Navigator.pop(context);
+          await _saveCallOutcome(outcome, notes, duration, followUpDate, followUpNotes, priority, product, location, businessDetails, orderStatus);
         },
       ),
     );
   }
 
-  Future<void> _saveCallOutcome(
-    String outcome,
-    String? notes,
-    int duration,
-    String? followUpDate,
-    String? followUpNotes,
-    String priority,
-    String? product,
-    String? location,
-    String? businessDetails,
-    String? orderStatus,
-  ) async {
+  Future<void> _saveCallOutcome(String outcome, String? notes, int duration, String? followUpDate, String? followUpNotes, String priority, String? product, String? location, String? businessDetails, String? orderStatus) async {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = ApiService(authService.token!);
@@ -175,19 +221,14 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Call logged successfully'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Call logged successfully'), backgroundColor: Colors.green),
         );
-        Navigator.pop(context); // Go back to previous screen
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Error saving outcome: $e'),
-              backgroundColor: Colors.red),
+          SnackBar(content: Text('Error saving outcome: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -202,60 +243,80 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kBgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: kCardColor,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: _skeuoEmbossedDecoration(radius: 10),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: kPrimaryColor, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-        title: const Text('Call Mode',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Call Mode',
+          style: TextStyle(
+            color: kTextColor,
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(
+                color: kHighlightColor.withOpacity(0.9),
+                offset: const Offset(1, 1),
+              ),
+            ],
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF22C55E)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ChatScreen(lead: widget.lead)),
-              );
-            },
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: _skeuoEmbossedDecoration(radius: 10),
+            child: IconButton(
+              icon: const Icon(Icons.chat_bubble_outline_rounded, color: kAccentColor, size: 20),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ChatScreen(lead: widget.lead)),
+                );
+              },
+            ),
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          // Active Call UI
+          // Active Call UI - Embossed Container
           Container(
-            padding: const EdgeInsets.all(32),
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+            decoration: _skeuoEmbossedDecoration(radius: 24),
             child: Column(
               children: [
                 Hero(
                   tag: 'avatar_${widget.lead.id}',
                   child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [Color(0xFF22C55E), Color(0xFF14B8A6)]),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF22C55E).withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
+                    width: 120,
+                    height: 120,
+                    decoration: _skeuoDebossedDecoration(
+                      baseColor: kAccentColor.withOpacity(0.1),
+                      radius: 60,
                     ),
                     child: Center(
                       child: Text(
                         widget.lead.name[0].toUpperCase(),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: kPrimaryColor,
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: kHighlightColor.withOpacity(0.8),
+                              offset: const Offset(2, 2),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -263,65 +324,84 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
                 const SizedBox(height: 24),
                 Text(
                   widget.lead.name,
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: kTextColor,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   widget.lead.phone,
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 16, color: kSubTextColor),
                 ),
                 const SizedBox(height: 32),
                 if (_isCallActive) ...[
-                  Text(
-                    _formatDuration(_durationSeconds),
-                    style: const TextStyle(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    decoration: _skeuoDebossedDecoration(radius: 16),
+                    child: Text(
+                      _formatDuration(_durationSeconds),
+                      style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.w300,
-                        fontFeatures: [FontFeature.tabularFigures()]),
+                        color: kTextColor,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text('Call in progress...',
+                  const SizedBox(height: 12),
+                  const Text('CALL IN PROGRESS...',
                       style: TextStyle(
-                          color: Colors.green, fontWeight: FontWeight.w500)),
+                          color: Colors.green, fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 12)),
                 ] else ...[
-                  const Text(
-                    'Ready to call',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  Text(
+                    'READY TO CONNECT',
+                    style: TextStyle(fontSize: 14, color: kSubTextColor, fontWeight: FontWeight.bold, letterSpacing: 1),
                   ),
                 ],
                 const SizedBox(height: 40),
                 if (!_isCallActive)
                   SizedBox(
                     width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _startCall,
-                      icon: const Icon(Icons.call),
-                      label: const Text('START CALL'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF22C55E),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        elevation: 4,
+                    height: 60,
+                    child: GestureDetector(
+                      onTap: _startCall,
+                      child: Container(
+                        decoration: _skeuoButtonDecoration(const Color(0xFF2E7D32)),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.call_rounded, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text(
+                              'START CALL',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   )
                 else
                   SizedBox(
                     width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _endCall,
-                      icon: const Icon(Icons.call_end),
-                      label: const Text('END CALL'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        elevation: 4,
+                    height: 60,
+                    child: GestureDetector(
+                      onTap: _endCall,
+                      child: Container(
+                        decoration: _skeuoButtonDecoration(const Color(0xFFC62828)),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.call_end_rounded, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text(
+                              'END CALL',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -329,103 +409,85 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          const Divider(height: 1),
-
           // History Section
           Expanded(
             child: Container(
-              color: Colors.grey[50],
+              width: double.infinity,
+              padding: const EdgeInsets.only(top: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     child: Text(
-                      'Previous Interactions',
+                      'PREVIOUS INTERACTIONS',
                       style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[700]),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: kSecondaryColor,
+                        letterSpacing: 1,
+                      ),
                     ),
                   ),
                   Expanded(
                     child: _isLoadingHistory
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
                         : _history.isEmpty
                             ? Center(
                                 child: Text('No history found',
-                                    style: TextStyle(color: Colors.grey[500])))
+                                    style: TextStyle(color: kSubTextColor, fontStyle: FontStyle.italic)))
                             : ListView.builder(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
                                 itemCount: _history.length,
                                 itemBuilder: (context, index) {
                                   final call = _history[index];
                                   return Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border:
-                                          Border.all(color: Colors.grey[200]!),
-                                    ),
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: _skeuoEmbossedDecoration(radius: 16),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              DateFormat('MMM d, yyyy • h:mm a')
-                                                  .format(call.createdAt),
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey[500]),
+                                              DateFormat('MMM d, yyyy • h:mm a').format(call.createdAt),
+                                              style: TextStyle(fontSize: 12, color: kSubTextColor),
                                             ),
                                             Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.blue
-                                                    .withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: _skeuoDebossedDecoration(
+                                                baseColor: kAccentColor.withOpacity(0.1),
+                                                radius: 6,
                                               ),
                                               child: Text(
                                                 call.outcome.toUpperCase(),
-                                                style: const TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.blue,
-                                                    fontWeight:
-                                                        FontWeight.bold),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: kPrimaryColor,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 8),
-                                        if (call.notes != null &&
-                                            call.notes!.isNotEmpty)
-                                          Text(call.notes!,
-                                              style: const TextStyle(
-                                                  fontSize: 14)),
-                                        if (call.product != null &&
-                                            call.product!.isNotEmpty) ...[
-                                          const SizedBox(height: 4),
+                                        const SizedBox(height: 12),
+                                        if (call.notes != null && call.notes!.isNotEmpty)
+                                          Text(
+                                            call.notes!,
+                                            style: TextStyle(fontSize: 14, color: kTextColor),
+                                          ),
+                                        if (call.product != null && call.product!.isNotEmpty) ...[
+                                          const SizedBox(height: 8),
                                           Row(
                                             children: [
-                                              Icon(Icons.shopping_bag_outlined,
-                                                  size: 12,
-                                                  color: Colors.grey[600]),
-                                              const SizedBox(width: 4),
-                                              Text('Product: ${call.product}',
-                                                  style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey[600])),
+                                              Icon(Icons.shopping_bag_outlined, size: 14, color: kSubTextColor),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                'Product: ${call.product}',
+                                                style: TextStyle(fontSize: 12, color: kSubTextColor),
+                                              ),
                                             ],
                                           ),
                                         ],

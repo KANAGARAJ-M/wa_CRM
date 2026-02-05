@@ -39,13 +39,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   DateTimeRange? _selectedDateRange;
   final TextEditingController _searchController = TextEditingController();
 
-  // Colors - White Theme
-  static const Color kBgColor = Color(0xFFF8FAFC); // Slate-50
-  static const Color kCardColor = Colors.white;
-  static const Color kPrimaryColor = Color(0xFF2563EB); // Blue-600
-  static const Color kSecondaryColor = Color(0xFF64748B); // Slate-500
-  static const Color kTextColor = Color(0xFF1E293B); // Slate-800
-  static const Color kSubTextColor = Color(0xFF94A3B8); // Slate-400
+  // Colors - Skeuomorphic Theme (warm, tactile feel)
+  static const Color kBgColor = Color(0xFFE8E0D5); // Warm beige/leather-like
+  static const Color kCardColor = Color(0xFFF5F0E8); // Creamy white
+  static const Color kPrimaryColor = Color(0xFF8B4513); // Saddle brown
+  static const Color kAccentColor = Color(0xFFCD853F); // Peru/golden
+  static const Color kSecondaryColor = Color(0xFF6B5344); // Warm brown
+  static const Color kTextColor = Color(0xFF3D2914); // Dark brown
+  static const Color kSubTextColor = Color(0xFF8B7355); // Light brown
+  static const Color kHighlightColor = Color(0xFFFFFAF0); // Floral white (for emboss)
+  static const Color kShadowColor = Color(0xFF5C4033); // Dark brown shadow
 
   @override
   void initState() {
@@ -186,6 +189,114 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  String _formatDuration(num seconds) {
+    int totalSeconds = seconds.round();
+    int minutes = totalSeconds ~/ 60;
+    int remainingSeconds = totalSeconds % 60;
+    if (minutes > 0) {
+      return '${minutes}m ${remainingSeconds}s';
+    } else {
+      return '${remainingSeconds}s';
+    }
+  }
+
+  // Skeuomorphic Decoration - Embossed Card (raised effect)
+  BoxDecoration _skeuoEmbossedDecoration({Color? baseColor, double radius = 16}) {
+    final color = baseColor ?? kCardColor;
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: kHighlightColor.withOpacity(0.5), width: 1),
+      boxShadow: [
+        // Bottom-right shadow (depth)
+        BoxShadow(
+          color: kShadowColor.withOpacity(0.25),
+          blurRadius: 8,
+          offset: const Offset(4, 4),
+        ),
+        // Top-left highlight (emboss)
+        BoxShadow(
+          color: kHighlightColor.withOpacity(0.9),
+          blurRadius: 8,
+          offset: const Offset(-3, -3),
+        ),
+        // Subtle inner glow
+        BoxShadow(
+          color: color.withOpacity(0.8),
+          blurRadius: 2,
+          spreadRadius: -1,
+          offset: const Offset(0, 0),
+        ),
+      ],
+    );
+  }
+
+  // Skeuomorphic Decoration - Debossed/Inset (pressed effect)
+  BoxDecoration _skeuoDebossedDecoration({Color? baseColor, double radius = 12}) {
+    final color = baseColor ?? kBgColor;
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: kShadowColor.withOpacity(0.15), width: 1),
+      boxShadow: [
+        // Inner shadow effect simulated with dark border
+        BoxShadow(
+          color: kShadowColor.withOpacity(0.15),
+          blurRadius: 4,
+          offset: const Offset(2, 2),
+        ),
+        BoxShadow(
+          color: kHighlightColor.withOpacity(0.5),
+          blurRadius: 4,
+          offset: const Offset(-1, -1),
+        ),
+      ],
+    );
+  }
+
+  // Skeuomorphic Button Decoration
+  BoxDecoration _skeuoButtonDecoration(Color color, {bool pressed = false}) {
+    if (pressed) {
+      return BoxDecoration(
+        color: color.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black.withOpacity(0.2), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 2,
+            offset: const Offset(1, 1),
+          ),
+        ],
+      );
+    }
+    return BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          color.withOpacity(1.0),
+          Color.lerp(color, Colors.black, 0.2)!,
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.black.withOpacity(0.3), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.4),
+          blurRadius: 4,
+          offset: const Offset(2, 3),
+        ),
+        BoxShadow(
+          color: Colors.white.withOpacity(0.2),
+          blurRadius: 1,
+          offset: const Offset(-1, -1),
+        ),
+      ],
+    );
+  }
+
+
   Future<void> _toggleAttendance() async {
     setState(() => _isAttendanceLoading = true);
     try {
@@ -261,46 +372,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: Colors.white,
-          selectedItemColor: kPrimaryColor,
-          unselectedItemColor: kSecondaryColor,
-          type: BottomNavigationBarType.fixed,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_rounded), label: 'Home'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.people_alt_rounded), label: 'Leads'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.history_rounded), label: 'Activity'),
-          ],
+        margin: const EdgeInsets.all(12),
+        decoration: _skeuoEmbossedDecoration(baseColor: kCardColor, radius: 20),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) => setState(() => _currentIndex = index),
+            backgroundColor: Colors.transparent,
+            selectedItemColor: kPrimaryColor,
+            unselectedItemColor: kSubTextColor,
+            type: BottomNavigationBarType.fixed,
+            showSelectedLabels: true,
+            showUnselectedLabels: true,
+            elevation: 0,
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+            unselectedLabelStyle: const TextStyle(fontSize: 10),
+            items: const [
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.dashboard_rounded), label: 'Home'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.people_alt_rounded), label: 'Leads'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.history_rounded), label: 'Activity'),
+            ],
+          ),
         ),
       ),
       floatingActionButton: _currentIndex == 0 || _currentIndex == 1
-          ? FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const DialerScreen()),
-                );
-              },
-              backgroundColor: kPrimaryColor,
-              child: const Icon(Icons.dialpad_rounded, color: Colors.white),
+          ? Container(
+              decoration: _skeuoButtonDecoration(kPrimaryColor),
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DialerScreen()),
+                  );
+                },
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                child: const Icon(Icons.dialpad_rounded, color: Colors.white, size: 26),
+              ),
             )
           : null,
     );
@@ -326,17 +438,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Welcome back,',
-                      style: TextStyle(color: kSecondaryColor, fontSize: 14),
+                      style: TextStyle(
+                        color: kSubTextColor,
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                        shadows: [
+                          Shadow(
+                            color: kHighlightColor.withOpacity(0.8),
+                            offset: const Offset(1, 1),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       userName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: kTextColor,
-                        fontSize: 24,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                        shadows: [
+                          Shadow(
+                            color: kHighlightColor.withOpacity(0.9),
+                            offset: const Offset(1, 1),
+                          ),
+                          Shadow(
+                            color: kShadowColor.withOpacity(0.2),
+                            offset: const Offset(-0.5, -0.5),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -344,19 +477,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 GestureDetector(
                   onTap: _logout,
                   child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.logout_rounded, color: Colors.red),
+                    padding: const EdgeInsets.all(12),
+                    decoration: _skeuoEmbossedDecoration(radius: 14),
+                    child: Icon(Icons.logout_rounded, color: Colors.red[700], size: 22),
                   ),
                 ),
               ],
@@ -441,7 +564,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // Row 2: Avg Call Duration (Single Box)
         _buildLargeStatCard(
           'Avg. Call Duration',
-          '${_stats!.avgCallDuration}s',
+          _formatDuration(_stats!.avgCallDuration),
           Icons.timer_rounded,
           const Color(0xFF8B5CF6),
         ),
@@ -479,19 +602,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           },
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+              gradient: LinearGradient(
+                colors: [
+                  kAccentColor,
+                  Color.lerp(kAccentColor, Colors.black, 0.3)!,
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black.withOpacity(0.3), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  color: kShadowColor.withOpacity(0.5),
+                  blurRadius: 10,
+                  offset: const Offset(4, 6),
+                ),
+                BoxShadow(
+                  color: kHighlightColor.withOpacity(0.2),
+                  blurRadius: 2,
+                  offset: const Offset(-1, -1),
                 ),
               ],
             ),
@@ -500,8 +632,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(2, 2),
+                      ),
+                    ],
                   ),
                   child: const Icon(
                     Icons.shopping_bag_rounded,
@@ -510,7 +650,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -520,23 +660,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.3),
+                              offset: const Offset(1, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         'View and manage your assigned orders',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Colors.white.withOpacity(0.8),
                           fontSize: 12,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.white70,
-                  size: 18,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white.withOpacity(0.8),
+                    size: 16,
+                  ),
                 ),
               ],
             ),
@@ -554,18 +708,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(18),
+      decoration: _skeuoEmbossedDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -573,21 +717,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                decoration: _skeuoDebossedDecoration(
+                  baseColor: const Color(0xFF10B981).withOpacity(0.15),
+                  radius: 10,
                 ),
                 child: const Icon(Icons.trending_up_rounded,
                     color: Color(0xFF10B981), size: 22),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'PROGRESS',
                 style: TextStyle(
                   color: kTextColor,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+                  letterSpacing: 1.0,
+                  shadows: [
+                    Shadow(
+                      color: kHighlightColor.withOpacity(0.8),
+                      offset: const Offset(1, 1),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -596,10 +746,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Header Row
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-            decoration: BoxDecoration(
-              color: kBgColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
+            decoration: _skeuoDebossedDecoration(radius: 8),
             child: Row(
               children: [
                 Expanded(
@@ -668,19 +815,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final todayStats = _stats!.todayCallStats;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+        gradient: LinearGradient(
+          colors: [
+            kPrimaryColor,
+            Color.lerp(kPrimaryColor, Colors.black, 0.25)!,
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withOpacity(0.3), width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: kShadowColor.withOpacity(0.5),
+            blurRadius: 10,
+            offset: const Offset(4, 6),
+          ),
+          BoxShadow(
+            color: kAccentColor.withOpacity(0.3),
+            blurRadius: 2,
+            offset: const Offset(-1, -1),
           ),
         ],
       ),
@@ -757,7 +913,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${todayStats.perCallDuration.toStringAsFixed(1)}s per call',
+                      '${_formatDuration(todayStats.perCallDuration)} per call',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 12,
@@ -814,17 +970,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _stats!.totalLeads > 0 ? _stats!.dialedLeads / _stats!.totalLeads : 0;
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: _skeuoEmbossedDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -832,12 +978,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                decoration: _skeuoDebossedDecoration(
+                  baseColor: kAccentColor.withOpacity(0.15),
+                  radius: 8,
                 ),
-                child: const Icon(Icons.assignment_turned_in_rounded,
-                    color: Colors.blue, size: 20),
+                child: Icon(Icons.assignment_turned_in_rounded,
+                    color: kPrimaryColor, size: 20),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -845,17 +991,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: TextStyle(
                     color: kSecondaryColor,
                     fontSize: 14,
-                    fontWeight: FontWeight.w500),
+                    fontWeight: FontWeight.w600),
               ),
             ],
           ),
           const SizedBox(height: 16),
           Text(
             '${_stats!.dialedLeads} / ${_stats!.totalLeads}',
-            style: const TextStyle(
+            style: TextStyle(
               color: kTextColor,
               fontSize: 22,
               fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(
+                  color: kHighlightColor.withOpacity(0.9),
+                  offset: const Offset(1, 1),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 4),
@@ -864,12 +1016,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: TextStyle(color: kSubTextColor, fontSize: 12),
           ),
           const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey[100],
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(3),
+          Container(
+            height: 8,
+            decoration: _skeuoDebossedDecoration(radius: 4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(kAccentColor),
+                minHeight: 8,
+              ),
+            ),
           ),
         ],
       ),
@@ -881,25 +1039,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: color.withOpacity(0.1)),
-      ),
+      decoration: _skeuoEmbossedDecoration(),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+            decoration: _skeuoDebossedDecoration(
+              baseColor: color.withOpacity(0.12),
+              radius: 12,
             ),
             child: Icon(icon, color: color, size: 28),
           ),
@@ -914,6 +1061,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
+                  shadows: [
+                    Shadow(
+                      color: kHighlightColor.withOpacity(0.9),
+                      offset: const Offset(1, 1),
+                    ),
+                  ],
                 ),
               ),
               Text(
@@ -933,81 +1086,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildAttendanceCard() {
     final isCheckedIn = _attendanceStatus == 'CHECKED_IN';
+    final statusColor =
+        isCheckedIn ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isCheckedIn
-              ? [const Color(0xFF059669), const Color(0xFF10B981)]
-              : [const Color(0xFFDC2626), const Color(0xFFEF4444)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: (isCheckedIn ? Colors.green : Colors.red).withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: _skeuoEmbossedDecoration(radius: 14),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  statusColor.withOpacity(0.3),
+                  statusColor.withOpacity(0.1),
+                ],
+              ),
+              border: Border.all(color: statusColor.withOpacity(0.4), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: statusColor.withOpacity(0.3),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
             child: Icon(
-              isCheckedIn ? Icons.timer_rounded : Icons.timer_off_rounded,
-              color: Colors.white,
-              size: 24,
+              isCheckedIn ? Icons.power_settings_new : Icons.power_off,
+              color: statusColor,
+              size: 18,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isCheckedIn ? 'You are Online' : 'You are Offline',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+                  isCheckedIn ? 'Status: Online' : 'Status: Offline',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: kHighlightColor.withOpacity(0.8),
+                        offset: const Offset(1, 1),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
-                  isCheckedIn
-                      ? 'Tracking duration...'
-                      : 'Check in to start calls',
+                  isCheckedIn ? 'Tracking active' : 'Check in to start',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
+                    color: kSubTextColor,
+                    fontSize: 11,
                   ),
                 ),
               ],
             ),
           ),
-          ElevatedButton(
-            onPressed: _isAttendanceLoading ? null : _toggleAttendance,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: isCheckedIn ? Colors.green : Colors.red,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          Container(
+            decoration: _skeuoButtonDecoration(statusColor),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _isAttendanceLoading ? null : _toggleAttendance,
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: _isAttendanceLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          isCheckedIn ? 'Check Out' : 'Check In',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
             ),
-            child: _isAttendanceLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(isCheckedIn ? 'Check Out' : 'Check In'),
           ),
         ],
       ),
@@ -1021,26 +1191,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: kCardColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+        decoration: _skeuoEmbossedDecoration(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+              padding: const EdgeInsets.all(10),
+              decoration: _skeuoDebossedDecoration(
+                baseColor: color.withOpacity(0.12),
+                radius: 10,
               ),
               child: Icon(icon, color: color, size: 24),
             ),
@@ -1050,10 +1210,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: kTextColor,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: kHighlightColor.withOpacity(0.9),
+                        offset: const Offset(1, 1),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1213,12 +1379,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Filter Tabs
+              // Filter Tabs - Skeuomorphic Toggle Look
               Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: _skeuoDebossedDecoration(baseColor: kBgColor.withOpacity(0.5), radius: 14),
                 padding: const EdgeInsets.all(4),
                 child: Row(
                   children: [
@@ -1228,45 +1392,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Search Bar
-              TextField(
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-                style: const TextStyle(color: kTextColor),
-                decoration: InputDecoration(
-                  hintText: 'Search leads by name or phone...',
-                  hintStyle: const TextStyle(color: kSecondaryColor),
-                  prefixIcon: const Icon(Icons.search, color: kSecondaryColor),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+              // Search Bar - Debossed look
+              Container(
+                decoration: _skeuoDebossedDecoration(radius: 16),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  style: const TextStyle(color: kTextColor, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Search leads by name or phone...',
+                    hintStyle: TextStyle(color: kSubTextColor.withOpacity(0.7)),
+                    prefixIcon: const Icon(Icons.search_rounded, color: kSecondaryColor),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, color: kSecondaryColor),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide:
-                        const BorderSide(color: kPrimaryColor, width: 1.5),
-                  ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: kSecondaryColor),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
                 ),
               ),
             ],
@@ -1295,26 +1443,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildLeadItem(Lead lead) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 2),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: _skeuoEmbossedDecoration(radius: 20),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: kPrimaryColor.withOpacity(0.1),
-            child: Text(
-              lead.name.characters.first.toUpperCase(),
-              style: const TextStyle(
-                  color: kPrimaryColor, fontWeight: FontWeight.bold),
+          Container(
+            width: 48, height: 48,
+            decoration: _skeuoDebossedDecoration(
+              baseColor: kAccentColor.withOpacity(0.1),
+              radius: 24,
+            ),
+            child: Center(
+              child: Text(
+                lead.name.characters.first.toUpperCase(),
+                style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -1324,27 +1468,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   lead.name,
-                  style: const TextStyle(
-                      color: kTextColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16),
+                  style: const TextStyle(color: kTextColor, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   lead.phone,
-                  style: const TextStyle(color: kSecondaryColor, fontSize: 13),
+                  style: const TextStyle(color: kSubTextColor, fontSize: 13),
                 ),
                 if (lead.status != null) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4)),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: _skeuoDebossedDecoration(
+                      baseColor: kSubTextColor.withOpacity(0.05),
+                      radius: 6,
+                    ),
                     child: Text(
                       lead.status!.toUpperCase(),
-                      style: const TextStyle(color: kTextColor, fontSize: 10),
+                      style: TextStyle(color: kSecondaryColor, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                     ),
                   )
                 ]
@@ -1353,25 +1494,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           Row(
             children: [
-              IconButton(
-                icon:
-                    const Icon(Icons.chat_bubble_outline, color: kPrimaryColor),
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => ChatScreen(lead: lead)));
-                },
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: _skeuoEmbossedDecoration(radius: 12),
+                child: IconButton(
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, color: kAccentColor, size: 20),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)));
+                  },
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.phone, color: Color(0xFF10B981)),
-                onPressed: () {
-                  _makeCall(lead.phone);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => CallLogScreen(lead: lead)));
-                },
+              Container(
+                decoration: _skeuoEmbossedDecoration(radius: 12),
+                child: IconButton(
+                  icon: const Icon(Icons.phone_in_talk_rounded, color: Color(0xFF2E7D32), size: 20),
+                  onPressed: () {
+                    _makeCall(lead.phone);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => CallLogScreen(lead: lead)));
+                  },
+                ),
               ),
             ],
           )
@@ -1499,27 +1640,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Color outcomeColor = _getOutcomeColor(log.outcome);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: _skeuoEmbossedDecoration(radius: 20),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: outcomeColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+            padding: const EdgeInsets.all(12),
+            decoration: _skeuoDebossedDecoration(
+              baseColor: outcomeColor.withOpacity(0.1),
+              radius: 12,
             ),
-            child: Icon(_getOutcomeIcon(log.outcome),
-                color: outcomeColor, size: 20),
+            child: Icon(_getOutcomeIcon(log.outcome), color: outcomeColor, size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -1528,24 +1658,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   log.leadName ?? 'Unknown',
-                  style: const TextStyle(
-                      color: kTextColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16),
+                  style: const TextStyle(color: kTextColor, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   DateFormat('MMM d, h:mm a').format(log.createdAt),
-                  style: const TextStyle(color: kSecondaryColor, fontSize: 12),
+                  style: const TextStyle(color: kSubTextColor, fontSize: 12),
                 ),
                 if (log.notes != null && log.notes!.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
                     log.notes!,
-                    style: const TextStyle(
-                        color: kSecondaryColor,
-                        fontSize: 13,
-                        fontStyle: FontStyle.italic),
+                    style: const TextStyle(color: kSubTextColor, fontSize: 13, fontStyle: FontStyle.italic),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   )
@@ -1558,21 +1682,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 '${log.duration}s',
-                style: const TextStyle(
-                    color: kSecondaryColor, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: kTextColor, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                    border: Border.all(color: outcomeColor.withOpacity(0.5)),
-                    borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: _skeuoDebossedDecoration(
+                  baseColor: outcomeColor.withOpacity(0.08),
+                  radius: 6,
+                ),
                 child: Text(
                   log.outcome.toUpperCase(),
-                  style: TextStyle(
-                      color: outcomeColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold),
+                  style: TextStyle(color: outcomeColor, fontSize: 9, fontWeight: FontWeight.bold),
                 ),
               )
             ],
@@ -1588,26 +1709,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: () => setState(() => _leadsFilter = value),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
-        ),
+        decoration: isSelected 
+          ? _skeuoEmbossedDecoration(baseColor: Colors.white, radius: 10) 
+          : null,
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? kPrimaryColor : kSecondaryColor,
+              color: isSelected ? kPrimaryColor : kSubTextColor,
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: 13,
             ),
           ),
         ),

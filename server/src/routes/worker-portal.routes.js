@@ -1,5 +1,5 @@
 const express = require('express');
-const { Lead, Call, WhatsAppMessage, Company } = require('../models');
+const { Lead, Call, WhatsAppMessage, Company, FlowResponse } = require('../models');
 const { auth } = require('../middleware');
 const router = express.Router();
 
@@ -31,14 +31,34 @@ router.get('/messages/:phone', auth, async (req, res) => {
     try {
         const { phone } = req.params;
 
-        // Verify lead is assigned to worker
-        const lead = await Lead.findOne({
+        // 1. Verify lead is assigned to worker
+        let lead = await Lead.findOne({
             phone,
             assignedTo: req.user._id
         });
 
-        if (!lead) {
-            return res.status(403).json({ success: false, message: 'Lead not assigned to you' });
+        let isAuthorized = !!lead;
+
+        // 2. If not a lead, check if there's an assigned WhatsApp message (order/inquiry) for this phone
+        if (!isAuthorized) {
+            const assignedMsg = await WhatsAppMessage.findOne({
+                assignedTo: req.user._id,
+                $or: [{ from: phone }, { to: phone }]
+            });
+            if (assignedMsg) isAuthorized = true;
+        }
+
+        // 3. Check if there's an assigned Flow response for this phone
+        if (!isAuthorized) {
+            const assignedFlow = await FlowResponse.findOne({
+                assignedTo: req.user._id,
+                from: phone
+            });
+            if (assignedFlow) isAuthorized = true;
+        }
+
+        if (!isAuthorized) {
+            return res.status(403).json({ success: false, message: 'Not authorized to view messages for this contact' });
         }
 
         // Normalize phone for matching: remove non-digits and leading zeros
@@ -66,8 +86,8 @@ router.get('/messages/:phone', auth, async (req, res) => {
             };
         }
 
-        // Add phoneNumberId filter if lead has it
-        if (lead.phoneNumberId) {
+        // Add phoneNumberId filter if lead exists and has it
+        if (lead && lead.phoneNumberId) {
             query.phoneNumberId = lead.phoneNumberId;
         }
 
