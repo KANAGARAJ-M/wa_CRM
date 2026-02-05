@@ -18,9 +18,11 @@ router.post('/send', auth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Message and phone are required' });
         }
 
-        // Normalize phone for matching: remove non-digits and leading zeros
-        const cleanPhone = phone.replace(/\D/g, '').replace(/^0+/, '');
-        const regex = cleanPhone.length >= 7 ? new RegExp(cleanPhone + '$') : phone;
+        // Normalize phone for matching: remove non-digits
+        const cleanPhone = phone.replace(/\D/g, '');
+        // Use last 10 digits for suffix matching (most international numbers share the last 10 digits)
+        const last10 = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
+        const regex = last10.length >= 7 ? new RegExp(last10 + '$') : new RegExp(cleanPhone + '$');
 
         // --- AUTHORIZATION & CONFIG RESOLUTION ---
         const user = req.user;
@@ -34,9 +36,14 @@ router.post('/send', auth, async (req, res) => {
 
         // 1. Check for Lead Assignment
         const assignedLead = await Lead.findOne({
-            $or: [{ phone: regex }, { phone: phone }],
-            companyId: req.companyId,
-            ...(isAdmin ? {} : { assignedTo: user._id })
+            $or: [
+                { phone: regex },
+                { phone: phone },
+                { phone: cleanPhone },
+                { phone: new RegExp(cleanPhone + '$') }
+            ],
+            // If checking for assignment, we trust the assignment regardless of company context in the request
+            ...(isAdmin ? { companyId: req.companyId } : { assignedTo: user._id })
         });
 
         if (assignedLead) {
@@ -47,9 +54,15 @@ router.post('/send', auth, async (req, res) => {
         // 2. Check for assigned WhatsApp Message / Order (if not already authorized)
         if (!isAuthorized || !foundPhoneNumberId) {
             const assignedMsg = await WhatsAppMessage.findOne({
-                companyId: req.companyId,
-                $or: [{ from: regex }, { to: regex }, { from: phone }, { to: phone }],
-                ...(isAdmin ? {} : { assignedTo: user._id })
+                $or: [
+                    { from: regex },
+                    { to: regex },
+                    { from: phone },
+                    { to: phone },
+                    { from: cleanPhone },
+                    { to: cleanPhone }
+                ],
+                ...(isAdmin ? { companyId: req.companyId } : { assignedTo: user._id })
             }).sort({ createdAt: -1 });
 
             if (assignedMsg) {
@@ -61,9 +74,8 @@ router.post('/send', auth, async (req, res) => {
         // 3. Check for assigned Flow (if still needed)
         if (!isAuthorized || !foundPhoneNumberId) {
             const assignedFlow = await FlowResponse.findOne({
-                companyId: req.companyId,
                 from: regex,
-                ...(isAdmin ? {} : { assignedTo: user._id })
+                ...(isAdmin ? { companyId: req.companyId } : { assignedTo: user._id })
             }).sort({ createdAt: -1 });
 
             if (assignedFlow) {
@@ -72,11 +84,14 @@ router.post('/send', auth, async (req, res) => {
             }
         }
 
-        // 4. Permission Fallback
+        // 4. Permission Fallback (if they have canViewOwn but no specific assignment found)
         if (!isAuthorized && canViewOwn) {
-            // They have general permission to view their own leads, 
-            // but the specific assignment check above failed.
-            // In a strict mode, we'd deny. But let's allow if they are assigned anything related.
+            // Check if they own ANY lead with this phone in their authorized companies
+            const anyOwnedLead = await Lead.findOne({
+                $or: [{ phone: regex }, { phone: phone }],
+                assignedTo: user._id
+            });
+            if (anyOwnedLead) isAuthorized = true;
         }
 
         if (!isAuthorized) {

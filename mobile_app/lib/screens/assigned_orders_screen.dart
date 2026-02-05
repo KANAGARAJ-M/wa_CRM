@@ -530,6 +530,7 @@ class _AssignedOrdersScreenState extends State<AssignedOrdersScreen> {
                             id: item.id,
                             name: item.name,
                             phone: item.phone,
+                            phoneNumberId: item.data?['phoneNumberId'],
                           );
                           Navigator.push(
                             context,

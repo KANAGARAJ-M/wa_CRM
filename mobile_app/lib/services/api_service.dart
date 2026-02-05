@@ -24,7 +24,12 @@ class ApiService {
       final List<dynamic> leadsJson = data['data'] ?? [];
       return leadsJson.map((json) => Lead.fromJson(json)).toList();
     }
-    throw Exception('Failed to load leads');
+    try {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to load leads');
+    } catch (_) {
+      throw Exception('Failed to load leads: ${response.statusCode}');
+    }
   }
 
   Future<WorkerStats> getStats() async {
@@ -37,7 +42,12 @@ class ApiService {
       final data = jsonDecode(response.body);
       return WorkerStats.fromJson(data['data'] ?? {});
     }
-    throw Exception('Failed to load stats');
+    try {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to load stats');
+    } catch (_) {
+      throw Exception('Failed to load stats: ${response.statusCode}');
+    }
   }
 
   Future<List<CallLog>> getCalls({int limit = 20, String? leadId}) async {
@@ -55,7 +65,12 @@ class ApiService {
       final List<dynamic> callsJson = data['data'] ?? [];
       return callsJson.map((json) => CallLog.fromJson(json)).toList();
     }
-    throw Exception('Failed to load calls');
+    try {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to load calls');
+    } catch (_) {
+      throw Exception('Failed to load calls: ${response.statusCode}');
+    }
   }
 
   Future<List<CallLog>> getFollowUps() async {
@@ -69,7 +84,12 @@ class ApiService {
       final List<dynamic> followUpsJson = data['data'] ?? [];
       return followUpsJson.map((json) => CallLog.fromJson(json)).toList();
     }
-    throw Exception('Failed to load follow-ups');
+    try {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to load follow-ups');
+    } catch (_) {
+      throw Exception('Failed to load follow-ups: ${response.statusCode}');
+    }
   }
 
   Future<List<Message>> getMessages(String phone) async {
@@ -83,7 +103,12 @@ class ApiService {
       final List<dynamic> messagesJson = data['data'] ?? [];
       return messagesJson.map((json) => Message.fromJson(json)).toList();
     }
-    throw Exception('Failed to load messages');
+    try {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to load messages');
+    } catch (_) {
+      throw Exception('Failed to load messages: ${response.statusCode}');
+    }
   }
 
   Future<void> sendMessage(String phone, String message, {String? phoneNumberId}) async {
@@ -102,7 +127,12 @@ class ApiService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to send message');
+      try {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to send message');
+      } catch (_) {
+        throw Exception('Failed to send message: ${response.statusCode}');
+      }
     }
   }
 
@@ -144,7 +174,12 @@ class ApiService {
     );
 
     if (response.statusCode != 201) {
-      throw Exception('Failed to log call');
+      try {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to log call');
+      } catch (_) {
+        throw Exception('Failed to log call: ${response.statusCode}');
+      }
     }
   }
   Future<List<String>> getProducts() async {
