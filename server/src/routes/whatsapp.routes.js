@@ -1041,7 +1041,7 @@ router.post('/', async (req, res) => {
                                                             type: 'reply',
                                                             reply: {
                                                                 id: `buy_btn_${product._id}`,
-                                                                title: 'Order Now'
+                                                                title: 'Add to Cart'
                                                             }
                                                         }
                                                     ]
@@ -1050,9 +1050,17 @@ router.post('/', async (req, res) => {
 
                                             // Add Image Header if available
                                             if (product.imageUrl) {
+                                                let finalImageUrl = product.imageUrl;
+                                                // If relative URL, prepend CLIENT_URL or fallback (assuming images are hosted on client or server public dir)
+                                                if (finalImageUrl.startsWith('/')) {
+                                                    // Try to assume it's relative to the frontend deployment if stored that way
+                                                    const baseUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+                                                    finalImageUrl = `${baseUrl}${finalImageUrl}`;
+                                                }
+
                                                 payload.interactive.header = {
                                                     type: 'image',
-                                                    image: { link: product.imageUrl }
+                                                    image: { link: finalImageUrl }
                                                 };
                                             } else {
                                                 // If no image, maybe use a Text Header?
