@@ -1043,6 +1043,31 @@ router.post('/', async (req, res) => {
                                     }
                                 }
 
+                                // 4. Flow Response
+                                else if (rule.responseType === 'flow' && rule.flowId) {
+                                    console.log(`🌊 Triggering Flow Auto-Reply: ${rule.flowId}`);
+                                    payload.type = 'interactive';
+                                    payload.interactive = {
+                                        type: 'flow',
+                                        header: { type: 'text', text: 'Welcome' },
+                                        body: { text: rule.responseText || 'Please complete the following details:' },
+                                        footer: { text: 'Secure Form' },
+                                        action: {
+                                            name: 'flow',
+                                            parameters: {
+                                                flow_message_version: '3',
+                                                flow_token: `auto-rule-${Date.now()}`,
+                                                flow_id: rule.flowId,
+                                                flow_cta: 'Open Form',
+                                                flow_action: 'navigate',
+                                                flow_action_payload: {
+                                                    screen: 'DETAILS_SCREEN'
+                                                }
+                                            }
+                                        }
+                                    };
+                                }
+
                                 // Send
                                 try {
                                     if (payload.type) {

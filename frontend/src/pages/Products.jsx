@@ -39,7 +39,8 @@ export default function Products() {
         matchType: 'contains',
         responseType: 'text',
         responseText: '',
-        linkedProduct: ''
+        linkedProduct: '',
+        flowId: ''
     });
 
     // Forms State
@@ -92,7 +93,8 @@ export default function Products() {
                 matchType: rule.matchType,
                 responseType: rule.responseType,
                 responseText: rule.responseText || '',
-                linkedProduct: rule.linkedProduct ? (typeof rule.linkedProduct === 'object' ? rule.linkedProduct._id : rule.linkedProduct) : ''
+                linkedProduct: rule.linkedProduct ? (typeof rule.linkedProduct === 'object' ? rule.linkedProduct._id : rule.linkedProduct) : '',
+                flowId: rule.flowId || ''
             });
         } else {
             setEditingRule(null);
@@ -101,7 +103,8 @@ export default function Products() {
                 matchType: 'contains',
                 responseType: 'text',
                 responseText: '',
-                linkedProduct: ''
+                linkedProduct: '',
+                flowId: ''
             });
         }
         setIsRuleModalOpen(true);
@@ -115,6 +118,7 @@ export default function Products() {
             // Specifically handling linkedProduct which might be empty string -> null/undefined
             const payload = { ...ruleFormData };
             if (!payload.linkedProduct) delete payload.linkedProduct;
+            if (!payload.flowId) delete payload.flowId;
 
             const currentRules = companyDetails?.autoReplyRules || [];
             let newRules;
@@ -659,13 +663,17 @@ export default function Products() {
                                                 <td className="px-6 py-4">
                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${rule.responseType === 'product' ? 'bg-blue-100 text-blue-700' :
                                                         rule.responseType === 'text' ? 'bg-green-100 text-green-700' :
-                                                            'bg-purple-100 text-purple-700'
+                                                            rule.responseType === 'flow' ? 'bg-orange-100 text-orange-700' :
+                                                                'bg-purple-100 text-purple-700'
                                                         }`}>
-                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType}
+                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType === 'flow' ? 'Flow' : rule.responseType}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 max-w-xs truncate">
                                                     {rule.responseType === 'text' && rule.responseText}
+                                                    {rule.responseType === 'flow' && (
+                                                        <span className="text-gray-600 font-mono text-xs">ID: {rule.flowId}</span>
+                                                    )}
                                                     {rule.responseType === 'product' && (
                                                         <div className="flex items-center gap-2">
                                                             {linkedProductObj?.imageUrl && (
@@ -858,8 +866,24 @@ export default function Products() {
                                     <option value="text">Send Text Message</option>
                                     <option value="product">Send Product Card</option>
                                     <option value="all_products_prices">Send Price List (All Products)</option>
+                                    <option value="flow">Send Flow</option>
                                 </select>
                             </div>
+
+                            {ruleFormData.responseType === 'flow' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Flow ID</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={ruleFormData.flowId}
+                                        onChange={e => setRuleFormData({ ...ruleFormData, flowId: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                        placeholder="e.g. 123456789"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Found in WhatsApp Manager &#62; Flows</p>
+                                </div>
+                            )}
 
                             {ruleFormData.responseType === 'text' && (
                                 <div>

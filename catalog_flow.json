@@ -1,0 +1,31 @@
+{
+  "version": "3.1",
+  "screens": [
+    {
+      "id": "WELCOME_SCREEN",
+      "title": "Welcome",
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "வணக்கம்"
+          },
+          {
+            "type": "TextBody",
+            "text": "பொருட்களை ஆர்டர் செய்ய, எங்கள் catalogueஐ பாருங்கள்:\nhttps://wa.me/c/919894916517\n\nதங்களுக்கு ஏதேனும் சந்தேகங்கள் இருந்தால், இந்த நம்பர்க்கு WhatsApp செய்யுங்கள்: +91 98949 16517.\n\nஹெர்பாலாஜிக் மார்க்கெட்டிங் ஐ தேர்ந்தெடுத்தமைக்கு நன்றி"
+          },
+          {
+            "type": "Footer",
+            "label": "Done",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
