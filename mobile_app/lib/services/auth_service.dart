@@ -14,8 +14,12 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _token != null;
 
-  AuthService() {
-    _loadToken();
+  AuthService({String? token, Map<String, dynamic>? user}) {
+    _token = token;
+    _user = user;
+    if (_token == null) {
+      _loadToken();
+    }
   }
 
   Future<void> _loadToken() async {

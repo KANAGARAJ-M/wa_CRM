@@ -47,7 +47,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const Color kSecondaryColor = Color(0xFF6B5344); // Warm brown
   static const Color kTextColor = Color(0xFF3D2914); // Dark brown
   static const Color kSubTextColor = Color(0xFF8B7355); // Light brown
-  static const Color kHighlightColor = Color(0xFFFFFAF0); // Floral white (for emboss)
+  static const Color kHighlightColor =
+      Color(0xFFFFFAF0); // Floral white (for emboss)
   static const Color kShadowColor = Color(0xFF5C4033); // Dark brown shadow
 
   @override
@@ -133,6 +134,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
+
+      if (authService.token == null) {
+        throw Exception('Not authenticated. Please login again.');
+      }
+
       final apiService = ApiService(authService.token!);
       final attendanceService = AttendanceService(authService.token!);
 
@@ -201,7 +207,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Skeuomorphic Decoration - Embossed Card (raised effect)
-  BoxDecoration _skeuoEmbossedDecoration({Color? baseColor, double radius = 16}) {
+  BoxDecoration _skeuoEmbossedDecoration(
+      {Color? baseColor, double radius = 16}) {
     final color = baseColor ?? kCardColor;
     return BoxDecoration(
       color: color,
@@ -232,7 +239,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Skeuomorphic Decoration - Debossed/Inset (pressed effect)
-  BoxDecoration _skeuoDebossedDecoration({Color? baseColor, double radius = 12}) {
+  BoxDecoration _skeuoDebossedDecoration(
+      {Color? baseColor, double radius = 12}) {
     final color = baseColor ?? kBgColor;
     return BoxDecoration(
       color: color,
@@ -295,7 +303,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
     );
   }
-
 
   Future<void> _toggleAttendance() async {
     setState(() => _isAttendanceLoading = true);
@@ -386,7 +393,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             showSelectedLabels: true,
             showUnselectedLabels: true,
             elevation: 0,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+            selectedLabelStyle:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
             unselectedLabelStyle: const TextStyle(fontSize: 10),
             items: const [
               BottomNavigationBarItem(
@@ -411,7 +419,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                child: const Icon(Icons.dialpad_rounded, color: Colors.white, size: 26),
+                child: const Icon(Icons.dialpad_rounded,
+                    color: Colors.white, size: 26),
               ),
             )
           : null,
@@ -479,7 +488,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: _skeuoEmbossedDecoration(radius: 14),
-                    child: Icon(Icons.logout_rounded, color: Colors.red[700], size: 22),
+                    child: Icon(Icons.logout_rounded,
+                        color: Colors.red[700], size: 22),
                   ),
                 ),
               ],
@@ -613,7 +623,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black.withOpacity(0.3), width: 1),
+              border:
+                  Border.all(color: Colors.black.withOpacity(0.3), width: 1),
               boxShadow: [
                 BoxShadow(
                   color: kShadowColor.withOpacity(0.5),
@@ -1156,7 +1167,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onTap: _isAttendanceLoading ? null : _toggleAttendance,
                 borderRadius: BorderRadius.circular(10),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   child: _isAttendanceLoading
                       ? const SizedBox(
                           width: 16,
@@ -1382,7 +1394,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // Filter Tabs - Skeuomorphic Toggle Look
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: _skeuoDebossedDecoration(baseColor: kBgColor.withOpacity(0.5), radius: 14),
+                decoration: _skeuoDebossedDecoration(
+                    baseColor: kBgColor.withOpacity(0.5), radius: 14),
                 padding: const EdgeInsets.all(4),
                 child: Row(
                   children: [
@@ -1402,12 +1415,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search leads by name or phone...',
                     hintStyle: TextStyle(color: kSubTextColor.withOpacity(0.7)),
-                    prefixIcon: const Icon(Icons.search_rounded, color: kSecondaryColor),
+                    prefixIcon: const Icon(Icons.search_rounded,
+                        color: kSecondaryColor),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 16),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, color: kSecondaryColor),
+                            icon: const Icon(Icons.clear_rounded,
+                                color: kSecondaryColor),
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _searchQuery = '');
@@ -1449,7 +1465,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         children: [
           Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: _skeuoDebossedDecoration(
               baseColor: kAccentColor.withOpacity(0.1),
               radius: 24,
@@ -1457,7 +1474,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Center(
               child: Text(
                 lead.name.characters.first.toUpperCase(),
-                style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(
+                    color: kPrimaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18),
               ),
             ),
           ),
@@ -1468,7 +1488,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   lead.name,
-                  style: const TextStyle(color: kTextColor, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                      color: kTextColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -1478,14 +1501,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (lead.status != null) ...[
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: _skeuoDebossedDecoration(
                       baseColor: kSubTextColor.withOpacity(0.05),
                       radius: 6,
                     ),
                     child: Text(
                       lead.status!.toUpperCase(),
-                      style: TextStyle(color: kSecondaryColor, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      style: TextStyle(
+                          color: kSecondaryColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5),
                     ),
                   )
                 ]
@@ -1498,19 +1526,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 margin: const EdgeInsets.only(right: 8),
                 decoration: _skeuoEmbossedDecoration(radius: 12),
                 child: IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, color: kAccentColor, size: 20),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded,
+                      color: kAccentColor, size: 20),
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(lead: lead)));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => ChatScreen(lead: lead)));
                   },
                 ),
               ),
               Container(
                 decoration: _skeuoEmbossedDecoration(radius: 12),
                 child: IconButton(
-                  icon: const Icon(Icons.phone_in_talk_rounded, color: Color(0xFF2E7D32), size: 20),
+                  icon: const Icon(Icons.phone_in_talk_rounded,
+                      color: Color(0xFF2E7D32), size: 20),
                   onPressed: () {
                     _makeCall(lead.phone);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => CallLogScreen(lead: lead)));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => CallLogScreen(lead: lead)));
                   },
                 ),
               ),
@@ -1649,7 +1685,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               baseColor: outcomeColor.withOpacity(0.1),
               radius: 12,
             ),
-            child: Icon(_getOutcomeIcon(log.outcome), color: outcomeColor, size: 20),
+            child: Icon(_getOutcomeIcon(log.outcome),
+                color: outcomeColor, size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -1658,7 +1695,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   log.leadName ?? 'Unknown',
-                  style: const TextStyle(color: kTextColor, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                      color: kTextColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -1669,7 +1709,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 6),
                   Text(
                     log.notes!,
-                    style: const TextStyle(color: kSubTextColor, fontSize: 13, fontStyle: FontStyle.italic),
+                    style: const TextStyle(
+                        color: kSubTextColor,
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   )
@@ -1682,7 +1725,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 '${log.duration}s',
-                style: const TextStyle(color: kTextColor, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: kTextColor, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Container(
@@ -1693,7 +1737,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 child: Text(
                   log.outcome.toUpperCase(),
-                  style: TextStyle(color: outcomeColor, fontSize: 9, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: outcomeColor,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold),
                 ),
               )
             ],
@@ -1709,9 +1756,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: () => setState(() => _leadsFilter = value),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: isSelected 
-          ? _skeuoEmbossedDecoration(baseColor: Colors.white, radius: 10) 
-          : null,
+        decoration: isSelected
+            ? _skeuoEmbossedDecoration(baseColor: Colors.white, radius: 10)
+            : null,
         child: Center(
           child: Text(
             label,
