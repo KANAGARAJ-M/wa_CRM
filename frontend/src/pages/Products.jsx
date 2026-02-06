@@ -5,6 +5,7 @@ import {
     MoreVertical, Archive, RefreshCw, ShoppingBag, Loader2, FileText,
     Link as LinkIcon, Eye, List, CheckSquare, AlignLeft, Calendar, Zap, MessageCircle
 } from 'lucide-react';
+import AlertModal from '../components/AlertModal';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Products() {
@@ -62,6 +63,11 @@ export default function Products() {
     const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
     const [error, setError] = useState('');
+    const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+    const showAlert = (title, message, type = 'info') => {
+        setAlertState({ isOpen: true, title, message, type });
+    };
 
     useEffect(() => {
         fetchCompanyDetails(); // Fetch fresh details
@@ -157,10 +163,10 @@ export default function Products() {
             await api.put('/settings', { autoReplyRules: newRules });
             await fetchCompanyDetails();
             setIsRuleModalOpen(false);
-            alert('Rule saved successfully');
+            showAlert('Success', 'Rule saved successfully', 'success');
         } catch (err) {
             console.error(err);
-            alert('Failed to save rule');
+            showAlert('Error', 'Failed to save rule', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -175,7 +181,7 @@ export default function Products() {
             await fetchCompanyDetails();
         } catch (err) {
             console.error(err);
-            alert("Failed to delete rule");
+            showAlert('Error', 'Failed to delete rule', 'error');
         }
     };
 
@@ -200,7 +206,7 @@ export default function Products() {
         try {
             const res = await api.post('/products/sync');
             await fetchProducts();
-            alert(res.data.message);
+            showAlert('Success', res.data.message, 'success');
         } catch (error) {
             console.error('Error syncing:', error);
             setError('Failed to sync products: ' + (error.response?.data?.message || 'Unknown error'));
@@ -215,7 +221,7 @@ export default function Products() {
         try {
             const res = await api.post('/products/push-to-meta');
             await fetchProducts();
-            alert(res.data.message);
+            showAlert('Success', res.data.message, 'success');
         } catch (error) {
             console.error('Error pushing to Meta:', error);
             setError('Failed to push products: ' + (error.response?.data?.message || 'Unknown error'));
@@ -346,7 +352,7 @@ export default function Products() {
             fetchForms();
         } catch (error) {
             console.error('Error deleting form:', error);
-            alert('Failed to delete form');
+            showAlert('Error', 'Failed to delete form', 'error');
         }
     };
 
@@ -381,7 +387,7 @@ export default function Products() {
             setSubmissions(response.data.data);
         } catch (error) {
             console.error('Error fetching submissions:', error);
-            alert('Failed to load submissions');
+            showAlert('Error', 'Failed to load submissions', 'error');
         } finally {
             setLoadingSubmissions(false);
         }
@@ -559,14 +565,14 @@ export default function Products() {
                                                     }
 
                                                     if (!phone) {
-                                                        alert("Warning: No phone number found in company settings. The link will be incomplete.");
+                                                        showAlert("Warning", "No phone number found in company settings. The link will be incomplete.", "warning");
                                                     }
 
-                                                    const text = `Hi, I'm interested in ${product.name}`;
+                                                    const text = product.name;
                                                     const link = `https://wa.me/${phone ? phone.replace(/[^0-9]/g, '') : ''}?text=${encodeURIComponent(text)}`;
 
                                                     navigator.clipboard.writeText(link);
-                                                    alert(`Link copied to clipboard!\n${link}`);
+                                                    showAlert("Link Copied", `Link copied to clipboard!\n${link}`, "success");
                                                 }}
                                                 className="p-2 bg-white rounded-full text-gray-700 hover:text-blue-600"
                                                 title="Copy WhatsApp Link"
@@ -750,6 +756,14 @@ export default function Products() {
                     )
                 )}
             </div>
+
+            <AlertModal
+                isOpen={alertState.isOpen}
+                onClose={() => setAlertState({ ...alertState, isOpen: false })}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+            />
 
             {/* Product Modal */}
             {isModalOpen && (
