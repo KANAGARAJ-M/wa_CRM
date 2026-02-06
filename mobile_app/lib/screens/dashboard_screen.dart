@@ -38,6 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _searchQuery = '';
   DateTimeRange? _selectedDateRange;
   final TextEditingController _searchController = TextEditingController();
+  DateTime? _lastBackPressTime;
 
   // Colors - Skeuomorphic Theme (warm, tactile feel)
   static const Color kBgColor = Color(0xFFE8E0D5); // Warm beige/leather-like
@@ -366,64 +367,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: kBgColor,
-      body: SafeArea(
-        child: IndexedStack(
-          index: _currentIndex,
-          children: [
-            _buildHomeTab(),
-            _buildLeadsTab(),
-            _buildActivityTab(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.all(12),
-        decoration: _skeuoEmbossedDecoration(baseColor: kCardColor, radius: 20),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) => setState(() => _currentIndex = index),
-            backgroundColor: Colors.transparent,
-            selectedItemColor: kPrimaryColor,
-            unselectedItemColor: kSubTextColor,
-            type: BottomNavigationBarType.fixed,
-            showSelectedLabels: true,
-            showUnselectedLabels: true,
-            elevation: 0,
-            selectedLabelStyle:
-                const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-            unselectedLabelStyle: const TextStyle(fontSize: 10),
-            items: const [
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.dashboard_rounded), label: 'Home'),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.people_alt_rounded), label: 'Leads'),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.history_rounded), label: 'Activity'),
+    return WillPopScope(
+      onWillPop: () async {
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+          return false;
+        }
+
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Press back again to exit'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: kBgColor,
+        body: SafeArea(
+          child: IndexedStack(
+            index: _currentIndex,
+            children: [
+              _buildHomeTab(),
+              _buildLeadsTab(),
+              _buildActivityTab(),
             ],
           ),
         ),
+        bottomNavigationBar: Container(
+          margin: const EdgeInsets.all(12),
+          decoration:
+              _skeuoEmbossedDecoration(baseColor: kCardColor, radius: 20),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (index) => setState(() => _currentIndex = index),
+              backgroundColor: Colors.transparent,
+              selectedItemColor: kPrimaryColor,
+              unselectedItemColor: kSubTextColor,
+              type: BottomNavigationBarType.fixed,
+              showSelectedLabels: true,
+              showUnselectedLabels: true,
+              elevation: 0,
+              selectedLabelStyle:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+              unselectedLabelStyle: const TextStyle(fontSize: 10),
+              items: const [
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.dashboard_rounded), label: 'Home'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.people_alt_rounded), label: 'Leads'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.history_rounded), label: 'Activity'),
+              ],
+            ),
+          ),
+        ),
+        floatingActionButton: _currentIndex == 0 || _currentIndex == 1
+            ? Container(
+                decoration: _skeuoButtonDecoration(kPrimaryColor),
+                child: FloatingActionButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DialerScreen()),
+                    );
+                  },
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  child: const Icon(Icons.dialpad_rounded,
+                      color: Colors.white, size: 26),
+                ),
+              )
+            : null,
       ),
-      floatingActionButton: _currentIndex == 0 || _currentIndex == 1
-          ? Container(
-              decoration: _skeuoButtonDecoration(kPrimaryColor),
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const DialerScreen()),
-                  );
-                },
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                child: const Icon(Icons.dialpad_rounded,
-                    color: Colors.white, size: 26),
-              ),
-            )
-          : null,
     );
   }
 
