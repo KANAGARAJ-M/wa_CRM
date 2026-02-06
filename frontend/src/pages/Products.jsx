@@ -691,13 +691,17 @@ export default function Products() {
                                                             rule.responseType === 'flow' ? 'bg-orange-100 text-orange-700' :
                                                                 rule.responseType === 'template' ? 'bg-indigo-100 text-indigo-700' :
                                                                     rule.responseType === 'button_link' ? 'bg-pink-100 text-pink-700' :
-                                                                        'bg-purple-100 text-purple-700'
+                                                                        rule.responseType === 'catalog' ? 'bg-cyan-100 text-cyan-700' :
+                                                                            'bg-purple-100 text-purple-700'
                                                         }`}>
-                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType === 'flow' ? 'Flow' : rule.responseType === 'template' ? 'Template' : rule.responseType === 'button_link' ? 'Button Link' : rule.responseType}
+                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType === 'flow' ? 'Flow' : rule.responseType === 'template' ? 'Template' : rule.responseType === 'button_link' ? 'Button Link' : rule.responseType === 'catalog' ? 'Catalog' : rule.responseType}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 max-w-xs truncate">
                                                     {rule.responseType === 'text' && rule.responseText}
+                                                    {rule.responseType === 'catalog' && (
+                                                        <span className="text-gray-800 text-sm">Sends Native Catalog Card</span>
+                                                    )}
                                                     {rule.responseType === 'flow' && (
                                                         <span className="text-gray-600 font-mono text-xs">ID: {rule.flowId}</span>
                                                     )}
@@ -909,9 +913,34 @@ export default function Products() {
                                     <option value="all_products_prices">Send Price List (All Products)</option>
                                     <option value="flow">Send Flow</option>
                                     <option value="button_link">Send Button Link</option>
+                                    <option value="catalog">Send Native Catalog</option>
                                     <option value="template">Send Template</option>
                                 </select>
                             </div>
+
+                            {ruleFormData.responseType === 'catalog' && (
+                                <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-100 mb-4">
+                                    <h4 className="font-semibold text-cyan-800 mb-2 flex items-center gap-2">
+                                        <ShoppingBag className="w-4 h-4" />
+                                        Native Catalog Card
+                                    </h4>
+                                    <p className="text-sm text-cyan-700 mb-4">
+                                        Sends a dedicated "View Catalog" card with your store thumbnail.
+                                        This is a native WhatsApp feature and is FREE within the 24h window.
+                                    </p>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Message Body</label>
+                                        <textarea
+                                            required
+                                            rows={2}
+                                            value={ruleFormData.responseText}
+                                            onChange={e => setRuleFormData({ ...ruleFormData, responseText: e.target.value })}
+                                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                            placeholder="e.g. Check out our full collection below!"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {ruleFormData.responseType === 'button_link' && (
                                 <div className="space-y-4">

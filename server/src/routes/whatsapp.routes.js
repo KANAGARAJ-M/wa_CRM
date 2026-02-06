@@ -1109,7 +1109,26 @@ router.post('/', async (req, res) => {
                                     }
                                 }
 
-                                // 6. Button Link Response (CTA URL) - FREE within 24hr window
+                                // 6. Native Catalog Response - FREE
+                                else if (rule.responseType === 'catalog') {
+                                    console.log(`🏪 Triggering Native Catalog Auto-Reply`);
+                                    payload.type = 'interactive';
+                                    payload.interactive = {
+                                        type: 'catalog_message',
+                                        body: {
+                                            text: rule.responseText || 'Check out our full catalog below!'
+                                        },
+                                        action: {
+                                            name: 'catalog_message',
+                                            // Optional: thumbnail_product_retailer_id can be added if you want a specific product cover
+                                            // parameters: { thumbnail_product_retailer_id: "..." } 
+                                        }
+                                    };
+                                    // Footer is optional but nice
+                                    payload.interactive.footer = { text: 'Tap button designed to view items' };
+                                }
+
+                                // 7. Button Link Response (CTA URL) - FREE within 24hr window
                                 else if (rule.responseType === 'button_link' && rule.buttonUrl) {
                                     console.log(`🔗 Triggering Button Link Auto-Reply: ${rule.buttonUrl}`);
                                     payload.type = 'interactive';
