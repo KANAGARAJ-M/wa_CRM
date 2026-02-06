@@ -1015,26 +1015,51 @@ router.post('/', async (req, res) => {
                                                 }
                                             };
                                         } else {
-                                            // Fallback: Image with Caption or Text
-                                            // Construct enhanced caption with link if available
-                                            let caption = `*${product.name}*\nPrice: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD' }).format(product.price)}\n\n${product.description || ''}`;
+                                            // Fallback: Interactive Card (Header Image + Body + Button)
+                                            // Construct enhanced body text
+                                            let bodyText = `*${product.name}*\n${new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD' }).format(product.price)}`;
 
-                                            // Add Form Link if available (product.linkedForm is ID here as we didn't populate)
+                                            // Truncate description for body to avoid limits (1024 chars, but keep it snappy)
+                                            if (product.description) {
+                                                bodyText += `\n\n${product.description.substring(0, 150)}${product.description.length > 150 ? '...' : ''}`;
+                                            }
+
+                                            // Add Link
                                             if (product.linkedForm) {
                                                 const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
                                                 const formUrl = `${clientUrl}/form/${product.linkedForm}`;
-                                                caption += `\n\nOrder Now: ${formUrl}`;
+                                                bodyText += `\n\n📝 Order here: ${formUrl}`;
                                             }
 
+                                            payload.type = 'interactive';
+                                            payload.interactive = {
+                                                type: 'button',
+                                                body: { text: bodyText },
+                                                action: {
+                                                    buttons: [
+                                                        {
+                                                            type: 'reply',
+                                                            reply: {
+                                                                id: `buy_btn_${product._id}`,
+                                                                title: 'Order Now'
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            };
+
+                                            // Add Image Header if available
                                             if (product.imageUrl) {
-                                                payload.type = 'image';
-                                                payload.image = {
-                                                    link: product.imageUrl,
-                                                    caption: caption
+                                                payload.interactive.header = {
+                                                    type: 'image',
+                                                    image: { link: product.imageUrl }
                                                 };
                                             } else {
-                                                payload.type = 'text';
-                                                payload.text = { body: caption };
+                                                // If no image, maybe use a Text Header?
+                                                payload.interactive.header = {
+                                                    type: 'text',
+                                                    text: 'Product Details'
+                                                };
                                             }
                                         }
                                     }
