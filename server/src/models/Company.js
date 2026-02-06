@@ -65,7 +65,8 @@ const companySchema = new mongoose.Schema({
         responseText: { type: String },
         linkedProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
         flowId: { type: String },
-        templateName: { type: String }
+        templateName: { type: String },
+        templateLanguage: { type: String, default: 'en_US' }
     }],
     paymentConfig: {
         provider: { type: String, default: 'manual' }, // stripe, manual, etc.

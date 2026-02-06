@@ -41,7 +41,8 @@ export default function Products() {
         responseText: '',
         linkedProduct: '',
         flowId: '',
-        templateName: ''
+        templateName: '',
+        templateLanguage: 'en_US'
     });
 
     // Forms State
@@ -96,7 +97,8 @@ export default function Products() {
                 responseText: rule.responseText || '',
                 linkedProduct: rule.linkedProduct ? (typeof rule.linkedProduct === 'object' ? rule.linkedProduct._id : rule.linkedProduct) : '',
                 flowId: rule.flowId || '',
-                templateName: rule.templateName || ''
+                templateName: rule.templateName || '',
+                templateLanguage: rule.templateLanguage || 'en_US'
             });
         } else {
             setEditingRule(null);
@@ -107,7 +109,8 @@ export default function Products() {
                 responseText: '',
                 linkedProduct: '',
                 flowId: '',
-                templateName: ''
+                templateName: '',
+                templateLanguage: 'en_US'
             });
         }
         setIsRuleModalOpen(true);
@@ -122,7 +125,10 @@ export default function Products() {
             const payload = { ...ruleFormData };
             if (!payload.linkedProduct) delete payload.linkedProduct;
             if (!payload.flowId) delete payload.flowId;
-            if (!payload.templateName) delete payload.templateName;
+            if (!payload.templateName) {
+                delete payload.templateName;
+                delete payload.templateLanguage;
+            }
 
             const currentRules = companyDetails?.autoReplyRules || [];
             let newRules;
@@ -680,7 +686,7 @@ export default function Products() {
                                                         <span className="text-gray-600 font-mono text-xs">ID: {rule.flowId}</span>
                                                     )}
                                                     {rule.responseType === 'template' && (
-                                                        <span className="text-gray-600 font-mono text-xs">Name: {rule.templateName}</span>
+                                                        <span className="text-gray-600 font-mono text-xs">Name: {rule.templateName} ({rule.templateLanguage || 'en_US'})</span>
                                                     )}
                                                     {rule.responseType === 'product' && (
                                                         <div className="flex items-center gap-2">
@@ -906,6 +912,21 @@ export default function Products() {
                                         placeholder="e.g. welcome_message"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">Exact name of the approved WhatsApp template</p>
+                                </div>
+                            )}
+
+                            {ruleFormData.responseType === 'template' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Template Language Code</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={ruleFormData.templateLanguage}
+                                        onChange={e => setRuleFormData({ ...ruleFormData, templateLanguage: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                        placeholder="e.g. en_US, ta, hi"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Should match the language code in WhatsApp Manager (e.g. en_US, en, ta)</p>
                                 </div>
                             )}
 

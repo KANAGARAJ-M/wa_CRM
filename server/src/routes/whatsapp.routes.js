@@ -1070,12 +1070,12 @@ router.post('/', async (req, res) => {
 
                                 // 5. Template Response
                                 else if (rule.responseType === 'template' && rule.templateName) {
-                                    console.log(`📄 Triggering Template Auto-Reply: ${rule.templateName}`);
+                                    console.log(`📄 Triggering Template Auto-Reply: ${rule.templateName} (${rule.templateLanguage || 'en_US'})`);
                                     payload.type = 'template';
                                     payload.template = {
                                         name: rule.templateName,
                                         language: {
-                                            code: 'en_US'
+                                            code: rule.templateLanguage || 'en_US'
                                         }
                                     };
                                 }
