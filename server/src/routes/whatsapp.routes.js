@@ -1061,7 +1061,7 @@ router.post('/', async (req, res) => {
                                                 flow_cta: 'Open Form',
                                                 flow_action: 'navigate',
                                                 flow_action_payload: {
-                                                    screen: 'DETAILS_SCREEN'
+                                                    screen: 'WELCOME_SCREEN'
                                                 }
                                             }
                                         }
@@ -1071,7 +1071,7 @@ router.post('/', async (req, res) => {
                                 // Send
                                 try {
                                     if (payload.type) {
-                                        await fetch(url, {
+                                        const response = await fetch(url, {
                                             method: 'POST',
                                             headers: {
                                                 'Content-Type': 'application/json',
@@ -1080,21 +1080,27 @@ router.post('/', async (req, res) => {
                                             body: JSON.stringify(payload)
                                         });
 
-                                        // Save to DB
-                                        await WhatsAppMessage.create({
-                                            companyId: companyId,
-                                            phoneNumberId,
-                                            from: phoneNumberId,
-                                            to: from,
-                                            direction: 'outgoing',
-                                            type: payload.type,
-                                            body: payload.text?.body || `Auto-reply: ${rule.responseType}`,
-                                            messageId: `auto-reply-rule-${Date.now()}`,
-                                            status: 'sent'
-                                        });
+                                        const data = await response.json();
+
+                                        if (!response.ok) {
+                                            console.error('Failed to send auto-reply. Meta Response:', JSON.stringify(data));
+                                        } else {
+                                            // Save to DB
+                                            await WhatsAppMessage.create({
+                                                companyId: companyId,
+                                                phoneNumberId,
+                                                from: phoneNumberId,
+                                                to: from,
+                                                direction: 'outgoing',
+                                                type: payload.type,
+                                                body: payload.text?.body || `Auto-reply: ${rule.responseType}`,
+                                                messageId: data.messages?.[0]?.id || `auto-reply-rule-${Date.now()}`,
+                                                status: 'sent'
+                                            });
+                                        }
                                     }
                                 } catch (err) {
-                                    console.error('Failed to send keyword auto-reply:', err);
+                                    console.error('Failed to send keyword auto-reply (Network Error):', err);
                                 }
                             }
                         }
