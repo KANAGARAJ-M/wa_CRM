@@ -1068,6 +1068,18 @@ router.post('/', async (req, res) => {
                                     };
                                 }
 
+                                // 5. Template Response
+                                else if (rule.responseType === 'template' && rule.templateName) {
+                                    console.log(`📄 Triggering Template Auto-Reply: ${rule.templateName}`);
+                                    payload.type = 'template';
+                                    payload.template = {
+                                        name: rule.templateName,
+                                        language: {
+                                            code: 'en_US'
+                                        }
+                                    };
+                                }
+
                                 // Send
                                 try {
                                     if (payload.type) {

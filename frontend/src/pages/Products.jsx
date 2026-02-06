@@ -40,7 +40,8 @@ export default function Products() {
         responseType: 'text',
         responseText: '',
         linkedProduct: '',
-        flowId: ''
+        flowId: '',
+        templateName: ''
     });
 
     // Forms State
@@ -94,7 +95,8 @@ export default function Products() {
                 responseType: rule.responseType,
                 responseText: rule.responseText || '',
                 linkedProduct: rule.linkedProduct ? (typeof rule.linkedProduct === 'object' ? rule.linkedProduct._id : rule.linkedProduct) : '',
-                flowId: rule.flowId || ''
+                flowId: rule.flowId || '',
+                templateName: rule.templateName || ''
             });
         } else {
             setEditingRule(null);
@@ -104,7 +106,8 @@ export default function Products() {
                 responseType: 'text',
                 responseText: '',
                 linkedProduct: '',
-                flowId: ''
+                flowId: '',
+                templateName: ''
             });
         }
         setIsRuleModalOpen(true);
@@ -119,6 +122,7 @@ export default function Products() {
             const payload = { ...ruleFormData };
             if (!payload.linkedProduct) delete payload.linkedProduct;
             if (!payload.flowId) delete payload.flowId;
+            if (!payload.templateName) delete payload.templateName;
 
             const currentRules = companyDetails?.autoReplyRules || [];
             let newRules;
@@ -664,15 +668,19 @@ export default function Products() {
                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${rule.responseType === 'product' ? 'bg-blue-100 text-blue-700' :
                                                         rule.responseType === 'text' ? 'bg-green-100 text-green-700' :
                                                             rule.responseType === 'flow' ? 'bg-orange-100 text-orange-700' :
-                                                                'bg-purple-100 text-purple-700'
+                                                                rule.responseType === 'template' ? 'bg-indigo-100 text-indigo-700' :
+                                                                    'bg-purple-100 text-purple-700'
                                                         }`}>
-                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType === 'flow' ? 'Flow' : rule.responseType}
+                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType === 'flow' ? 'Flow' : rule.responseType === 'template' ? 'Template' : rule.responseType}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 max-w-xs truncate">
                                                     {rule.responseType === 'text' && rule.responseText}
                                                     {rule.responseType === 'flow' && (
                                                         <span className="text-gray-600 font-mono text-xs">ID: {rule.flowId}</span>
+                                                    )}
+                                                    {rule.responseType === 'template' && (
+                                                        <span className="text-gray-600 font-mono text-xs">Name: {rule.templateName}</span>
                                                     )}
                                                     {rule.responseType === 'product' && (
                                                         <div className="flex items-center gap-2">
@@ -867,6 +875,7 @@ export default function Products() {
                                     <option value="product">Send Product Card</option>
                                     <option value="all_products_prices">Send Price List (All Products)</option>
                                     <option value="flow">Send Flow</option>
+                                    <option value="template">Send Template</option>
                                 </select>
                             </div>
 
@@ -882,6 +891,21 @@ export default function Products() {
                                         placeholder="e.g. 123456789"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">Found in WhatsApp Manager &#62; Flows</p>
+                                </div>
+                            )}
+
+                            {ruleFormData.responseType === 'template' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={ruleFormData.templateName}
+                                        onChange={e => setRuleFormData({ ...ruleFormData, templateName: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                        placeholder="e.g. welcome_message"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Exact name of the approved WhatsApp template</p>
                                 </div>
                             )}
 

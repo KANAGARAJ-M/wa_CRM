@@ -5,11 +5,11 @@ const { Company, WhatsAppMessage, Lead, FlowResponse, FormSubmission } = require
 
 const TARGET_COMPANY_NAME = 'THULIR HERBA KL';
 const TARGET_PHONE_NUMBERS = [
-    '917397705276',
-    '+917397705276',
-    '7397705276',
-    '91 73977 05276',
-    '+91 73977 05276'
+    '916383588281',
+    '+916383588281',
+    '6383588281',
+    '91 63835 88281',
+    '+91 63835 88281'
 ];
 
 async function deleteData() {
@@ -28,7 +28,7 @@ async function deleteData() {
 
         // Build Phone Regex for flexible matching
         // Create regex that matches the number ending with the last 10 digits
-        const last10 = '7397705276';
+        const last10 = '6383588281';
         const phoneRegex = new RegExp(`${last10}$`);
 
         console.log(`Targeting data for phone number ending in: ${last10}`);
