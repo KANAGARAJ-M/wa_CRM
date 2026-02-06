@@ -1015,13 +1015,26 @@ router.post('/', async (req, res) => {
                                                 }
                                             };
                                         } else {
-                                            // Fallback: Image with Caption
+                                            // Fallback: Image with Caption or Text
+                                            // Construct enhanced caption with link if available
+                                            let caption = `*${product.name}*\nPrice: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD' }).format(product.price)}\n\n${product.description || ''}`;
+
+                                            // Add Form Link if available (product.linkedForm is ID here as we didn't populate)
+                                            if (product.linkedForm) {
+                                                const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+                                                const formUrl = `${clientUrl}/form/${product.linkedForm}`;
+                                                caption += `\n\nOrder Now: ${formUrl}`;
+                                            }
+
                                             if (product.imageUrl) {
                                                 payload.type = 'image';
-                                                payload.image = { link: product.imageUrl, caption: `*${product.name}*\n${product.currency || 'USD'} ${product.price}\n\n${product.description || ''}` };
+                                                payload.image = {
+                                                    link: product.imageUrl,
+                                                    caption: caption
+                                                };
                                             } else {
                                                 payload.type = 'text';
-                                                payload.text = { body: `*${product.name}*\nPrice: ${product.price}\n\n${product.description || ''}` };
+                                                payload.text = { body: caption };
                                             }
                                         }
                                     }
