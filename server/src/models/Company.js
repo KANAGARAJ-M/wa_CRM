@@ -61,13 +61,16 @@ const companySchema = new mongoose.Schema({
     autoReplyRules: [{
         keyword: { type: String, required: true, trim: true },
         matchType: { type: String, enum: ['exact', 'contains'], default: 'contains' },
-        responseType: { type: String, enum: ['text', 'product', 'all_products_prices', 'flow', 'template'], required: true },
+        responseType: { type: String, enum: ['text', 'product', 'all_products_prices', 'flow', 'template', 'button_link'], required: true },
         responseText: { type: String },
         linkedProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
         flowId: { type: String },
         templateName: { type: String },
         templateLanguage: { type: String, default: 'en_US' },
-        templateVariables: [{ type: String }]
+        templateVariables: [{ type: String }],
+        // Button Link fields (CTA URL)
+        buttonText: { type: String, default: 'View Details' },
+        buttonUrl: { type: String }
     }],
     paymentConfig: {
         provider: { type: String, default: 'manual' }, // stripe, manual, etc.

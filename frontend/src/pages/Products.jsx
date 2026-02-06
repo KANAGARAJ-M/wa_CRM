@@ -43,7 +43,9 @@ export default function Products() {
         flowId: '',
         templateName: '',
         templateLanguage: 'en_US',
-        templateVariables: ''
+        templateVariables: '',
+        buttonText: 'View Details',
+        buttonUrl: ''
     });
 
     // Forms State
@@ -100,7 +102,9 @@ export default function Products() {
                 flowId: rule.flowId || '',
                 templateName: rule.templateName || '',
                 templateLanguage: rule.templateLanguage || 'en_US',
-                templateVariables: rule.templateVariables ? rule.templateVariables.join(', ') : ''
+                templateVariables: rule.templateVariables ? rule.templateVariables.join(', ') : '',
+                buttonText: rule.buttonText || 'View Details',
+                buttonUrl: rule.buttonUrl || ''
             });
         } else {
             setEditingRule(null);
@@ -113,7 +117,9 @@ export default function Products() {
                 flowId: '',
                 templateName: '',
                 templateLanguage: 'en_US',
-                templateVariables: ''
+                templateVariables: '',
+                buttonText: 'View Details',
+                buttonUrl: ''
             });
         }
         setIsRuleModalOpen(true);
@@ -684,15 +690,22 @@ export default function Products() {
                                                         rule.responseType === 'text' ? 'bg-green-100 text-green-700' :
                                                             rule.responseType === 'flow' ? 'bg-orange-100 text-orange-700' :
                                                                 rule.responseType === 'template' ? 'bg-indigo-100 text-indigo-700' :
-                                                                    'bg-purple-100 text-purple-700'
+                                                                    rule.responseType === 'button_link' ? 'bg-pink-100 text-pink-700' :
+                                                                        'bg-purple-100 text-purple-700'
                                                         }`}>
-                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType === 'flow' ? 'Flow' : rule.responseType === 'template' ? 'Template' : rule.responseType}
+                                                        {rule.responseType === 'all_products_prices' ? 'Price List' : rule.responseType === 'flow' ? 'Flow' : rule.responseType === 'template' ? 'Template' : rule.responseType === 'button_link' ? 'Button Link' : rule.responseType}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 max-w-xs truncate">
                                                     {rule.responseType === 'text' && rule.responseText}
                                                     {rule.responseType === 'flow' && (
                                                         <span className="text-gray-600 font-mono text-xs">ID: {rule.flowId}</span>
+                                                    )}
+                                                    {rule.responseType === 'button_link' && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-gray-800 text-sm font-medium">Btn: {rule.buttonText}</span>
+                                                            <a href={rule.buttonUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-xs hover:underline truncate">{rule.buttonUrl}</a>
+                                                        </div>
                                                     )}
                                                     {rule.responseType === 'template' && (
                                                         <div className="flex flex-col">
@@ -895,9 +908,50 @@ export default function Products() {
                                     <option value="product">Send Product Card</option>
                                     <option value="all_products_prices">Send Price List (All Products)</option>
                                     <option value="flow">Send Flow</option>
+                                    <option value="button_link">Send Button Link</option>
                                     <option value="template">Send Template</option>
                                 </select>
                             </div>
+
+                            {ruleFormData.responseType === 'button_link' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Message Body</label>
+                                        <textarea
+                                            required
+                                            rows={2}
+                                            value={ruleFormData.responseText}
+                                            onChange={e => setRuleFormData({ ...ruleFormData, responseText: e.target.value })}
+                                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                            placeholder="e.g. Click the button below to view our full catalog."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            value={ruleFormData.buttonText}
+                                            onChange={e => setRuleFormData({ ...ruleFormData, buttonText: e.target.value })}
+                                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                            placeholder="e.g. View Catalog"
+                                            maxLength={20}
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Max 20 characters.</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Button URL</label>
+                                        <input
+                                            required
+                                            type="url"
+                                            value={ruleFormData.buttonUrl}
+                                            onChange={e => setRuleFormData({ ...ruleFormData, buttonUrl: e.target.value })}
+                                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                            placeholder="https://your-website.com/catalog"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {ruleFormData.responseType === 'flow' && (
                                 <div>

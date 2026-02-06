@@ -1109,6 +1109,25 @@ router.post('/', async (req, res) => {
                                     }
                                 }
 
+                                // 6. Button Link Response (CTA URL) - FREE within 24hr window
+                                else if (rule.responseType === 'button_link' && rule.buttonUrl) {
+                                    console.log(`🔗 Triggering Button Link Auto-Reply: ${rule.buttonUrl}`);
+                                    payload.type = 'interactive';
+                                    payload.interactive = {
+                                        type: 'cta_url',
+                                        body: {
+                                            text: rule.responseText || 'Click the button below to view more details.'
+                                        },
+                                        action: {
+                                            name: 'cta_url',
+                                            parameters: {
+                                                display_text: rule.buttonText || 'View Details',
+                                                url: rule.buttonUrl
+                                            }
+                                        }
+                                    };
+                                }
+
                                 console.log(`🚀 Sending Payload to ${phoneNumberId}:`, JSON.stringify(payload));
 
                                 // Send
