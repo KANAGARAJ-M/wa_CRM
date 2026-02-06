@@ -42,7 +42,8 @@ export default function Products() {
         linkedProduct: '',
         flowId: '',
         templateName: '',
-        templateLanguage: 'en_US'
+        templateLanguage: 'en_US',
+        templateVariables: ''
     });
 
     // Forms State
@@ -98,7 +99,8 @@ export default function Products() {
                 linkedProduct: rule.linkedProduct ? (typeof rule.linkedProduct === 'object' ? rule.linkedProduct._id : rule.linkedProduct) : '',
                 flowId: rule.flowId || '',
                 templateName: rule.templateName || '',
-                templateLanguage: rule.templateLanguage || 'en_US'
+                templateLanguage: rule.templateLanguage || 'en_US',
+                templateVariables: rule.templateVariables ? rule.templateVariables.join(', ') : ''
             });
         } else {
             setEditingRule(null);
@@ -110,7 +112,8 @@ export default function Products() {
                 linkedProduct: '',
                 flowId: '',
                 templateName: '',
-                templateLanguage: 'en_US'
+                templateLanguage: 'en_US',
+                templateVariables: ''
             });
         }
         setIsRuleModalOpen(true);
@@ -128,6 +131,12 @@ export default function Products() {
             if (!payload.templateName) {
                 delete payload.templateName;
                 delete payload.templateLanguage;
+                delete payload.templateVariables;
+            } else {
+                // Convert comma-separated string to array
+                if (typeof payload.templateVariables === 'string') {
+                    payload.templateVariables = payload.templateVariables.split(',').map(v => v.trim()).filter(v => v);
+                }
             }
 
             const currentRules = companyDetails?.autoReplyRules || [];
@@ -686,7 +695,12 @@ export default function Products() {
                                                         <span className="text-gray-600 font-mono text-xs">ID: {rule.flowId}</span>
                                                     )}
                                                     {rule.responseType === 'template' && (
-                                                        <span className="text-gray-600 font-mono text-xs">Name: {rule.templateName} ({rule.templateLanguage || 'en_US'})</span>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-gray-600 font-mono text-xs">Name: {rule.templateName} ({rule.templateLanguage || 'en_US'})</span>
+                                                            {rule.templateVariables && rule.templateVariables.length > 0 && (
+                                                                <span className="text-gray-500 text-xs">Vars: {rule.templateVariables.join(', ')}</span>
+                                                            )}
+                                                        </div>
                                                     )}
                                                     {rule.responseType === 'product' && (
                                                         <div className="flex items-center gap-2">
@@ -927,6 +941,20 @@ export default function Products() {
                                         placeholder="e.g. en_US, ta, hi"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">Should match the language code in WhatsApp Manager (e.g. en_US, en, ta)</p>
+                                </div>
+                            )}
+
+                            {ruleFormData.responseType === 'template' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Template Variables (Body)</label>
+                                    <input
+                                        type="text"
+                                        value={ruleFormData.templateVariables}
+                                        onChange={e => setRuleFormData({ ...ruleFormData, templateVariables: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 border-gray-300"
+                                        placeholder="e.g. John, 10%"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Comma-separated values for fields like &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125; in the template body.</p>
                                 </div>
                             )}
 

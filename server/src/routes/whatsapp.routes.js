@@ -1078,6 +1078,19 @@ router.post('/', async (req, res) => {
                                             code: rule.templateLanguage || 'en_US'
                                         }
                                     };
+
+                                    // Add components if variables exist
+                                    if (rule.templateVariables && rule.templateVariables.length > 0) {
+                                        payload.template.components = [
+                                            {
+                                                type: 'body',
+                                                parameters: rule.templateVariables.map(v => ({
+                                                    type: 'text',
+                                                    text: v
+                                                }))
+                                            }
+                                        ];
+                                    }
                                 }
 
                                 // Send
