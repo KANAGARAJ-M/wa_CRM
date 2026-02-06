@@ -1236,6 +1236,11 @@ router.post('/', async (req, res) => {
                 const messageId = statusUpdate.id;
                 const newStatus = statusUpdate.status; // sent, delivered, read, failed
 
+                console.log(`📨 Message Status Update: ${newStatus} for ${messageId}`);
+                if (statusUpdate.errors) {
+                    console.error('❌ Status Error Details:', JSON.stringify(statusUpdate.errors, null, 2));
+                }
+
                 try {
                     await WhatsAppMessage.findOneAndUpdate(
                         { messageId: messageId },
