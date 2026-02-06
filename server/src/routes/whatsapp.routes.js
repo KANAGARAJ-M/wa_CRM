@@ -386,11 +386,11 @@ router.get('/messages', auth, async (req, res) => {
 });
 
 // @route   GET /api/whatsapp/orders
-// @desc    Get all WhatsApp Order messages
+// @desc    Get all WhatsApp Order messages with filtering
 // @access  Private/Admin/Agent
 router.get('/orders', auth, async (req, res) => {
     try {
-        const { page = 1, limit = 50 } = req.query;
+        const { page = 1, limit = 50, search, startDate, endDate } = req.query;
 
         if (!req.companyId) {
             return res.status(400).json({ success: false, message: 'Company context required' });
@@ -398,12 +398,44 @@ router.get('/orders', auth, async (req, res) => {
 
         const query = {
             companyId: req.companyId,
-            // Check for both explicit type 'order' or where metadata has order field (just in case)
             $or: [
                 { type: 'order' },
                 { 'metadata.order': { $exists: true } }
             ]
         };
+
+        // Date Filter
+        if (startDate || endDate) {
+            query.timestamp = {};
+            if (startDate) query.timestamp.$gte = new Date(startDate);
+            if (endDate) query.timestamp.$lte = new Date(endDate);
+        }
+
+        // Search Filter
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            const existingOr = query.$or; // Preserve the type check
+
+            // We need to AND the type check with the search check
+            // So we reconstruct the query
+            delete query.$or;
+
+            query.$and = [
+                {
+                    $or: [
+                        { type: 'order' },
+                        { 'metadata.order': { $exists: true } }
+                    ]
+                },
+                {
+                    $or: [
+                        { from: searchRegex },
+                        { fromName: searchRegex },
+                        { 'metadata.order.product_items.name': searchRegex }
+                    ]
+                }
+            ];
+        }
 
         const orders = await WhatsAppMessage.find(query)
             .sort({ timestamp: -1 })

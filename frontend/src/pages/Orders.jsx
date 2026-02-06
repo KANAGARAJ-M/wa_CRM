@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import {
     ShoppingCart, User, Package, MessageCircle, X,
-    Clock, CheckCircle, FileText, Loader2, RefreshCw, Eye, Phone, StickyNote, CheckSquare, Square, Users
+    Clock, CheckCircle, FileText, Loader2, RefreshCw, Eye, Phone, StickyNote, CheckSquare, Square, Users,
+    Search, Calendar, Download, Share2, MessageSquare
 } from 'lucide-react';
 import { format, differenceInMinutes } from 'date-fns';
+import * as XLSX from 'xlsx';
 
 export default function Orders() {
     const navigate = useNavigate();
@@ -19,18 +21,38 @@ export default function Orders() {
     const [selectedItems, setSelectedItems] = useState([]);
     const [bulkAssignModal, setBulkAssignModal] = useState(false);
 
+
+
+    // Filters
+    const [searchTerm, setSearchTerm] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
     useEffect(() => {
-        fetchAllData();
+        const delayDebounceFn = setTimeout(() => {
+            fetchAllData();
+        }, 800);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm, startDate, endDate]);
+
+    useEffect(() => {
         fetchAgents();
     }, []);
 
     const fetchAllData = async () => {
         setLoading(true);
         try {
+            const params = {
+                search: searchTerm,
+                startDate: startDate,
+                endDate: endDate
+            };
+
             const [ordersRes, flowsRes, messagesRes] = await Promise.all([
-                api.get('/whatsapp/orders'),
-                api.get('/whatsapp/flow-responses'),
-                api.get('/whatsapp/messages')
+                api.get('/whatsapp/orders', { params }),
+                api.get('/whatsapp/flow-responses', { params }), // Assuming backend supports params or ignores them
+                api.get('/whatsapp/messages', { params }) // Assuming backend supports params or ignores them
             ]);
             setOrders(ordersRes.data.data || []);
             setFlowResponses(flowsRes.data.data || []);
@@ -246,11 +268,50 @@ export default function Orders() {
     };
 
     const handlePhoneClick = (phone, name) => {
-        navigate('/chats', {
-            state: {
-                lead: { phone, name }
-            }
+        // Open WhatsApp Chat directly
+        window.open(`https://wa.me/${phone}`, '_blank');
+    };
+
+    const handleShareOrder = (item) => {
+        const products = item.order.metadata?.order?.product_items || [];
+        const total = formatCurrency(
+            products.reduce((sum, p) => sum + (p.item_price * p.quantity), 0),
+            products[0]?.currency || 'INR'
+        );
+
+        const productList = products.map(p => `${p.quantity}x ${p.name || 'Product'}`).join('\n');
+
+        const message = `Hello ${item.name},\nHere are the details of your incomplete order:\n\n${productList}\n\nTotal: ${total}\n\nPlease let us know if you need any assistance completing this order.`;
+
+        const url = `https://wa.me/${item.phone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
+
+    const handleExportExcel = () => {
+        const dataToExport = allItems.map(item => {
+            const products = item.order?.metadata?.order?.product_items || [];
+            const productNames = products.map(p => p.name).join(', ');
+            const totalQty = products.reduce((sum, p) => sum + p.quantity, 0);
+
+            return {
+                Date: format(item.timestamp, 'yyyy-MM-dd HH:mm'),
+                'Customer Name': item.name,
+                'Contact Number': item.phone,
+                Type: item.type,
+                Status: item.order ? 'Order' : (item.flow ? 'Form' : 'Message'),
+                'Payment Status': item.order?.metadata?.order?.payment_status || 'Pending',
+                'Product Name': productNames || '-',
+                'Qty': totalQty || 0,
+                'Address': item.order?.metadata?.order?.address || '-',
+                'Assigned To': getAssignmentDetails(item).assignedTo ? getAgentName(getAssignmentDetails(item).assignedTo) : 'Unassigned',
+                'Agent Status': getAssignmentDetails(item).status
+            };
         });
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Orders");
+        XLSX.writeFile(wb, `Orders_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
     };
 
     const getStatus = (item, hasOrder, hasFlow) => {
@@ -273,20 +334,63 @@ export default function Orders() {
     return (
         <div className="h-full bg-gray-100 p-6 overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Orders & Responses</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        View and manage all customer orders and form entries
-                    </p>
+            <div className="flex flex-col gap-4 mb-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Orders & Responses</h1>
+                        <p className="text-sm text-gray-500 mt-1">
+                            View and manage all customer orders and form entries
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleExportExcel}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm"
+                        >
+                            <Download className="w-4 h-4" />
+                            Export Excel
+                        </button>
+                        <button
+                            onClick={fetchAllData}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 shadow-sm"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </button>
+                    </div>
                 </div>
-                <button
-                    onClick={fetchAllData}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 shadow-sm"
-                >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                </button>
+
+                {/* Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search orders..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                    </div>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                    </div>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Bulk Action Toolbar */}
@@ -335,16 +439,15 @@ export default function Orders() {
                                     </button>
                                 </th>
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Keyword</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Form</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Order</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer Name</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Number</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment Status</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Name</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Address</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned To</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Agent Status</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Agreed To</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -393,72 +496,66 @@ export default function Orders() {
                                                     {format(item.timestamp, 'h:mm a')}
                                                 </div>
                                             </td>
+
+                                            {/* Customer Name */}
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${item.type === 'order' ? 'bg-orange-500' :
-                                                            item.type === 'flow' ? 'bg-green-500' : 'bg-gray-500'
-                                                            }`}>
-                                                            {item.name?.[0]?.toUpperCase() || <User className="w-3 h-3" />}
-                                                        </div>
-                                                        <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${item.type === 'order' ? 'bg-orange-500' :
+                                                        item.type === 'flow' ? 'bg-green-500' : 'bg-gray-500'
+                                                        }`}>
+                                                        {item.name?.[0]?.toUpperCase() || <User className="w-3 h-3" />}
                                                     </div>
-                                                    <button
-                                                        onClick={() => handlePhoneClick(item.phone, item.name)}
-                                                        className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-green-600 transition-colors w-fit"
-                                                    >
-                                                        <Phone className="w-3 h-3" />
-                                                        {item.phone}
-                                                    </button>
+                                                    <span className="text-sm font-medium text-gray-900">{item.name}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-900 font-medium max-w-[200px] break-words">
-                                                    {item.keyword}
-                                                </div>
-                                            </td>
+
+                                            {/* Contact Number */}
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {hasFlow ? (
-                                                    <button
-                                                        onClick={() => setDetailModal({
-                                                            type: 'flow',
-                                                            data: item.flow,
-                                                            name: item.name,
-                                                            phone: item.phone,
-                                                            timestamp: item.flowTimestamp || item.timestamp
-                                                        })}
-                                                        className="text-xs inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
-                                                    >
-                                                        <FileText className="w-3 h-3" />
-                                                        View Form
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-gray-400 text-xs">-</span>
-                                                )}
+                                                <button
+                                                    onClick={() => handlePhoneClick(item.phone, item.name)}
+                                                    className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-green-600 transition-colors"
+                                                >
+                                                    <MessageSquare className="w-3 h-3" />
+                                                    {item.phone}
+                                                </button>
                                             </td>
+
+                                            {/* Payment Status */}
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${status.color}`}>
-                                                    {status.label}
-                                                </span>
+                                                {hasOrder ? (
+                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${item.order.metadata?.order?.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                                        }`}>
+                                                        {item.order.metadata?.order?.payment_status || 'Pending'}
+                                                    </span>
+                                                ) : '-'}
                                             </td>
+
+                                            {/* Product Name */}
                                             <td className="px-6 py-4">
                                                 {hasOrder ? (
-                                                    <div className="text-sm">
-                                                        <div className="font-medium text-gray-900">
-                                                            {formatCurrency(
-                                                                (item.order.metadata?.order?.product_items || []).reduce(
-                                                                    (sum, p) => sum + (p.item_price * p.quantity), 0
-                                                                ),
-                                                                item.order.metadata?.order?.product_items?.[0]?.currency || 'INR'
-                                                            )}
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 truncate max-w-[150px]">
-                                                            {(item.order.metadata?.order?.product_items || []).length} items
-                                                        </div>
+                                                    <div className="text-sm text-gray-900 max-w-[200px] truncate" title={(item.order.metadata?.order?.product_items || []).map(p => p.name).join(', ')}>
+                                                        {(item.order.metadata?.order?.product_items || [])[0]?.name}
+                                                        {(item.order.metadata?.order?.product_items || []).length > 1 && ` +${(item.order.metadata?.order?.product_items || []).length - 1} more`}
                                                     </div>
-                                                ) : (
-                                                    <span className="text-gray-400 text-xs">-</span>
-                                                )}
+                                                ) : '-'}
+                                            </td>
+
+                                            {/* Qty */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {hasOrder ? (
+                                                    <div className="text-sm text-gray-900">
+                                                        {(item.order.metadata?.order?.product_items || []).reduce((sum, p) => sum + (p.quantity || 0), 0)}
+                                                    </div>
+                                                ) : '-'}
+                                            </td>
+
+                                            {/* Address */}
+                                            <td className="px-6 py-4">
+                                                {hasOrder ? (
+                                                    <div className="text-sm text-gray-500 max-w-[150px] truncate" title={item.order.metadata?.order?.address}>
+                                                        {item.order.metadata?.order?.address || '-'}
+                                                    </div>
+                                                ) : '-'}
                                             </td>
 
                                             {/* Assigned To */}
@@ -495,43 +592,35 @@ export default function Orders() {
                                             </td>
 
                                             {/* Agreed To */}
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {assignment.agreedTo ? (
-                                                    <div className="text-xs text-gray-700">
-                                                        {format(new Date(assignment.agreedTo), 'MMM d, h:mm a')}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-gray-400 text-xs">-</span>
-                                                )}
-                                            </td>
+
 
                                             {/* Notes */}
-                                            <td className="px-6 py-4">
-                                                {assignment.notes ? (
-                                                    <div className="flex items-start gap-1 max-w-[150px]" title={assignment.notes}>
-                                                        <StickyNote className="w-3 h-3 text-yellow-500 flex-shrink-0 mt-0.5" />
-                                                        <span className="text-xs text-gray-600 line-clamp-2">{assignment.notes}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-gray-400 text-xs">-</span>
-                                                )}
-                                            </td>
+
 
                                             <td className="px-6 py-4 whitespace-nowrap text-right">
                                                 {hasOrder && (
-                                                    <button
-                                                        onClick={() => setDetailModal({
-                                                            type: 'order',
-                                                            data: item.order,
-                                                            name: item.name,
-                                                            phone: item.phone,
-                                                            timestamp: item.timestamp
-                                                        })}
-                                                        className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                                                        title="View Order"
-                                                    >
-                                                        <ShoppingCart className="w-4 h-4" />
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={() => setDetailModal({
+                                                                type: 'order',
+                                                                data: item.order,
+                                                                name: item.name,
+                                                                phone: item.phone,
+                                                                timestamp: item.timestamp
+                                                            })}
+                                                            className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                                            title="View Order"
+                                                        >
+                                                            <ShoppingCart className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleShareOrder(item)}
+                                                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                            title="Share Order via WhatsApp"
+                                                        >
+                                                            <Share2 className="w-4 h-4" />
+                                                        </button>
+                                                    </>
                                                 )}
                                                 {hasFlow && !hasOrder && (
                                                     <button
