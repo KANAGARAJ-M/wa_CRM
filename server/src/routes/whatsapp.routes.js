@@ -1108,6 +1108,8 @@ router.post('/', async (req, res) => {
                                     }
                                 }
 
+                                console.log(`🚀 Sending Payload to ${phoneNumberId}:`, JSON.stringify(payload));
+
                                 // Send
                                 try {
                                     if (payload.type) {
@@ -1121,6 +1123,7 @@ router.post('/', async (req, res) => {
                                         });
 
                                         const data = await response.json();
+                                        console.log(`📦 Meta Response (${response.status}):`, JSON.stringify(data));
 
                                         if (!response.ok) {
                                             console.error('Failed to send auto-reply. Meta Response:', JSON.stringify(data));
@@ -1137,6 +1140,7 @@ router.post('/', async (req, res) => {
                                                 messageId: data.messages?.[0]?.id || `auto-reply-rule-${Date.now()}`,
                                                 status: 'sent'
                                             });
+                                            console.log(`✅ Auto-reply sent successfully (${rule.responseType})`);
                                         }
                                     }
                                 } catch (err) {
