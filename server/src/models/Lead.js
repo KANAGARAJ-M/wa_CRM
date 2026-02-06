@@ -137,6 +137,10 @@ const leadSchema = new mongoose.Schema({
     businessFilledBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
+    },
+    isOptedIn: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

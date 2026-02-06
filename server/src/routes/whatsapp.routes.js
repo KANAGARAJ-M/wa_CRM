@@ -983,6 +983,7 @@ router.post('/', async (req, res) => {
                             const config = company.whatsappConfigs.find(c => c.phoneNumberId === phoneNumberId);
 
                             if (config && config.accessToken) {
+                                console.log(`⚙️ Using Config: ${config.name} for Phone ID: ${phoneNumberId}`);
                                 const GRAPH_API_URL = 'https://graph.facebook.com/v18.0';
                                 const url = `${GRAPH_API_URL}/${phoneNumberId}/messages`;
                                 let payload = {
@@ -1171,11 +1172,25 @@ router.post('/', async (req, res) => {
                                     stage: 'new',
                                     status: 'new',
                                     notes: `Lead generated from Ad Click.\nHeadline: ${referralHeadline}\nSource: ${referralSource}\n\nInitial message: ${msgBody || `[${msgType} message]`}`,
-                                    uploadDate: new Date()
+                                    uploadDate: new Date(),
+                                    isOptedIn: true // Auto opt-in from Ad
                                 });
                                 console.log(`✅ Created new lead from WhatsApp Ad: ${fromName} (${from}) for account ${phoneNumberId}`);
                             } else {
-                                console.log(`ℹ️ Message from ${from} is a regular chat with no referral, skipping Lead creation.`);
+                                // Default: Create lead for regular chat too (User initiated = Opt-in)
+                                lead = await Lead.create({
+                                    companyId: companyId,
+                                    name: fromName || `WhatsApp User ${from}`,
+                                    phone: from,
+                                    phoneNumberId: phoneNumberId,
+                                    source: 'whatsapp_organic',
+                                    stage: 'new',
+                                    status: 'new',
+                                    notes: `Lead created from Organic Message.\n\nInitial message: ${msgBody || `[${msgType} message]`}`,
+                                    uploadDate: new Date(),
+                                    isOptedIn: true // User initiated chat
+                                });
+                                console.log(`✅ Created new lead from Organic Message: ${fromName} (${from})`);
                             }
                         } else {
                             // Associate with this account if not already associated
@@ -1188,6 +1203,9 @@ router.post('/', async (req, res) => {
                             lead.notes = (lead.notes || '') + newNote;
                             lead.lastMessage = msgBody || `[${msgType} message]`;
                             lead.lastInteraction = new Date();
+                            if (!lead.isOptedIn) {
+                                lead.isOptedIn = true; // Update opt-in status if they message us
+                            }
 
                             // Add to comment history
                             if (!lead.commentHistory) {
