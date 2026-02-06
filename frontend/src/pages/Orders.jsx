@@ -226,7 +226,7 @@ export default function Orders() {
                         timestamp: item.timestamp,
                         phone: item.phone,
                         name: item.name,
-                        keyword: '-',
+                        keyword: item.data.flowId || '-',
                         order: null,
                         flow: item.data,
                         flowTimestamp: item.timestamp
@@ -323,6 +323,13 @@ export default function Orders() {
             return { label: 'Waiting', color: 'bg-yellow-100 text-yellow-700' };
         }
         if (hasFlow && item.flow.status === 'completed' && !hasOrder) {
+            // Check if responseData has meaningful data
+            const data = item.flow.responseData || {};
+            const keys = Object.keys(data).filter(k => k !== 'flow_token' && k !== 'flow_id');
+
+            if (keys.length === 0) {
+                return { label: 'Incomplete', color: 'bg-red-100 text-red-700' };
+            }
             return { label: 'Completed', color: 'bg-blue-100 text-blue-700' };
         }
         if (item.type === 'message') {
@@ -441,6 +448,8 @@ export default function Orders() {
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer Name</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Number</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Keyword</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Form</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment Status</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Name</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
@@ -518,6 +527,34 @@ export default function Orders() {
                                                     <MessageSquare className="w-3 h-3" />
                                                     {item.phone}
                                                 </button>
+                                            </td>
+
+                                            {/* Keyword */}
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm text-gray-900 font-medium max-w-[200px] break-words">
+                                                    {item.keyword}
+                                                </div>
+                                            </td>
+
+                                            {/* Form */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {hasFlow ? (
+                                                    <button
+                                                        onClick={() => setDetailModal({
+                                                            type: 'flow',
+                                                            data: item.flow,
+                                                            name: item.name,
+                                                            phone: item.phone,
+                                                            timestamp: item.flowTimestamp || item.timestamp
+                                                        })}
+                                                        className="text-xs inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+                                                    >
+                                                        <FileText className="w-3 h-3" />
+                                                        View Form
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">-</span>
+                                                )}
                                             </td>
 
                                             {/* Payment Status */}
@@ -796,26 +833,36 @@ export default function Orders() {
                                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                                         <div className="flex items-center justify-between mb-4">
                                             <h4 className="font-semibold text-gray-900">Response Data</h4>
-                                            <span className={`px-2 py-1 rounded text-xs font-bold capitalize ${detailModal.data.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                detailModal.data.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                                                    'bg-gray-100 text-gray-600'
-                                                }`}>
-                                                {detailModal.data.status || 'Completed'}
-                                            </span>
+
+                                            {(() => {
+                                                const rawData = detailModal.data.responseData || {};
+                                                const keys = Object.keys(rawData).filter(k => k !== 'flow_token' && k !== 'flow_id');
+                                                const isCompleted = keys.length > 0;
+                                                const statusColor = isCompleted ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                                                const statusLabel = isCompleted ? 'Completed' : 'Incomplete';
+
+                                                return (
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold capitalize ${statusColor}`}>
+                                                        {statusLabel}
+                                                    </span>
+                                                );
+                                            })()}
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-2">
-                                            {detailModal.data.response_json && (
-                                                Object.entries(detailModal.data.response_json).map(([key, value]) => (
-                                                    <div key={key} className="bg-gray-50 p-3 rounded-lg">
-                                                        <span className="text-xs font-medium text-gray-500 uppercase block mb-1">
-                                                            {key.replace(/_/g, ' ')}
-                                                        </span>
-                                                        <span className="text-sm text-gray-900 font-medium">
-                                                            {Array.isArray(value) ? value.join(', ') : String(value)}
-                                                        </span>
-                                                    </div>
-                                                ))
+                                            {detailModal.data.responseData && (
+                                                Object.entries(detailModal.data.responseData)
+                                                    .filter(([key]) => key !== 'flow_token' && key !== 'flow_id')
+                                                    .map(([key, value]) => (
+                                                        <div key={key} className="bg-gray-50 p-3 rounded-lg">
+                                                            <span className="text-xs font-medium text-gray-500 uppercase block mb-1">
+                                                                {key.replace(/_/g, ' ')}
+                                                            </span>
+                                                            <span className="text-sm text-gray-900 font-medium">
+                                                                {Array.isArray(value) ? value.join(', ') : String(value)}
+                                                            </span>
+                                                        </div>
+                                                    ))
                                             )}
                                         </div>
                                     </div>

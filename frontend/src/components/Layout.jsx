@@ -114,68 +114,68 @@ export default function Layout({ children }) {
                         <NavLink
                             to="/dashboard"
                             onClick={() => setMobileMenuOpen(false)}
+                            title={!sidebarOpen ? "Dashboard" : ""}
                             className={({ isActive }) =>
-                                `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 mb-2
+                                `flex transition-all duration-200 mb-2
+                                ${sidebarOpen
+                                    ? 'items-center gap-3 px-3 py-3 rounded-xl'
+                                    : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                }
                                 ${isActive
                                     ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-500/30'
                                     : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
                                 }`
                             }
                         >
-                            <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
+                            <div className={`flex-shrink-0`}>
                                 <BarChart3 className="h-5 w-5" />
                             </div>
-                            {sidebarOpen && (
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm">Dashboard</p>
-                                    <p className="text-xs text-gray-500 truncate">Overview & Analytics</p>
-                                </div>
-                            )}
+                            <div className={`${sidebarOpen ? 'flex-1 min-w-0' : ''}`}>
+                                <p className={`${sidebarOpen ? 'font-medium text-sm' : 'text-[10px] text-center leading-tight'}`}>Dashboard</p>
+                                {sidebarOpen && <p className="text-xs text-gray-500 truncate">Overview & Analytics</p>}
+                            </div>
                         </NavLink>
                     )}
 
                     {/* Communication Section */}
                     <div>
-                        <button
-                            onClick={() => {
-                                if (sidebarOpen) {
-                                    setCommunicationExpanded(!communicationExpanded);
-                                } else {
-                                    navigate('/chats');
-                                }
-                            }}
-                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
-                                ${isCommunicationActive
-                                    ? 'bg-gradient-to-r from-green-500/20 to-teal-500/20 text-green-400 border border-green-500/30'
-                                    : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
-                                }`}
-                        >
-                            <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
-                                <MessageSquare className="h-5 w-5" />
-                            </div>
-                            {sidebarOpen && (
-                                <>
-                                    <div className="flex-1 min-w-0 text-left">
-                                        <p className="font-medium text-sm">Communication</p>
-                                        <p className="text-xs text-gray-500 truncate">Chat & Lead Management</p>
-                                    </div>
-                                    {communicationExpanded ? (
-                                        <ChevronDown className="h-4 w-4 text-gray-400" />
-                                    ) : (
-                                        <ChevronRight className="h-4 w-4 text-gray-400" />
-                                    )}
-                                </>
-                            )}
-                        </button>
+                        {sidebarOpen && (
+                            <button
+                                onClick={() => setCommunicationExpanded(!communicationExpanded)}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                                    ${isCommunicationActive
+                                        ? 'bg-gradient-to-r from-green-500/20 to-teal-500/20 text-green-400 border border-green-500/30'
+                                        : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex-shrink-0">
+                                    <MessageSquare className="h-5 w-5" />
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                    <p className="font-medium text-sm">Communication</p>
+                                    <p className="text-xs text-gray-500 truncate">Chat & Lead Management</p>
+                                </div>
+                                {communicationExpanded ? (
+                                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                                ) : (
+                                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                                )}
+                            </button>
+                        )}
 
                         {/* Sub Navigation Items */}
-                        {sidebarOpen && communicationExpanded && (
-                            <div className="mt-1 ml-4 pl-4 border-l border-gray-700/50 space-y-1">
+                        {((sidebarOpen && communicationExpanded) || !sidebarOpen) && (
+                            <div className={sidebarOpen ? "mt-1 ml-4 pl-4 border-l border-gray-700/50 space-y-1" : "mt-2 space-y-2"}>
                                 <NavLink
                                     to="/chats"
                                     onClick={() => setMobileMenuOpen(false)}
+                                    title={!sidebarOpen ? "Chats" : ""}
                                     className={({ isActive }) =>
-                                        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                        `flex transition-all duration-200
+                                        ${sidebarOpen
+                                            ? 'items-center gap-3 px-3 py-2.5 rounded-lg'
+                                            : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                        }
                                         ${isActive || location.pathname === '/'
                                             ? 'bg-green-500/20 text-green-400'
                                             : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
@@ -183,9 +183,9 @@ export default function Layout({ children }) {
                                     }
                                 >
                                     <MessageCircle className="h-4 w-4" />
-                                    <span className="text-sm font-medium flex-1">Chats</span>
+                                    <span className={`${sidebarOpen ? 'text-sm font-medium flex-1' : 'text-[10px] text-center leading-tight'}`}>Chats</span>
                                     {unreadCount > 0 && (
-                                        <div className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                                        <div className={`h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse ${!sidebarOpen ? 'absolute top-2 right-2' : ''}`} />
                                     )}
                                 </NavLink>
 
@@ -193,15 +193,21 @@ export default function Layout({ children }) {
                                     <NavLink
                                         to="/leads"
                                         onClick={() => setMobileMenuOpen(false)}
+                                        title={!sidebarOpen ? "Leads" : ""}
                                         className={({ isActive }) =>
-                                            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                            `flex transition-all duration-200
+                                            ${sidebarOpen
+                                                ? 'items-center gap-3 px-3 py-2.5 rounded-lg'
+                                                : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                            }
                                             ${isActive
                                                 ? 'bg-green-500/20 text-green-400'
                                                 : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
                                             }`
                                         }
                                     >
-                                        <span className="text-sm font-medium">Leads</span>
+                                        <Users className="h-4 w-4" />
+                                        <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Leads</span>
                                     </NavLink>
                                 )}
 
@@ -210,8 +216,13 @@ export default function Layout({ children }) {
                                     <NavLink
                                         to="/orders"
                                         onClick={() => setMobileMenuOpen(false)}
+                                        title={!sidebarOpen ? "Orders" : ""}
                                         className={({ isActive }) =>
-                                            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                            `flex transition-all duration-200
+                                            ${sidebarOpen
+                                                ? 'items-center gap-3 px-3 py-2.5 rounded-lg'
+                                                : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                            }
                                             ${isActive
                                                 ? 'bg-green-500/20 text-green-400'
                                                 : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
@@ -219,7 +230,7 @@ export default function Layout({ children }) {
                                         }
                                     >
                                         <ShoppingBag className="h-4 w-4" />
-                                        <span className="text-sm font-medium">Orders</span>
+                                        <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Orders</span>
                                     </NavLink>
                                 )}
                             </div>
@@ -232,47 +243,44 @@ export default function Layout({ children }) {
                         user?.customRole?.permissions?.includes('view_analytics') ||
                         user?.customRole?.permissions?.includes('manage_roles')) && (
                             <div className="mt-2">
-                                <button
-                                    onClick={() => {
-                                        if (sidebarOpen) {
-                                            setCompanyExpanded(!companyExpanded);
-                                        } else {
-                                            navigate('/workers');
-                                        }
-                                    }}
-                                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
-                                    ${isCompanyActive
-                                            ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-400 border border-blue-500/30'
-                                            : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
-                                        }`}
-                                >
-                                    <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
-                                        <Building2 className="h-5 w-5" />
-                                    </div>
-                                    {sidebarOpen && (
-                                        <>
-                                            <div className="flex-1 min-w-0 text-left">
-                                                <p className="font-medium text-sm">Company</p>
-                                                <p className="text-xs text-gray-500 truncate">Management</p>
-                                            </div>
-                                            {companyExpanded ? (
-                                                <ChevronDown className="h-4 w-4 text-gray-400" />
-                                            ) : (
-                                                <ChevronRight className="h-4 w-4 text-gray-400" />
-                                            )}
-                                        </>
-                                    )}
-                                </button>
+                                {sidebarOpen && (
+                                    <button
+                                        onClick={() => setCompanyExpanded(!companyExpanded)}
+                                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                                        ${isCompanyActive
+                                                ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-400 border border-blue-500/30'
+                                                : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
+                                            }`}
+                                    >
+                                        <div className="flex-shrink-0">
+                                            <Building2 className="h-5 w-5" />
+                                        </div>
+                                        <div className="flex-1 min-w-0 text-left">
+                                            <p className="font-medium text-sm">Company</p>
+                                            <p className="text-xs text-gray-500 truncate">Management</p>
+                                        </div>
+                                        {companyExpanded ? (
+                                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                                        ) : (
+                                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                )}
 
                                 {/* Sub Navigation Items */}
-                                {sidebarOpen && companyExpanded && (
-                                    <div className="mt-1 ml-4 pl-4 border-l border-gray-700/50 space-y-1">
+                                {((sidebarOpen && companyExpanded) || !sidebarOpen) && (
+                                    <div className={sidebarOpen ? "mt-1 ml-4 pl-4 border-l border-gray-700/50 space-y-1" : "mt-2 space-y-2"}>
                                         {(user?.role === 'admin' || user?.role === 'superadmin' || user?.customRole?.permissions?.includes('manage_workers')) && (
                                             <NavLink
                                                 to="/workers"
                                                 onClick={() => setMobileMenuOpen(false)}
+                                                title={!sidebarOpen ? "Agents" : ""}
                                                 className={({ isActive }) =>
-                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                    `flex transition-all duration-200
+                                                    ${sidebarOpen
+                                                        ? 'items-center gap-3 px-3 py-2.5 rounded-lg'
+                                                        : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                                    }
                                                 ${isActive
                                                         ? 'bg-blue-500/20 text-blue-400'
                                                         : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
@@ -280,7 +288,7 @@ export default function Layout({ children }) {
                                                 }
                                             >
                                                 <Users className="h-4 w-4" />
-                                                <span className="text-sm font-medium">Agents</span>
+                                                <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Agents</span>
                                             </NavLink>
                                         )}
 
@@ -288,8 +296,13 @@ export default function Layout({ children }) {
                                             <NavLink
                                                 to="/agent-status"
                                                 onClick={() => setMobileMenuOpen(false)}
+                                                title={!sidebarOpen ? "Agent Status" : ""}
                                                 className={({ isActive }) =>
-                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                    `flex transition-all duration-200
+                                                    ${sidebarOpen
+                                                        ? 'items-center gap-3 px-3 py-2.5 rounded-lg'
+                                                        : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                                    }
                                                 ${isActive
                                                         ? 'bg-blue-500/20 text-blue-400'
                                                         : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
@@ -297,7 +310,7 @@ export default function Layout({ children }) {
                                                 }
                                             >
                                                 <Clock className="h-4 w-4" />
-                                                <span className="text-sm font-medium">Agent Status</span>
+                                                <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Agent Status</span>
                                             </NavLink>
                                         )}
 
@@ -305,8 +318,13 @@ export default function Layout({ children }) {
                                             <NavLink
                                                 to="/call-analytics"
                                                 onClick={() => setMobileMenuOpen(false)}
+                                                title={!sidebarOpen ? "Call Analytics" : ""}
                                                 className={({ isActive }) =>
-                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                    `flex transition-all duration-200
+                                                    ${sidebarOpen
+                                                        ? 'items-center gap-3 px-3 py-2.5 rounded-lg'
+                                                        : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                                    }
                                                 ${isActive
                                                         ? 'bg-blue-500/20 text-blue-400'
                                                         : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
@@ -314,7 +332,7 @@ export default function Layout({ children }) {
                                                 }
                                             >
                                                 <BarChart3 className="h-4 w-4" />
-                                                <span className="text-sm font-medium">Call Analytics</span>
+                                                <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Call Analytics</span>
                                             </NavLink>
                                         )}
 
@@ -322,8 +340,13 @@ export default function Layout({ children }) {
                                             <NavLink
                                                 to="/roles"
                                                 onClick={() => setMobileMenuOpen(false)}
+                                                title={!sidebarOpen ? "Roles & Permissions" : ""}
                                                 className={({ isActive }) =>
-                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                    `flex transition-all duration-200
+                                                    ${sidebarOpen
+                                                        ? 'items-center gap-3 px-3 py-2.5 rounded-lg'
+                                                        : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                                    }
                                                 ${isActive
                                                         ? 'bg-blue-500/20 text-blue-400'
                                                         : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
@@ -331,7 +354,7 @@ export default function Layout({ children }) {
                                                 }
                                             >
                                                 <Shield className="h-4 w-4" />
-                                                <span className="text-sm font-medium">Roles & Permissions</span>
+                                                <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Roles</span>
                                             </NavLink>
                                         )}
 
@@ -339,8 +362,13 @@ export default function Layout({ children }) {
                                             <NavLink
                                                 to="/products"
                                                 onClick={() => setMobileMenuOpen(false)}
+                                                title={!sidebarOpen ? "Products" : ""}
                                                 className={({ isActive }) =>
-                                                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                                    `flex transition-all duration-200
+                                                    ${sidebarOpen
+                                                        ? 'items-center gap-3 px-3 py-2.5 rounded-lg'
+                                                        : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                                    }
                                                 ${isActive
                                                         ? 'bg-blue-500/20 text-blue-400'
                                                         : 'hover:bg-gray-700/50 text-gray-400 hover:text-white'
@@ -348,7 +376,7 @@ export default function Layout({ children }) {
                                                 }
                                             >
                                                 <ShoppingBag className="h-4 w-4" />
-                                                <span className="text-sm font-medium">Products</span>
+                                                <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Products</span>
                                             </NavLink>
                                         )}
                                     </div>
@@ -361,23 +389,26 @@ export default function Layout({ children }) {
                         <NavLink
                             to="/settings"
                             onClick={() => setMobileMenuOpen(false)}
+                            title={!sidebarOpen ? "Settings" : ""}
                             className={({ isActive }) =>
-                                `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group
+                                `flex transition-all duration-200 group
+                                ${sidebarOpen
+                                    ? 'items-center gap-3 px-3 py-3 rounded-xl'
+                                    : 'flex-col items-center justify-center gap-1 p-2 rounded-lg'
+                                }
                                 ${isActive
                                     ? 'bg-gradient-to-r from-green-500/20 to-teal-500/20 text-green-400 border border-green-500/30'
                                     : 'hover:bg-gray-700/50 text-gray-300 hover:text-white'
                                 }`
                             }
                         >
-                            <div className={`flex-shrink-0 ${sidebarOpen ? '' : 'mx-auto'}`}>
+                            <div className={`flex-shrink-0`}>
                                 <Settings className="h-5 w-5" />
                             </div>
-                            {sidebarOpen && (
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm">Settings</p>
-                                    <p className="text-xs text-gray-500 truncate">WhatsApp Configuration</p>
-                                </div>
-                            )}
+                            <div className={`${sidebarOpen ? 'flex-1 min-w-0' : ''}`}>
+                                <p className={`${sidebarOpen ? 'font-medium text-sm' : 'text-[10px] text-center leading-tight'}`}>Settings</p>
+                                {sidebarOpen && <p className="text-xs text-gray-500 truncate">WhatsApp Configuration</p>}
+                            </div>
                         </NavLink>
                     )}
                 </nav>
@@ -399,20 +430,21 @@ export default function Layout({ children }) {
                     {(user?.role === 'superadmin' || user?.companies?.length > 1 || user?.customRole?.permissions?.includes('create_company')) && (
                         <button
                             onClick={() => navigate('/select-company')}
-                            className={`mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:bg-gray-700/50 hover:text-white transition-all duration-200 ${!sidebarOpen ? 'justify-center' : ''}`}
-                            title="Switch Company"
+                            className={`mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:bg-gray-700/50 hover:text-white transition-all duration-200 ${!sidebarOpen ? 'flex-col justify-center gap-1 text-[10px]' : ''}`}
+                            title={!sidebarOpen ? "Switch Company" : "Switch Company"}
                         >
                             <Building2 className="h-5 w-5 flex-shrink-0" />
-                            {sidebarOpen && <span className="text-sm font-medium">Switch Company</span>}
+                            <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Switch</span>
                         </button>
                     )}
 
                     <button
                         onClick={handleLogout}
-                        className={`mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 ${!sidebarOpen ? 'justify-center' : ''}`}
+                        className={`mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 ${!sidebarOpen ? 'flex-col justify-center gap-1 text-[10px]' : ''}`}
+                        title={!sidebarOpen ? "Logout" : "Logout"}
                     >
                         <LogOut className="h-5 w-5 flex-shrink-0" />
-                        {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
+                        <span className={`${sidebarOpen ? 'text-sm font-medium' : 'text-[10px] text-center leading-tight'}`}>Logout</span>
                     </button>
                 </div>
             </aside >
