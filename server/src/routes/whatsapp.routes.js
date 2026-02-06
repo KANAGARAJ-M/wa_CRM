@@ -1091,6 +1091,21 @@ router.post('/', async (req, res) => {
                                             }
                                         ];
                                     }
+
+                                    // Special handling for 'view_catalog' - requires button component even if empty
+                                    if (rule.templateName === 'view_catalog') {
+                                        payload.template.components = payload.template.components || [];
+                                        // Check if button component already exists (unlikely given current logic, but safe)
+                                        const hasButton = payload.template.components.some(c => c.type === 'button');
+                                        if (!hasButton) {
+                                            payload.template.components.push({
+                                                type: 'button',
+                                                sub_type: 'CATALOG',
+                                                index: 0,
+                                                parameters: []
+                                            });
+                                        }
+                                    }
                                 }
 
                                 // Send
